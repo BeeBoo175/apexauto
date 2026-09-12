@@ -6,44 +6,7 @@ import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
 import { useAccountClosure } from "@/hooks/use-account-closure";
-import type { ClosureBlocker, RetainedCategory } from "@/lib/accounts/customer-closure";
-import styles from "./CloseAccountDialog.module.css";
-
-function BlockerList({ blockers }: { blockers: ClosureBlocker[] }) {
-  return (
-    <>
-      <p>Closing is blocked while these records still need you. Nothing is cancelled for you.</p>
-      <ul className={styles.list}>
-        {blockers.map((blocker) => (
-          <li key={`${blocker.type}-${blocker.reference}`}>
-            <strong>
-              {blocker.type} {blocker.reference}
-            </strong>
-            <span>
-              {blocker.status}
-              {blocker.branchName ? `, ${blocker.branchName}` : ""}
-            </span>
-            <span>{blocker.resolution}</span>
-          </li>
-        ))}
-      </ul>
-    </>
-  );
-}
-
-function RetainedList({ retained }: { retained: RetainedCategory[] }) {
-  return (
-    <ul className={styles.list}>
-      {retained.map((category) => (
-        <li key={category.name}>
-          <strong>{category.name}</strong>
-          <span>{category.detail}</span>
-          <span>Kept: {category.endsWhen}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
+import { BlockerList, RetainedList } from "./ClosureLists";
 
 // Closing is permanent: the sign-in identity, contact details and live name are removed, while records the business
 // must keep stay with the names listed here. The result is pseudonymized, so the dialog never calls it anonymous.

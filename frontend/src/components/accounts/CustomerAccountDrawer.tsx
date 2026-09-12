@@ -22,6 +22,7 @@ import { AccountEditDialog } from "./AccountEditDialog";
 import { AccountHistory } from "./AccountHistory";
 import { CustomerSupportDialog } from "./CustomerSupportDialog";
 import { AccountSuspensionDialog } from "./AccountSuspensionDialog";
+import { EraseAccountDialog } from "./EraseAccountDialog";
 import { StaffAccountStatus } from "./StaffAccountStatus";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import shared from "@/components/staff/StaffDetails.module.css";
@@ -49,6 +50,7 @@ export function CustomerAccountDrawer({
   const [suspension, setSuspension] = useState<"suspend" | "lift" | null>(null);
   const [support, setSupport] = useState<CustomerSupportAction | null>(null);
   const [editing, setEditing] = useState(false);
+  const [erasing, setErasing] = useState(false);
   // Bumped after an edit so the full details are read again.
   const [edits, setEdits] = useState(0);
   // A revealed number is shown only until the drawer changes customer or closes.
@@ -263,6 +265,14 @@ export function CustomerAccountDrawer({
               >
                 {suspended ? "Lift suspension" : "Suspend account"}
               </Button>
+              <Button
+                variant="danger"
+                size="compact"
+                disabled={command.busy}
+                onClick={() => setErasing(true)}
+              >
+                Erase account
+              </Button>
             </StaffWorkspaceFooter>
           )}
         </div>
@@ -306,6 +316,14 @@ export function CustomerAccountDrawer({
           return run(command.support(row.id, support, draft));
         }}
         onClose={() => setSupport(null)}
+      />
+      <EraseAccountDialog
+        kind="customer"
+        accountId={row?.id ?? null}
+        name={row?.name ?? ""}
+        open={erasing}
+        onClose={() => setErasing(false)}
+        onErased={onChanged}
       />
       <AccountSuspensionDialog
         open={suspension !== null}

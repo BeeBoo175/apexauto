@@ -21,6 +21,7 @@ import { AccountChangeDialog } from "./AccountChangeDialog";
 import { AccountEditDialog } from "./AccountEditDialog";
 import { AccountHistory } from "./AccountHistory";
 import { AccountSuspensionDialog } from "./AccountSuspensionDialog";
+import { EraseAccountDialog } from "./EraseAccountDialog";
 import { StaffAccountStatus } from "./StaffAccountStatus";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
 import shared from "@/components/staff/StaffDetails.module.css";
@@ -55,6 +56,7 @@ export function StaffAccountDrawer({
   const [change, setChange] = useState<"deactivate" | "transfer" | null>(null);
   const [suspension, setSuspension] = useState<"suspend" | "lift" | null>(null);
   const [editing, setEditing] = useState(false);
+  const [erasing, setErasing] = useState(false);
   const [changingEmail, setChangingEmail] = useState(false);
   const [email, setEmail] = useState("");
   const invitation = row?.status === "Invited" || row?.status === "InvitationExpired";
@@ -241,6 +243,16 @@ export function StaffAccountDrawer({
                   {suspended ? "Lift suspension" : "Suspend account"}
                 </Button>
               )}
+              {!invitation && !self && row.status !== "Closed" && (
+                <Button
+                  variant="danger"
+                  size="compact"
+                  disabled={command.busy}
+                  onClick={() => setErasing(true)}
+                >
+                  Erase account
+                </Button>
+              )}
             </StaffWorkspaceFooter>
           )}
         </div>
@@ -269,6 +281,14 @@ export function StaffAccountDrawer({
         command={command}
         onSubmit={(draft) => (row ? run(command.edit(row.id, draft)) : Promise.resolve(false))}
         onClose={() => setEditing(false)}
+      />
+      <EraseAccountDialog
+        kind="staff"
+        accountId={row?.id ?? null}
+        name={row?.name ?? ""}
+        open={erasing}
+        onClose={() => setErasing(false)}
+        onErased={onChanged}
       />
       <AccountSuspensionDialog
         open={suspension !== null}

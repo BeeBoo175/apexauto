@@ -30,7 +30,12 @@ public static class StaffAccountAdministrationEndpoints
             var result = await service.BlockersAsync(HttpContextActor.ActorId(context), id, token);
             return result.Status switch
             {
-                AccountAdministrationStatus.Succeeded => Results.Ok(new { blockers = result.Blockers }),
+                AccountAdministrationStatus.Succeeded => Results.Ok(new
+                {
+                    blockers = result.Blockers,
+                    // Named before the Administrator acts, like the customer preview.
+                    retained = ClosureRetention.StaffCategories
+                }),
                 AccountAdministrationStatus.Forbidden => Results.Forbid(),
                 AccountAdministrationStatus.NotFound => Results.NotFound(),
                 _ => Results.Problem(statusCode: 400, title: "Provide a valid staff account.")
