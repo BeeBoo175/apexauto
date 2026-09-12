@@ -137,7 +137,7 @@ export function parsePictureReceipt(value: unknown): { pictureId: string; status
 // The receipt of the picture that was removed; its reason tells a removal from a replacement.
 export function parseRemovedPicture(
   value: unknown,
-): { pictureId: string; removalReason: string } | null {
+): { pictureId: string; status: string; removalReason: string } | null {
   const receipt = parsePictureReceipt(value);
   if (
     !receipt ||
@@ -147,5 +147,9 @@ export function parseRemovedPicture(
   ) {
     return null;
   }
-  return { pictureId: receipt.pictureId, removalReason: value.removalReason };
+  return {
+    pictureId: receipt.pictureId,
+    status: receipt.status,
+    removalReason: value.removalReason,
+  };
 }

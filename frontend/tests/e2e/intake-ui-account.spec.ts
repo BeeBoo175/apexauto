@@ -49,11 +49,10 @@ test("staff manage their own picture on the shared account page and open a colle
 
   await page.goto("/dashboard/intake");
   const handler = page
-    .locator("tbody tr")
+    .locator("tbody td")
     .filter({ hasText: "@example.invalid" })
     .first()
-    .getByRole("button")
-    .first();
+    .getByRole("button");
   await handler.hover();
   await expect(page.getByRole("tooltip")).toBeVisible();
   await expect(page.getByRole("tooltip").locator("[data-pending='true']")).toHaveCount(0);
@@ -71,7 +70,7 @@ test("staff manage their own picture on the shared account page and open a colle
 
   // Staff land on the dashboard account page from the public address.
   await page.goto("/account");
-  await expect(page).toHaveURL(/\/dashboard\/account$/);
+  await expect(page).toHaveURL(/\/dashboard\/profile$/);
   await expect(page.getByRole("region", { name: "Your account", exact: true })).toBeVisible();
   await expect(page.getByText("Branch manager", { exact: false }).first()).toBeVisible();
   await expect(page.getByText("Work mobile", { exact: true })).toBeVisible();

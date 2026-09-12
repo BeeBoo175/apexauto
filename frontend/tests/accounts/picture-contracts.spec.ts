@@ -32,10 +32,10 @@ test("an upload receipt names the picture and its state", () => {
 test("a removal receipt distinguishes a removal from a replacement of the picture that was seen", () => {
   expect(
     parseRemovedPicture({ pictureId: id, status: "DeletionPending", removalReason: "Removed" }),
-  ).toEqual({ pictureId: id, removalReason: "Removed" });
+  ).toEqual({ pictureId: id, status: "DeletionPending", removalReason: "Removed" });
   expect(
     parseRemovedPicture({ pictureId: id, status: "Deleted", removalReason: "Replaced" }),
-  ).toEqual({ pictureId: id, removalReason: "Replaced" });
+  ).toEqual({ pictureId: id, status: "Deleted", removalReason: "Replaced" });
   expect(
     parseRemovedPicture({ pictureId: id, status: "Available", removalReason: "Removed" }),
   ).toBeNull();
