@@ -135,7 +135,7 @@ public sealed class AccountPictureStore(DealershipDbContext database, TimeProvid
         }
 
         var now = await database.DatabaseNowAsync(cancellationToken);
-        var removal = await RecordRemovalAsync(picture, AccountPictureRemovalReason.Removed, now, cancellationToken);
+        var removal = await AccountPictureRemovals.RecordAsync(database, picture, AccountPictureRemovalReason.Removed, now, cancellationToken);
 
         if (actorId != userId)
         {
@@ -157,27 +157,8 @@ public sealed class AccountPictureStore(DealershipDbContext database, TimeProvid
 
         if (previous is not null)
         {
-            await RecordRemovalAsync(previous, AccountPictureRemovalReason.Replaced, now, cancellationToken);
+            await AccountPictureRemovals.RecordAsync(database, previous, AccountPictureRemovalReason.Replaced, now, cancellationToken);
         }
-    }
-
-    // The picture update is saved first because the removal trigger verifies that the picture is already removed.
-    private async Task<AccountPictureRemoval> RecordRemovalAsync(AccountPicture picture,
-        AccountPictureRemovalReason reason, DateTimeOffset now, CancellationToken cancellationToken)
-    {
-        picture.MarkRemoved(now);
-        await database.SaveChangesAsync(cancellationToken);
-        var removal = new AccountPictureRemoval
-        {
-            PictureId = picture.Id,
-            Reason = reason,
-            EligibleAt = now,
-            RequestedAt = now,
-            NextAttemptAt = now
-        };
-        database.AccountPictureRemovals.Add(removal);
-        await database.SaveChangesAsync(cancellationToken);
-        return removal;
     }
 
     private async Task<AccountPicturePreparation> ClassifyAsync(AccountPicture picture,
@@ -230,7 +211,7 @@ public sealed class AccountPictureStore(DealershipDbContext database, TimeProvid
     private async Task<bool> LockUserAsync(Guid userId, CancellationToken cancellationToken)
     {
         return await database.Users.FromSqlInterpolated(
-            $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {userId} FOR SHARE")
+            $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {userId} AND \"ClosedAt\" IS NULL FOR SHARE")
             .AsNoTracking().AnyAsync(cancellationToken);
     }
 

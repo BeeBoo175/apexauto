@@ -37,6 +37,16 @@ public sealed class CustomerProfile
         ResidentialAddress = residentialAddress;
     }
 
+    // Closure removes the four personal fields together and marks the state; the row stays as the identity reference.
+    public void Erase(DateTimeOffset now)
+    {
+        LegalName = null;
+        Nric = null;
+        Mobile = null;
+        ResidentialAddress = null;
+        ErasedAt = now;
+    }
+
     // An administrator's edit; the NRIC and the registration identity never change here.
     public void Update(string legalName, string mobile, string residentialAddress)
     {

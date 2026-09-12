@@ -178,6 +178,7 @@ app.MapRegistrationEndpoints();
 app.MapAuthenticationEndpoints();
 app.MapAccountPictureEndpoints();
 app.MapAccountUsernameEndpoints();
+app.MapCustomerClosureEndpoints();
 app.MapStaffInvitationEndpoints();
 app.MapStaffAccountDirectoryEndpoints();
 app.MapPerformanceQueryEndpoints();

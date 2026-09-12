@@ -30,7 +30,8 @@ public sealed class CustomerSupportStore(DealershipDbContext database, TimeProvi
 
         // The event is written before the number is returned, in the same transaction: no reveal goes unlogged, and
         // a repeated operation id reveals again without a second event.
-        if (!await database.AccountEvents.AnyAsync(item => item.Id == request.OperationId, cancellationToken))
+        if (!await database.AccountEvents.AnyAsync(item => item.Id == request.OperationId && item.TargetId == customerId,
+                cancellationToken))
         {
             database.AccountEvents.Add(new AccountEvent(request.OperationId, customerId, administratorId,
                 AccountEventKind.NricRevealed, request.Reason, null, Now()));
