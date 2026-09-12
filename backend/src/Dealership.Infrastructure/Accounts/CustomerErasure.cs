@@ -72,6 +72,15 @@ internal static class CustomerErasure
             """, cancellationToken);
     }
 
+    // True while any picture of the user still waits for its object to be deleted.
+    public static async Task<bool> FileRemovalPendingAsync(DealershipDbContext database, Guid userId,
+        CancellationToken cancellationToken)
+    {
+        return await database.AccountPictureRemovals.AsNoTracking().AnyAsync(removal =>
+            removal.DeletedAt == null && database.AccountPictures.Any(picture => picture.Id == removal.PictureId &&
+                picture.UserId == userId), cancellationToken);
+    }
+
     // Unattached intake uploads and photographs of appointments that never happened get a removal receipt for the
     // shared cleanup worker; attached evidence of appointments that took place is retained. Pictures whose objects
     // are already gone drop their hash now, the rest when the worker confirms deletion.
