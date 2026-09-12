@@ -127,7 +127,7 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
                 item.Role == AccountRoles.SalesAgent && item.BranchId == sale.BranchId && item.IsActive)
             .OrderBy(item => item.Email).ThenBy(item => item.Id)
             .Select(item => new SaleAgent(item.Id, item.Email ?? string.Empty,
-                database.StaffProfiles.Where(profile => profile.UserId == item.Id).Select(profile => profile.Name)
+                database.StaffProfiles.Where(profile => profile.UserId == item.Id).Select(profile => profile.Name ?? PersonLabels.FormerEmployee)
                     .FirstOrDefault() ?? string.Empty)).ToListAsync(cancellationToken);
         return new(SaleResultStatus.Succeeded, agents);
     }

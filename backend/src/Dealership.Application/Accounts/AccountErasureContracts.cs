@@ -12,8 +12,10 @@ public enum AccountErasureStatus
     WrongPassword,
     // A customer record or an employee's open work still needs resolving; the result lists it.
     Blocked,
-    // A published sample account, or the Administrator's own account, or the last active Administrator.
+    // A published sample account, the Administrator's own account, or the last active Administrator.
     Refused,
+    // The operation id already recorded a different action on this account.
+    Conflict,
     // The Administrator's credentials changed between the password check and the lock.
     SessionChanged,
     // The database rolled the attempt back for a lock conflict; nothing was changed.
@@ -47,6 +49,9 @@ public interface IAccountErasureStore
         CancellationToken cancellationToken);
 
     Task<IReadOnlyList<Guid>> UnreleasedBillRequestsAsync(Guid customerId, CancellationToken cancellationToken);
+
+    Task<AccountErasureResult> EraseStaffAsync(Guid administratorId, Guid staffId, AccountErasureRequest request,
+        string verifiedSecurityStamp, CancellationToken cancellationToken);
 
     Task<AccountErasureResult> EraseCustomerAsync(Guid administratorId, Guid customerId, AccountErasureRequest request,
         string verifiedSecurityStamp, CancellationToken cancellationToken);

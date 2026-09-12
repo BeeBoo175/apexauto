@@ -55,7 +55,7 @@ internal static class StaffTestDriveRows
                    HandlerId = assignment == null ? null : assignment.HandlerId,
                    HandlerEmail = database.Users.Where(user => user.Id == assignment!.HandlerId).Select(user => user.Email).FirstOrDefault(),
                    HandlerName = database.StaffProfiles.Where(profile => profile.UserId == assignment!.HandlerId)
-                       .Select(profile => profile.Name).FirstOrDefault(),
+                       .Select(profile => profile.Name ?? PersonLabels.FormerEmployee).FirstOrDefault(),
                    HandlerPictureId = database.AccountPictures
                        .Where(AccountPicture.Current).Where(picture => picture.UserId == assignment!.HandlerId)
                        .Select(picture => (Guid?)picture.Id).FirstOrDefault(),

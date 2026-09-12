@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Application.Inspections;
 using Dealership.Domain.Inspections;
 using Dealership.Infrastructure.Persistence;
@@ -37,7 +38,7 @@ internal static class InspectionDraftProjection
                 .ToArrayAsync(cancellationToken);
             var technician = await database.StaffProfiles.AsNoTracking()
                 .Where(profile => profile.UserId == draft.TechnicianId)
-                .Select(profile => profile.Name).FirstOrDefaultAsync(cancellationToken);
+                .Select(profile => profile.Name ?? PersonLabels.FormerEmployee).FirstOrDefaultAsync(cancellationToken);
             draft = draft with
             {
                 LatestSave = latest?.Receipt(),

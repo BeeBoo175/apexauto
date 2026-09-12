@@ -40,7 +40,7 @@ public sealed class StaffInvitationMailSource(DealershipDbContext database, Auth
             [$"This link expires in {StaffInvitationPolicy.LifetimeHours} hours and works once. If you were not expecting this invitation, ignore this message."],
             "Activate account",
             link);
-        return new OutboundMail(invitation.Email, "You are invited to ApexAuto",
+        return new OutboundMail(MailRecipient.Require(invitation.Email), "You are invited to ApexAuto",
             MailTemplate.RenderText(layout), MailTemplate.Render(layout));
     }
 }

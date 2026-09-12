@@ -35,7 +35,7 @@ public sealed class PerformanceWorkloadReads(DealershipDbContext database) : IPe
                             select new
                             {
                                 user.Id,
-                                profile.Name,
+                                Name = profile.Name ?? PersonLabels.FormerEmployee,
                                 user.Role,
                                 BranchId = branch.Id,
                                 BranchName = branch.Name,

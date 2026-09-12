@@ -32,7 +32,7 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
         var items = await technicians.OrderBy(item => item.UserName).ThenBy(item => item.Id)
             .Select(item => new InspectionTechnician(item.Id,
                 database.StaffProfiles.Where(profile => profile.UserId == item.Id)
-                    .Select(profile => profile.Name).FirstOrDefault() ?? item.UserName!,
+                    .Select(profile => profile.Name ?? PersonLabels.FormerEmployee).FirstOrDefault() ?? item.UserName!,
                 database.AccountPictures.Where(AccountPicture.Current).Where(picture => picture.UserId == item.Id)
                     .Select(picture => (Guid?)picture.Id).FirstOrDefault()))
             .ReadPageAsync(page, pageSize, total, cancellationToken);

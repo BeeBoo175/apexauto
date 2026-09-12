@@ -100,9 +100,9 @@ public sealed class StaffAccountDirectory(DealershipDbContext database) : IStaff
                select new DirectoryRow
                {
                    Id = user.Id,
-                   Name = staff.Name,
+                   Name = staff.Name ?? PersonLabels.FormerEmployee,
                    Email = user.Email!,
-                   Mobile = staff.Mobile,
+                   Mobile = staff.Mobile ?? string.Empty,
                    Role = user.Role,
                    BranchId = user.BranchId,
                    BranchName = branch.Name,
@@ -123,9 +123,9 @@ public sealed class StaffAccountDirectory(DealershipDbContext database) : IStaff
                select new DirectoryRow
                {
                    Id = invitation.Id,
-                   Name = invitation.Name,
-                   Email = invitation.Email,
-                   Mobile = invitation.Mobile,
+                   Name = invitation.Name!,
+                   Email = invitation.Email!,
+                   Mobile = invitation.Mobile!,
                    Role = invitation.Role,
                    BranchId = invitation.BranchId,
                    BranchName = branch.Name,

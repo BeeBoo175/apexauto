@@ -20,7 +20,7 @@ public sealed class AccountProfileQuery(DealershipDbContext database) : IAccount
                       from branch in branches.DefaultIfEmpty()
                       join picture in database.AccountPictures.Where(AccountPicture.Current) on user.Id equals picture.UserId into pictures
                       from picture in pictures.DefaultIfEmpty()
-                      select new AccountProfile(user.Id, user.Role, customer.LegalName ?? staff.Name,
+                      select new AccountProfile(user.Id, user.Role, (customer.LegalName ?? staff.Name)!,
                           user.AccountUsername!, user.Email!, user.EmailConfirmed, user.BranchId, branch.Name,
                           staff.Mobile, (Guid?)picture.Id))
             .SingleOrDefaultAsync(cancellationToken);

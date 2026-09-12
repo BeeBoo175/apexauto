@@ -5,6 +5,19 @@ public static class ClosureRetention
 {
     private const string SevenYears = "Up to seven years after the related sale, hold or refund ends";
 
+    // What survives an employee's erasure: work attribution by identity, never the name or contact details.
+    public static IReadOnlyList<RetainedCategory> StaffCategories { get; } = Array.AsReadOnly<RetainedCategory>(
+    [
+        new("Signed inspection reports", "Reports the employee signed keep the technician identity written on them, " +
+            "as signed evidence.", SevenYears),
+        new("Work history", "Appointments, test drives, sales and listings keep the employee as an anonymous reference " +
+            "number; screens show \"Former employee\" instead of the name.", SevenYears),
+        new("Account history", "A record that the account was erased, with its time and the Administrator who did it, " +
+            "stays. Earlier reasons and changed values in the account history are removed.", "No end date"),
+        new("Earlier copies", "Emails already delivered stay in the inbox they reached, and backups made before today " +
+            "can contain the employee's details until they are discarded.", "Outside this application")
+    ]);
+
     public static IReadOnlyList<RetainedCategory> Categories { get; } = Array.AsReadOnly<RetainedCategory>(
     [
         new("Issued sale documents", "Your name, NRIC and residential address stay on purchase orders, receipts and " +

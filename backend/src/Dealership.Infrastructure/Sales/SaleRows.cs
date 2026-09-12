@@ -88,7 +88,7 @@ internal static class SaleRows
             // The SQL left join returns a null email when no agent is assigned.
             Agent = agent.Email,
             AgentName = database.StaffProfiles.Where(profile => profile.UserId == sale.AgentId)
-                .Select(profile => profile.Name).FirstOrDefault(),
+                .Select(profile => profile.Name ?? PersonLabels.FormerEmployee).FirstOrDefault(),
             AgentPictureId = database.AccountPictures
                 .Where(AccountPicture.Current).Where(picture => picture.UserId == sale.AgentId)
                 .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
@@ -139,7 +139,7 @@ internal static class SaleRows
             AgentId = request.BookedByStaffId,
             Agent = staff.Email,
             AgentName = database.StaffProfiles.Where(item => item.UserId == request.BookedByStaffId)
-                .Select(item => item.Name).FirstOrDefault(),
+                .Select(item => item.Name ?? PersonLabels.FormerEmployee).FirstOrDefault(),
             AgentPictureId = database.AccountPictures
                 .Where(AccountPicture.Current).Where(picture => picture.UserId == request.BookedByStaffId)
                 .Select(picture => (Guid?)picture.Id).FirstOrDefault(),

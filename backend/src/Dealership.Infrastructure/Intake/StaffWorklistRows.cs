@@ -132,7 +132,7 @@ internal static class StaffWorklistRows
                     OwnershipVersion = row.Row.OwnershipVersion,
                     HandlerEmail = database.Users.Where(user => user.Id == row.Row.HandlerId).Select(user => user.Email).FirstOrDefault(),
                     HandlerName = database.StaffProfiles.Where(profile => profile.UserId == row.Row.HandlerId)
-                        .Select(profile => profile.Name).FirstOrDefault(),
+                        .Select(profile => profile.Name ?? PersonLabels.FormerEmployee).FirstOrDefault(),
                     HandlerPictureId = database.AccountPictures
                         .Where(AccountPicture.Current).Where(picture => picture.UserId == row.Row.HandlerId)
                         .Select(picture => (Guid?)picture.Id).FirstOrDefault(),

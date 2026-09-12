@@ -17,7 +17,8 @@ public sealed class StaffInvitationConfiguration : IEntityTypeConfiguration<Staf
                 "((\"Role\" IN ('SalesAgent', 'WorkshopTechnician', 'BranchManager') AND \"BranchId\" IS NOT NULL) OR " +
                 "(\"Role\" IN ('GeneralManager', 'Administrator') AND \"BranchId\" IS NULL))");
             table.HasCheckConstraint("CK_StaffInvitations_Profile",
-                "\"Name\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]'");
+                "(\"Email\" IS NOT NULL AND \"Name\" IS NOT NULL AND \"Mobile\" IS NOT NULL AND \"Name\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]') OR " +
+                "(\"ActivatedAt\" IS NOT NULL AND \"Email\" IS NULL AND \"Name\" IS NULL AND \"Mobile\" IS NULL)");
             table.HasCheckConstraint("CK_StaffInvitations_Lifetime",
                 "\"ExpiresAt\" > \"CreatedAt\" AND \"DeliveryAttempts\" >= 0");
             // An invitation is activated or revoked, never both.
@@ -28,15 +29,15 @@ public sealed class StaffInvitationConfiguration : IEntityTypeConfiguration<Staf
         });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
-        builder.Property(item => item.Email).HasMaxLength(AccountCredentialPolicy.EmailMaximumLength).IsRequired();
+        builder.Property(item => item.Email).HasMaxLength(AccountCredentialPolicy.EmailMaximumLength);
         // One pending invitation per email ignoring case; revoking or activating releases it.
         builder.Property<string>("NormalizedEmail").HasMaxLength(AccountCredentialPolicy.EmailMaximumLength)
             .HasComputedColumnSql("upper(\"Email\")", stored: true);
         builder.HasIndex("NormalizedEmail").HasDatabaseName("StaffInvitationPendingEmailIndex").IsUnique()
             .HasFilter("\"ActivatedAt\" IS NULL AND \"RevokedAt\" IS NULL");
         builder.Property(item => item.Role).HasMaxLength(32).IsRequired();
-        builder.Property(item => item.Name).HasMaxLength(StaffProfile.NameMaximumLength).IsRequired();
-        builder.Property(item => item.Mobile).HasMaxLength(StaffProfile.MobileMaximumLength).IsRequired();
+        builder.Property(item => item.Name).HasMaxLength(StaffProfile.NameMaximumLength);
+        builder.Property(item => item.Mobile).HasMaxLength(StaffProfile.MobileMaximumLength);
         builder.HasIndex(item => item.NextDeliveryAt);
         builder.HasIndex(item => item.BranchId);
         builder.HasIndex(item => item.InvitedById);

@@ -12,13 +12,14 @@ public sealed class StaffProfileConfiguration : IEntityTypeConfiguration<StaffPr
         builder.ToTable("StaffProfiles", table =>
         {
             table.HasCheckConstraint("CK_StaffProfiles_RequiredText",
-                "\"Name\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]'");
+                "(\"ErasedAt\" IS NULL AND \"Name\" IS NOT NULL AND \"Mobile\" IS NOT NULL AND \"Name\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]') OR " +
+                "(\"ErasedAt\" IS NOT NULL AND \"Name\" IS NULL AND \"Mobile\" IS NULL)");
         });
         builder.HasKey(profile => profile.UserId);
         // A profile shares its user's key; RESTRICT prevents deleting the referenced account.
         builder.HasOne<AccountUser>().WithOne().HasForeignKey<StaffProfile>(profile => profile.UserId)
             .OnDelete(DeleteBehavior.Restrict);
-        builder.Property(profile => profile.Name).HasMaxLength(StaffProfile.NameMaximumLength).IsRequired();
-        builder.Property(profile => profile.Mobile).HasMaxLength(StaffProfile.MobileMaximumLength).IsRequired();
+        builder.Property(profile => profile.Name).HasMaxLength(StaffProfile.NameMaximumLength);
+        builder.Property(profile => profile.Mobile).HasMaxLength(StaffProfile.MobileMaximumLength);
     }
 }

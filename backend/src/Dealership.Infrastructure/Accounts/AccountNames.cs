@@ -13,7 +13,7 @@ internal static class AccountNames
     {
         var wanted = ids.Where(id => id is not null).Select(id => id!.Value).Distinct().ToArray();
         var names = await database.StaffProfiles.AsNoTracking().Where(profile => wanted.Contains(profile.UserId))
-            .ToDictionaryAsync(profile => profile.UserId, profile => profile.Name, cancellationToken);
+            .ToDictionaryAsync(profile => profile.UserId, profile => profile.Name ?? PersonLabels.FormerEmployee, cancellationToken);
         var customers = await database.CustomerProfiles.AsNoTracking()
             .Where(profile => wanted.Contains(profile.UserId))
             .ToDictionaryAsync(profile => profile.UserId, profile => profile.LegalName ?? PersonLabels.FormerCustomer,

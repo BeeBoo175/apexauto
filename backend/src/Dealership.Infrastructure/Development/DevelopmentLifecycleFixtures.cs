@@ -188,7 +188,7 @@ public sealed class DevelopmentLifecycleFixtures(DealershipDbContext database, S
 
         // The service also releases provider bills, which this customer never has, and needs the payment gateway
         // that the fixture host omits; the password check and the locked command below are the same ones it runs.
-        var check = await closures.VerifyPasswordAsync(customerId.Value, requested.Password, cancellationToken);
+        var check = await closures.VerifyPasswordAsync(customerId.Value, requested.Password!, cancellationToken);
         if (check.Outcome != ClosurePasswordOutcome.Verified)
         {
             return new(name, $"password {check.Outcome}", true);

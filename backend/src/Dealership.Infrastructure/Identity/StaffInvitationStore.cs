@@ -44,7 +44,7 @@ public sealed class StaffInvitationStore(DealershipDbContext database, UserManag
                 return Result(StaffInvitationStatus.Invalid);
             }
 
-            if (await EmailHasAccountAsync(invitation.Email, cancellationToken))
+            if (await EmailHasAccountAsync(invitation.Email!, cancellationToken))
             {
                 return Result(StaffInvitationStatus.EmailTaken);
             }
@@ -184,7 +184,7 @@ public sealed class StaffInvitationStore(DealershipDbContext database, UserManag
             .Where(branch => branch.Id == invitation.BranchId).Select(branch => branch.Name)
             .SingleOrDefaultAsync(cancellationToken);
         return new PublicStaffInvitationResult(StaffInvitationStatus.Succeeded,
-            new PublicStaffInvitation(invitation.Name, invitation.Role, branchName));
+            new PublicStaffInvitation(invitation.Name!, invitation.Role, branchName));
     }
 
     public async Task<StaffInvitationResult> ActivateAsync(string token, string password, string username,
@@ -220,7 +220,7 @@ public sealed class StaffInvitationStore(DealershipDbContext database, UserManag
                 return Result(StaffInvitationStatus.Unavailable);
             }
 
-            if (await EmailHasAccountAsync(invitation.Email, cancellationToken))
+            if (await EmailHasAccountAsync(invitation.Email!, cancellationToken))
             {
                 return Result(StaffInvitationStatus.EmailTaken);
             }
@@ -245,7 +245,7 @@ public sealed class StaffInvitationStore(DealershipDbContext database, UserManag
                     ? StaffInvitationStatus.EmailTaken : StaffInvitationStatus.Invalid);
             }
 
-            database.StaffProfiles.Add(new StaffProfile(user.Id, invitation.Name, invitation.Mobile));
+            database.StaffProfiles.Add(new StaffProfile(user.Id, invitation.Name!, invitation.Mobile!));
             invitation.ActivatedAt = now;
             invitation.ActivatedUserId = user.Id;
             await database.SaveChangesAsync(cancellationToken);

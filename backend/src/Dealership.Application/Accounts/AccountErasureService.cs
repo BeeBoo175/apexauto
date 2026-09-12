@@ -17,8 +17,16 @@ public sealed class AccountErasureService(IAccountErasureStore store, Reservatio
             ? Task.FromResult<AccountErasurePreview?>(null)
             : store.PreviewAsync(administratorId, customerId, staff: false, cancellationToken);
 
-    public async Task<AccountErasureResult> EraseCustomerAsync(Guid administratorId, Guid customerId,
-        AccountErasureRequest request, CancellationToken cancellationToken)
+    public Task<AccountErasureResult> EraseCustomerAsync(Guid administratorId, Guid customerId,
+        AccountErasureRequest request, CancellationToken cancellationToken) =>
+        EraseAsync(administratorId, customerId, request, staff: false, cancellationToken);
+
+    public Task<AccountErasureResult> EraseStaffAsync(Guid administratorId, Guid staffId,
+        AccountErasureRequest request, CancellationToken cancellationToken) =>
+        EraseAsync(administratorId, staffId, request, staff: true, cancellationToken);
+
+    private async Task<AccountErasureResult> EraseAsync(Guid administratorId, Guid customerId,
+        AccountErasureRequest request, bool staff, CancellationToken cancellationToken)
     {
         var reason = request.Reason?.Trim();
         if (administratorId == Guid.Empty || customerId == Guid.Empty || request.OperationId == Guid.Empty ||
@@ -39,10 +47,15 @@ public sealed class AccountErasureService(IAccountErasureStore store, Reservatio
             return applied;
         }
 
-        var preview = await store.PreviewAsync(administratorId, customerId, staff: false, cancellationToken);
+        var preview = await store.PreviewAsync(administratorId, customerId, staff, cancellationToken);
         if (preview is null)
         {
             return new(AccountErasureStatus.NotFound);
+        }
+
+        if (staff && preview.StaffBlockers.Count > 0)
+        {
+            return new(AccountErasureStatus.Blocked, null, preview.StaffBlockers);
         }
 
         if (preview.CustomerBlockers.Any(item => item.Type != ClosureBlockerTypes.DepositBill))
@@ -58,12 +71,19 @@ public sealed class AccountErasureService(IAccountErasureStore store, Reservatio
                 : AccountErasureStatus.Forbidden);
         }
 
+        var confirmed = request with { Reason = reason };
+        if (staff)
+        {
+            return await store.EraseStaffAsync(administratorId, customerId, confirmed, password.SecurityStamp!,
+                cancellationToken);
+        }
+
         foreach (var requestId in await store.UnreleasedBillRequestsAsync(customerId, cancellationToken))
         {
             await payments.ReleaseBillAsync(requestId, cancellationToken);
         }
 
-        return await store.EraseCustomerAsync(administratorId, customerId, request with { Reason = reason },
-            password.SecurityStamp!, cancellationToken);
+        return await store.EraseCustomerAsync(administratorId, customerId, confirmed, password.SecurityStamp!,
+            cancellationToken);
     }
 }

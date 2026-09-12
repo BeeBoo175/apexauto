@@ -25,7 +25,14 @@ public sealed class AccountErasureStore(DealershipDbContext database, IPasswordH
         var receipt = await database.AccountEvents.AsNoTracking().SingleOrDefaultAsync(item => item.Id == operationId &&
             item.TargetId == targetId && item.Kind == AccountEventKind.Erased && item.ActorId == administratorId,
             cancellationToken);
-        return receipt is null ? null : await ErasedAsync(targetId, receipt.Id, receipt.RecordedAt, cancellationToken);
+        if (receipt is null)
+        {
+            return null;
+        }
+
+        var staff = await database.Users.AsNoTracking().AnyAsync(user => user.Id == targetId &&
+            user.Role != AccountRoles.Customer, cancellationToken);
+        return await ErasedAsync(targetId, receipt.Id, receipt.RecordedAt, staff, cancellationToken);
     }
 
     public async Task<AccountErasurePreview?> PreviewAsync(Guid administratorId, Guid targetId, bool staff,
@@ -113,7 +120,7 @@ public sealed class AccountErasureStore(DealershipDbContext database, IPasswordH
             item.ActorId == administratorId, cancellationToken);
         if (receipt is not null)
         {
-            return await ErasedAsync(customerId, receipt.Id, receipt.RecordedAt, cancellationToken);
+            return await ErasedAsync(customerId, receipt.Id, receipt.RecordedAt, staff: false, cancellationToken);
         }
 
         var actor = await database.Users.FromSqlInterpolated(
@@ -157,14 +164,89 @@ public sealed class AccountErasureStore(DealershipDbContext database, IPasswordH
         await CustomerErasure.ApplyAsync(database, customerId, profile, request.OperationId, administratorId,
             request.Reason, recorded, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return await ErasedAsync(customerId, request.OperationId, recorded, cancellationToken);
+        return await ErasedAsync(customerId, request.OperationId, recorded, staff: false, cancellationToken);
+    }
+
+    public async Task<AccountErasureResult> EraseStaffAsync(Guid administratorId, Guid staffId,
+        AccountErasureRequest request, string verifiedSecurityStamp, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await EraseStaffLockedAsync(administratorId, staffId, request, verifiedSecurityStamp,
+                cancellationToken);
+            if (result.Receipt is { FileRemovalPending: true })
+            {
+                cleanup.Request();
+            }
+
+            return result;
+        }
+        catch (Exception failure) when (ClosureLocks.IsLockConflict(failure))
+        {
+            database.ChangeTracker.Clear();
+            return new(AccountErasureStatus.RetryLater);
+        }
+    }
+
+    // The Administrator rows lock in id order with the target, so two erasures can never leave no Administrator.
+    private async Task<AccountErasureResult> EraseStaffLockedAsync(Guid administratorId, Guid staffId,
+        AccountErasureRequest request, string verifiedSecurityStamp, CancellationToken cancellationToken)
+    {
+        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
+        await ClosureLocks.LockOwnerAsync(database, staffId, cancellationToken);
+        var locked = await AdministratorScope.LockTargetAsync(database, administratorId, staffId, request.OperationId,
+            lockAdministrators: true, cancellationToken);
+        switch (locked.Outcome)
+        {
+            case AdministratorTargetOutcome.Forbidden:
+                return new(AccountErasureStatus.Forbidden);
+            case AdministratorTargetOutcome.Replayed:
+                var applied = await FindReceiptAsync(administratorId, staffId, request.OperationId, cancellationToken);
+                return applied ?? new(AccountErasureStatus.Conflict);
+            case AdministratorTargetOutcome.NotFound:
+                return new(AccountErasureStatus.NotFound);
+        }
+
+        var actor = locked.Administrators!.Single(item => item.Id == administratorId);
+        if (actor.SecurityStamp != verifiedSecurityStamp)
+        {
+            return new(AccountErasureStatus.SessionChanged);
+        }
+
+        var user = locked.User!;
+        if (user.Role == AccountRoles.Customer)
+        {
+            return new(AccountErasureStatus.NotFound);
+        }
+
+        if (user.Id == administratorId || SampleAccountProtection.IsProtectedStaff(user.Id) ||
+            (user.Role == AccountRoles.Administrator && user.IsActive &&
+                !locked.Administrators!.Any(item => item.Id != user.Id)))
+        {
+            return new(AccountErasureStatus.Refused);
+        }
+
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        var blockers = await StaffWorkBlockers.ReadAsync(database, staffId, now, cancellationToken);
+        if (blockers.Count > 0)
+        {
+            return new(AccountErasureStatus.Blocked, null, blockers);
+        }
+
+        var profile = await database.StaffProfiles.FromSqlInterpolated(
+            $"SELECT * FROM \"StaffProfiles\" WHERE \"UserId\" = {staffId} FOR UPDATE").SingleAsync(cancellationToken);
+        var recorded = UtcTime.TruncateToMicroseconds(now);
+        await StaffErasure.ApplyAsync(database, staffId, profile, request.OperationId, administratorId, request.Reason,
+            recorded, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return await ErasedAsync(staffId, request.OperationId, recorded, staff: true, cancellationToken);
     }
 
     private async Task<AccountErasureResult> ErasedAsync(Guid userId, Guid receiptId, DateTimeOffset erasedAt,
-        CancellationToken cancellationToken)
+        bool staff, CancellationToken cancellationToken)
     {
         var pending = await CustomerErasure.FileRemovalPendingAsync(database, userId, cancellationToken);
-        return new(AccountErasureStatus.Erased, null, null,
-            new CustomerClosureReceipt(receiptId, erasedAt, pending, ClosureRetention.Categories));
+        return new(AccountErasureStatus.Erased, null, null, new CustomerClosureReceipt(receiptId, erasedAt, pending,
+            staff ? ClosureRetention.StaffCategories : ClosureRetention.Categories));
     }
 }

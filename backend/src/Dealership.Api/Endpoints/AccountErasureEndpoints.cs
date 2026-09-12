@@ -44,6 +44,7 @@ public static class AccountErasureEndpoints
             AccountErasureStatus.NotFound => Results.NotFound(),
             AccountErasureStatus.WrongPassword => Results.Json(new { code = "wrong-password" }, statusCode: 409),
             AccountErasureStatus.Refused => Results.Json(new { code = "protected" }, statusCode: 409),
+            AccountErasureStatus.Conflict => Results.Json(new { code = "conflict" }, statusCode: 409),
             AccountErasureStatus.SessionChanged => Results.Json(new { code = "session-changed" }, statusCode: 409),
             AccountErasureStatus.RetryLater => Results.Json(new { code = "retry-later" }, statusCode: 409),
             AccountErasureStatus.Blocked => Results.Json(new { code = "blocked", blockers = result.CustomerBlockers },

@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Domain.Accounts;
 using Dealership.Application.Performance;
 using Dealership.Infrastructure.Persistence;
@@ -26,7 +27,7 @@ internal sealed class TeamPeople
                           select new
                           {
                               user.Id,
-                              profile.Name,
+                              Name = profile.Name ?? PersonLabels.FormerEmployee,
                               user.Role,
                               user.IsActive,
                               user.BranchId,

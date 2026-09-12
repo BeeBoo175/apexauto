@@ -26,15 +26,16 @@ public sealed class StaffInvitation : IMailDeliveryState
 
     public Guid Id { get; init; }
 
-    public string Email { get; set; } = string.Empty;
+    // Email, name and mobile are NULL together once the activated person is erased.
+    public string? Email { get; set; }
 
     public string Role { get; init; } = string.Empty;
 
     public Guid? BranchId { get; init; }
 
-    public string Name { get; init; } = string.Empty;
+    public string? Name { get; set; }
 
-    public string Mobile { get; init; } = string.Empty;
+    public string? Mobile { get; set; }
 
     public Guid InvitedById { get; init; }
 

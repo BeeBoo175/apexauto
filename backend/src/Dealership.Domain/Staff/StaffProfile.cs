@@ -44,10 +44,21 @@ public sealed class StaffProfile
         Mobile = mobile;
     }
 
+    // Erasure removes both personal fields together and marks the state; the row stays as the identity reference.
+    public void Erase(DateTimeOffset now)
+    {
+        Name = null;
+        Mobile = null;
+        ErasedAt = now;
+    }
+
     public Guid UserId { get; private set; }
 
-    public string Name { get; private set; } = string.Empty;
+    // NULL together with the mobile once the employee is erased; ErasedAt marks that state.
+    public string? Name { get; private set; }
 
     // A work number, visible to every staff member.
-    public string Mobile { get; private set; } = string.Empty;
+    public string? Mobile { get; private set; }
+
+    public DateTimeOffset? ErasedAt { get; private set; }
 }

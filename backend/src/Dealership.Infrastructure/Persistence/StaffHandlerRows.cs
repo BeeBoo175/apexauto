@@ -24,7 +24,7 @@ internal static class StaffHandlerRows
         }
 
         var name = await database.StaffProfiles.AsNoTracking().Where(profile => profile.UserId == id)
-            .Select(profile => profile.Name).FirstOrDefaultAsync(cancellationToken);
+            .Select(profile => profile.Name ?? PersonLabels.FormerEmployee).FirstOrDefaultAsync(cancellationToken);
         var pictureId = await database.AccountPictures.AsNoTracking()
             .Where(AccountPicture.Current).Where(picture => picture.UserId == id)
             .Select(picture => (Guid?)picture.Id).FirstOrDefaultAsync(cancellationToken);
@@ -38,7 +38,7 @@ internal static class StaffHandlerRows
             .OrderBy(user => user.Email).ThenBy(user => user.Id)
             .Select(user => new StaffHandler(user.Id, user.Email ?? string.Empty,
                 database.StaffProfiles.Where(profile => profile.UserId == user.Id)
-                    .Select(profile => profile.Name).FirstOrDefault() ?? string.Empty,
+                    .Select(profile => profile.Name ?? PersonLabels.FormerEmployee).FirstOrDefault() ?? string.Empty,
                 database.AccountPictures.Where(AccountPicture.Current).Where(picture => picture.UserId == user.Id)
                     .Select(picture => (Guid?)picture.Id).FirstOrDefault()))
             .ToArrayAsync(cancellationToken);
