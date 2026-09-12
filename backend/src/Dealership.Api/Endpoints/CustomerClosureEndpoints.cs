@@ -19,7 +19,10 @@ public static class CustomerClosureEndpoints
         return await BoundedRead.RunAsync(async token =>
         {
             var blockers = await service.BlockersAsync(HttpContextActor.ActorId(context), token);
-            return blockers is null ? Results.Forbid() : Results.Ok(new { blockers });
+            // The retained categories travel with the blockers so the confirmation can name them before the customer acts.
+            return blockers is null
+                ? Results.Forbid()
+                : Results.Ok(new { blockers, retained = ClosureRetention.Categories });
         }, "Account closure details are temporarily unavailable.", cancellationToken);
     }
 

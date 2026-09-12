@@ -16,6 +16,7 @@ export const accountEventTitles: Record<string, string> = {
   SessionsRevoked: "Sessions ended",
   VerificationResent: "Verification email sent",
   ResetSent: "Password reset email sent",
+  Erased: "Account closed and erased",
 };
 
 export interface AccountEventChange {

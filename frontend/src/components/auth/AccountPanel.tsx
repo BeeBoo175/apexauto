@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { CloseAccountDialog } from "./CloseAccountDialog";
 import { UsernameDialog } from "./UsernameDialog";
 import { useAccountUsername } from "@/hooks/use-account-username";
 import { Avatar } from "@/components/ui/Avatar";
@@ -30,6 +31,7 @@ export function AccountPanel({ profile }: { profile: AccountProfile }) {
   const picture = useAccountPicture(profile.userId, profile.pictureId);
   const username = useAccountUsername(profile.username);
   const [usernameOpen, setUsernameOpen] = useState(false);
+  const [closeOpen, setCloseOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   let logoutLabel = "Sign out";
@@ -167,12 +169,28 @@ export function AccountPanel({ profile }: { profile: AccountProfile }) {
             </Button>
           </dd>
         </div>
+        {isCustomer && (
+          <div className={styles.row}>
+            <dt className={styles.label}>Close account</dt>
+            <dd className={styles.value}>
+              <span className={styles.help}>
+                Permanently end your access and remove your personal details.
+              </span>
+            </dd>
+            <dd className={styles.control}>
+              <Button variant="danger" disabled={logout.busy} onClick={() => setCloseOpen(true)}>
+                Close account
+              </Button>
+            </dd>
+          </div>
+        )}
       </dl>
       <UsernameDialog
         account={username}
         open={usernameOpen}
         onClose={() => setUsernameOpen(false)}
       />
+      {isCustomer && <CloseAccountDialog open={closeOpen} onClose={() => setCloseOpen(false)} />}
     </div>
   );
 }
