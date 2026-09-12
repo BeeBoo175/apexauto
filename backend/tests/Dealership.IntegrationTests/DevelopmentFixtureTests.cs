@@ -358,6 +358,29 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
                 await AssertLoginAsync(staffClient, account.Email, HttpStatusCode.Forbidden);
             }
         }
+
+        await AssertErasedCustomerAsync();
+    }
+
+    // The former customer was erased by the production command: no sign-in, no identity, and the receipt remains.
+    private async Task AssertErasedCustomerAsync()
+    {
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(),
+            DevelopmentLifecycleManifest.ErasedCustomer.Registration.Email!, DevelopmentFixtureManifest.Password));
+        Assert.Equal(HttpStatusCode.Unauthorized, login.StatusCode);
+        await using var database = new DealershipDbContext(new DbContextOptionsBuilder<DealershipDbContext>()
+            .UseNpgsql(fixture.Database.RuntimeConnectionString).Options);
+        var receipt = await database.AccountEvents.AsNoTracking()
+            .SingleAsync(item => item.Id == DevelopmentLifecycleManifest.ErasedCustomerOperationId);
+        Assert.Equal(Dealership.Domain.Accounts.AccountEventKind.Erased, receipt.Kind);
+        var user = await database.Users.AsNoTracking().SingleAsync(item => item.Id == receipt.TargetId);
+        Assert.NotNull(user.ClosedAt);
+        Assert.Null(user.Email);
+        var profile = await database.CustomerProfiles.AsNoTracking().SingleAsync(item => item.UserId == user.Id);
+        Assert.NotNull(profile.ErasedAt);
+        Assert.Null(profile.LegalName);
     }
 
     // A suspended account keeps its password but cannot sign in.

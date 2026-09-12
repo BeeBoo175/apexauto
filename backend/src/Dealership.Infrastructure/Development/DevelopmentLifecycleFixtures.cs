@@ -1,4 +1,5 @@
 using Dealership.Application.Accounts;
+using Dealership.Domain.Accounts;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -44,12 +45,23 @@ public static class DevelopmentLifecycleManifest
     public static Guid SuspendedCustomerOperationId { get; } = Guid.Parse("2ed5a29f-d889-4c3f-8c8e-8bc46ae9dce5");
 
     public const string SuspendedCustomerReason = "Chargeback dispute under review";
+
+    // A customer who registered through the normal flow and later closed the account with their own password, so the
+    // erased state is created by the production command. The registration key sits outside the sample protection.
+    public static DevelopmentCustomerFixture ErasedCustomer { get; } = new(new RegistrationRequest(
+        Guid.Parse("b3a6c47e-1d5f-4e0a-9c8b-6f2d7a1e4b93"), "Farah Aminah Rashid", "farah.aminah@example.invalid",
+        DevelopmentFixtureManifest.Password, "980412105566", "014-3329187", "9 Jalan Bukit Jelutong, Shah Alam, Selangor",
+        "farah.aminah"), true);
+
+    // The closure's operation id is its receipt, which is how a closed account is found once its email is removed.
+    public static Guid ErasedCustomerOperationId { get; } = Guid.Parse("7e1f0c52-8b64-4d2a-a3c9-0b5e6d4f1a28");
 }
 
 // Applies the lifecycle states the account views show, through the same services an Administrator uses, last in
 // the run so earlier fixtures still see every account as active.
 public sealed class DevelopmentLifecycleFixtures(DealershipDbContext database, StaffProvisioningService provisioning,
-    StaffAccountAdministrationService administration, AccountSuspensionService suspensions)
+    StaffAccountAdministrationService administration, AccountSuspensionService suspensions,
+    DevelopmentCustomerFixtures customers, ICustomerClosureStore closures)
 {
     public async Task<IReadOnlyList<DevelopmentFixtureReport>> RunAsync(bool seed, CancellationToken cancellationToken)
     {
@@ -66,6 +78,7 @@ public sealed class DevelopmentLifecycleFixtures(DealershipDbContext database, S
         }
 
         reports.Add(await SuspendCustomerAsync(administratorId, seed, cancellationToken));
+        reports.Add(await EraseCustomerAsync(seed, cancellationToken));
         return reports;
     }
 
@@ -140,5 +153,50 @@ public sealed class DevelopmentLifecycleFixtures(DealershipDbContext database, S
                 DevelopmentLifecycleManifest.SuspendedCustomerReason, false, false), cancellationToken);
         return status == AccountSuspensionStatus.Succeeded ? new(name, "created", false)
             : new(name, $"suspend {status}", true);
+    }
+
+    // Registered and verified like any customer, then closed through the self-service command, last of all so no
+    // earlier fixture needs the account. Review finds it by the closure receipt, since the email no longer exists.
+    private async Task<DevelopmentFixtureReport> EraseCustomerAsync(bool seed, CancellationToken cancellationToken)
+    {
+        var requested = DevelopmentLifecycleManifest.ErasedCustomer.Registration;
+        var name = "Lifecycle erasure (former customer)";
+        if (await database.AccountEvents.AnyAsync(item => item.Id == DevelopmentLifecycleManifest.ErasedCustomerOperationId &&
+                item.Kind == AccountEventKind.Erased, cancellationToken))
+        {
+            return new(name, "matches", false);
+        }
+
+        if (!seed)
+        {
+            return new(name, "missing", true);
+        }
+
+        var registered = await customers.SeedAsync(DevelopmentLifecycleManifest.ErasedCustomer, cancellationToken);
+        if (registered.RequiresAttention)
+        {
+            return new(name, $"registration {registered.State}", true);
+        }
+
+        var normalized = requested.Email!.ToUpperInvariant();
+        var customerId = await database.Users.AsNoTracking().Where(user => user.NormalizedEmail == normalized)
+            .Select(user => (Guid?)user.Id).SingleOrDefaultAsync(cancellationToken);
+        if (customerId is null)
+        {
+            return new(name, "registration missing", true);
+        }
+
+        // The service also releases provider bills, which this customer never has, and needs the payment gateway
+        // that the fixture host omits; the password check and the locked command below are the same ones it runs.
+        var check = await closures.VerifyPasswordAsync(customerId.Value, requested.Password, cancellationToken);
+        if (check.Outcome != ClosurePasswordOutcome.Verified)
+        {
+            return new(name, $"password {check.Outcome}", true);
+        }
+
+        var result = await closures.CloseAsync(customerId.Value, DevelopmentLifecycleManifest.ErasedCustomerOperationId,
+            check.SecurityStamp!, cancellationToken);
+        return result.Status == CustomerClosureStatus.Closed ? new(name, "created", false)
+            : new(name, $"closure {result.Status}", true);
     }
 }
