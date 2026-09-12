@@ -1164,13 +1164,14 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("ErasedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Mobile")
-                        .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
@@ -1178,7 +1179,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("StaffProfiles", null, t =>
                         {
-                            t.HasCheckConstraint("CK_StaffProfiles_RequiredText", "\"Name\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]'");
+                            t.HasCheckConstraint("CK_StaffProfiles_RequiredText", "(\"ErasedAt\" IS NULL AND \"Name\" IS NOT NULL AND \"Mobile\" IS NOT NULL AND \"Name\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]') OR (\"ErasedAt\" IS NOT NULL AND \"Name\" IS NULL AND \"Mobile\" IS NULL)");
                         });
                 });
 
@@ -2584,7 +2585,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasMaxLength(254)
                         .HasColumnType("character varying(254)");
 
@@ -2595,12 +2595,10 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Mobile")
-                        .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
@@ -2656,7 +2654,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_StaffInvitations_Outcome", "(\"ActivatedAt\" IS NULL OR \"RevokedAt\" IS NULL) AND (\"ActivatedAt\" IS NULL) = (\"ActivatedUserId\" IS NULL) AND (\"RevokedAt\" IS NULL) = (\"RevokedById\" IS NULL)");
 
-                            t.HasCheckConstraint("CK_StaffInvitations_Profile", "\"Name\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]'");
+                            t.HasCheckConstraint("CK_StaffInvitations_Profile", "(\"Email\" IS NOT NULL AND \"Name\" IS NOT NULL AND \"Mobile\" IS NOT NULL AND \"Name\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]') OR (\"ActivatedAt\" IS NOT NULL AND \"Email\" IS NULL AND \"Name\" IS NULL AND \"Mobile\" IS NULL)");
 
                             t.HasCheckConstraint("CK_StaffInvitations_Role", "\"Role\" IN ('SalesAgent', 'WorkshopTechnician', 'BranchManager', 'GeneralManager', 'Administrator') AND ((\"Role\" IN ('SalesAgent', 'WorkshopTechnician', 'BranchManager') AND \"BranchId\" IS NOT NULL) OR (\"Role\" IN ('GeneralManager', 'Administrator') AND \"BranchId\" IS NULL))");
                         });
