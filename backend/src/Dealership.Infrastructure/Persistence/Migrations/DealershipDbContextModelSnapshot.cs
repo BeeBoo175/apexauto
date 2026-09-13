@@ -2131,7 +2131,6 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("AccountHolder")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
@@ -2179,6 +2178,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("ReservationRefunds", null, t =>
                         {
+                            t.HasCheckConstraint("CK_ReservationRefunds_Holder", "\"AccountHolder\" IS NOT NULL OR \"State\" = 'Completed'");
+
                             t.HasCheckConstraint("CK_ReservationRefunds_Shape", "\"AmountSen\" > 0 AND \"Attempt\" >= 1 AND isfinite(\"RequestedAt\") AND \"State\" IN ('Processing', 'Completed', 'Failed') AND (\"State\" = 'Processing' AND \"SettledAt\" IS NULL OR \"State\" <> 'Processing' AND isfinite(\"SettledAt\") AND \"SettledAt\" >= \"RequestedAt\")");
                         });
                 });
