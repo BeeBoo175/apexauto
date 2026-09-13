@@ -16,6 +16,7 @@ import {
   type SettingsSection,
   type Warranty,
 } from "@/lib/settings/settings";
+import { parseRetentionSettings, type RetentionSettings } from "@/lib/settings/retention";
 import { useBoundedRead } from "./use-bounded-read";
 import type { SettingsEntry } from "./use-settings-client-entry";
 
@@ -37,6 +38,11 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
   const [settings, setSettings] = useState<PurchaseSettings | null>(entry.settings?.data ?? null);
   // The settings record is created by provisioning, so a confirmed 404 is a state of its own, not a failed read.
   const [settingsMissing, setSettingsMissing] = useState(entry.settings?.status === 404);
+  const [retention, setRetention] = useState<RetentionSettings | null>(
+    entry.retention?.data ?? null,
+  );
+  // Like the purchase settings, the retention record comes from provisioning, so a confirmed 404 is its own state.
+  const [retentionMissing, setRetentionMissing] = useState(entry.retention?.status === 404);
   const [promos, setPromos] = useState(snapshot(entry, entry.promos?.data));
   const [warranties, setWarranties] = useState(snapshot(entry, entry.warranties?.data));
   const { busy, ready, begin, isCurrent, end, cancel } = useBoundedRead();
@@ -79,6 +85,20 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
           setSettings(result.data);
           setSettingsMissing(false);
         }
+      } else if (next === "retention") {
+        const result = await privateApiFetch(path, parseRetentionSettings, options);
+        if (!isCurrent(attempt)) {
+          return null;
+        }
+        if (result.status === 404) {
+          setRetention(null);
+          setRetentionMissing(true);
+        } else if (result.status !== 200 || !result.data) {
+          throw new Error("Settings unavailable");
+        } else {
+          setRetention(result.data);
+          setRetentionMissing(false);
+        }
       } else {
         const result =
           next === "promos"
@@ -120,6 +140,9 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
     settings,
     settingsMissing,
     setSettings,
+    retention,
+    retentionMissing,
+    setRetention,
     promos,
     warranties,
     busy,

@@ -6,6 +6,8 @@ import type { SearchParams } from "@/lib/query";
 import { privateApiFetch } from "@/lib/api-browser";
 import { apiReadError, unavailableResult, type ApiResult, type Page } from "@/lib/api";
 import type { SettingsSelectionPath } from "@/lib/settings/settings-location";
+import { isRecordSection } from "@/lib/settings/settings";
+import { parseRetentionSettings, type RetentionSettings } from "@/lib/settings/retention";
 import {
   listParams,
   parsePromo,
@@ -28,6 +30,7 @@ export interface SettingsEntry {
   filters: ListFilters;
   page: number;
   settings: ApiResult<PurchaseSettings> | null;
+  retention: ApiResult<RetentionSettings> | null;
   promos: ApiResult<Page<Promo>> | null;
   warranties: ApiResult<Page<Warranty>> | null;
   // A record named in the URL is read with the section so its drawer opens populated on direct entry.
@@ -58,6 +61,7 @@ export function useSettingsClientEntry(parameters: SearchParams, selection: Sett
     const warrantyId = section === "warranties" ? selection.id : "";
     const [
       settings,
+      retention,
       promos,
       warranties,
       selectedPromo,
@@ -65,6 +69,7 @@ export function useSettingsClientEntry(parameters: SearchParams, selection: Sett
       { SettingsWorkspace: Workspace },
     ] = await Promise.all([
       section === "settings" ? privateApiFetch(path, parseSettings, { signal }) : null,
+      section === "retention" ? privateApiFetch(path, parseRetentionSettings, { signal }) : null,
       section === "promos" ? privateApiFetch(path, parsePromos, { signal }) : null,
       section === "warranties" ? privateApiFetch(path, parseWarranties, { signal }) : null,
       promoId
@@ -80,12 +85,14 @@ export function useSettingsClientEntry(parameters: SearchParams, selection: Sett
     const list = promos?.data ?? warranties?.data ?? null;
     // A missing settings record (404) still opens the workspace, so its Promos and Warranties sections stay reachable
     // and the Settings section can say the record is not set up; any other failed read keeps the retry notice.
-    if (
+    const recordUnavailable =
       (section === "settings" && !settings?.data && settings?.status !== 404) ||
-      (section !== "settings" &&
-        (!list || list.page !== page || list.pageSize !== filters.pageSize))
-    ) {
-      throw apiReadError("Settings unavailable", settings, promos, warranties);
+      (section === "retention" && !retention?.data && retention?.status !== 404);
+    const listUnavailable =
+      !isRecordSection(section) &&
+      (!list || list.page !== page || list.pageSize !== filters.pageSize);
+    if (recordUnavailable || listUnavailable) {
+      throw apiReadError("Settings unavailable", settings, retention, promos, warranties);
     }
     return {
       Workspace,
@@ -93,6 +100,7 @@ export function useSettingsClientEntry(parameters: SearchParams, selection: Sett
       filters,
       page,
       settings,
+      retention,
       promos,
       warranties,
       promoId,

@@ -9,9 +9,18 @@ export const settingsSections = [
   { value: "settings", label: "Settings" },
   { value: "promos", label: "Promos" },
   { value: "warranties", label: "Warranty packages" },
+  { value: "retention", label: "Retention" },
 ] as const;
 
 export type SettingsSection = (typeof settingsSections)[number]["value"];
+
+// Settings and Retention each show one record; Promos and Warranties show lists with a record drawer.
+export type RecordSection = "settings" | "retention";
+export type ListSection = Exclude<SettingsSection, RecordSection>;
+
+export function isRecordSection(section: SettingsSection): section is RecordSection {
+  return section === "settings" || section === "retention";
+}
 
 export const warrantyGrades = ["A", "B", "C"] as const;
 export type WarrantyGrade = (typeof warrantyGrades)[number];
@@ -299,13 +308,16 @@ export function listUrlQuery(filters: ListFilters, page = 1) {
   return query;
 }
 
-export function recordPath(section: Exclude<SettingsSection, "settings">, id: string) {
+export function recordPath(section: ListSection, id: string) {
   return `/api/staff/settings/${section}/${id}`;
 }
 
 export function sectionPath(section: SettingsSection, filters: ListFilters, page = 1) {
   if (section === "settings") {
     return "/api/staff/settings";
+  }
+  if (section === "retention") {
+    return "/api/staff/settings/retention";
   }
   return `/api/staff/settings/${section}?${listQuery(filters, page)}`;
 }

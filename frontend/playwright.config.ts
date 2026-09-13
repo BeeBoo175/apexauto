@@ -67,6 +67,7 @@ export default defineConfig({
         "accounts/accounts-location-contracts.spec.ts",
         "accounts/account-sections-contracts.spec.ts",
         "settings/settings-location-contracts.spec.ts",
+        "settings/retention-contracts.spec.ts",
         "home/home-location-contracts.spec.ts",
         "intake/contracts.spec.ts",
         "intake/work-calendar-contracts.spec.ts",

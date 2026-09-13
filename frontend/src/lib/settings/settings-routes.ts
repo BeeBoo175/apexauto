@@ -19,17 +19,21 @@ import {
 } from "@/lib/server/http/staff-relay";
 import { hasSettingsAccess, warrantyGrades } from "./settings";
 
-export type SettingsResource = "settings" | "promos" | "warranties";
+export type SettingsResource = "settings" | "promos" | "warranties" | "retention";
 
 const upstream: Record<SettingsResource, string> = {
   settings: "/api/staff/settings",
+  retention: "/api/staff/settings/retention",
   promos: "/api/staff/promos",
   warranties: "/api/staff/warranties",
 };
 
 const listKeys = ["page", "pageSize", "search", "view", "sort", "direction"];
 // The browser uses one neutral column-filter vocabulary; each upstream resource names its own columns.
-const columnKeys: Record<Exclude<SettingsResource, "settings">, Record<string, string>> = {
+const columnKeys: Record<
+  Exclude<SettingsResource, "settings" | "retention">,
+  Record<string, string>
+> = {
   promos: {
     text: "code",
     minimum: "minimumDiscount",
@@ -75,7 +79,7 @@ export async function relaySettingsRead<T>(
     }
     const source = new URL(request.url).searchParams;
     const allowed = new URLSearchParams();
-    if (id === null && resource !== "settings") {
+    if (id === null && resource !== "settings" && resource !== "retention") {
       const listed = allowedQuery(source, listKeys);
       listed.forEach((value, key) => allowed.set(key, value));
       for (const [key, upstreamKey] of Object.entries(columnKeys[resource])) {
@@ -210,4 +214,25 @@ export function shapeWarrantyUpdate(body: Body) {
   return terms && isPositiveInteger(body.expectedVersion)
     ? { ...terms, expectedVersion: body.expectedVersion }
     : null;
+}
+
+export function shapeRetention(body: Body) {
+  const durations = [
+    body.securityArtifactDays,
+    body.mailDetailDays,
+    body.invitationDays,
+    body.businessEvidenceYears,
+    body.expectedVersion,
+  ];
+  if (!durations.every(isPositiveInteger) || typeof body.shorteningConfirmed !== "boolean") {
+    return null;
+  }
+  return {
+    securityArtifactDays: body.securityArtifactDays,
+    mailDetailDays: body.mailDetailDays,
+    invitationDays: body.invitationDays,
+    businessEvidenceYears: body.businessEvidenceYears,
+    expectedVersion: body.expectedVersion,
+    shorteningConfirmed: body.shorteningConfirmed,
+  };
 }

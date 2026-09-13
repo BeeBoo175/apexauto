@@ -13,9 +13,11 @@ import type { SettingsEntry } from "@/hooks/use-settings-client-entry";
 import { useSettingsAddress } from "@/hooks/use-settings-address";
 import { useGuardedAction } from "@/hooks/use-guarded-action";
 import { promoStatuses, settingsSections, warrantyStatuses } from "@/lib/settings/settings";
+import type { RetentionDraft } from "@/lib/settings/retention";
 import type { SettingsDraft } from "@/lib/settings/settings-draft";
 import { MasterDataTable } from "./MasterDataTable";
 import { PromoDrawer } from "./PromoDrawer";
+import { RetentionForm } from "./RetentionForm";
 import { SettingsForm } from "./SettingsForm";
 import { WarrantyDrawer } from "./WarrantyDrawer";
 import { promoTableFilters, warrantyTableFilters, type LoadList } from "./settings-filters";
@@ -29,6 +31,7 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
   const interaction = useGuardedAction();
   const animateEntry = useContext(StaffPageEntranceContext);
   const [draft, setDraft] = useState<SettingsDraft | null>(null);
+  const [retentionDraft, setRetentionDraft] = useState<RetentionDraft | null>(null);
   const [editingLocked, setEditingLocked] = useState(false);
   const [creating, setCreating] = useState<"promo" | "warranty" | null>(null);
   const { section, settings, promos, warranties, busy } = state;
@@ -59,15 +62,14 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
     );
   }
 
-  // The purchase settings record is created by provisioning, never by this page, so a 404 says it does not exist yet.
-  function notSetUp() {
+  // Settings records are created by provisioning, never by this page, so a 404 says one does not exist yet.
+  function notSetUp(record: string) {
     return (
       <>
         {tabs}
         <div className={styles.fillNotice}>
           <EmptyNotice icon="table" title="Settings are not set up">
-            The purchase settings record has not been created yet. Reload the page once it has been
-            set up.
+            {`The ${record} record has not been created yet. Reload the page once it has been set up.`}
           </EmptyNotice>
         </div>
       </>
@@ -91,9 +93,29 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
         </>
       );
     } else if (state.settingsMissing) {
-      body = notSetUp();
+      body = notSetUp("purchase settings");
     } else {
       body = unavailable("Settings");
+    }
+  } else if (section === "retention") {
+    if (state.retention) {
+      body = (
+        <>
+          {tabs}
+          <RetentionForm
+            settings={state.retention}
+            draft={retentionDraft}
+            busy={busy}
+            onDraft={setRetentionDraft}
+            onSaved={state.setRetention}
+            onLocked={setEditingLocked}
+          />
+        </>
+      );
+    } else if (state.retentionMissing) {
+      body = notSetUp("retention settings");
+    } else {
+      body = unavailable("Retention settings");
     }
   } else if (section === "promos") {
     const table = promos ? promoTableFilters(promos.filters, busy, promoStatuses, loadList) : null;

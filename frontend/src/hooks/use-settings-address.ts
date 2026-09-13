@@ -3,10 +3,12 @@
 import { privateApiFetch } from "@/lib/api-browser";
 import {
   emptyListFilters,
+  isRecordSection,
   parsePromo,
   parseWarranty,
   recordPath,
   type ListFilters,
+  type ListSection,
   type SettingsSection,
 } from "@/lib/settings/settings";
 import {
@@ -21,7 +23,12 @@ import type { useSettingsWorkspace } from "./use-settings-workspace";
 import { useSelectedRecord, useStaffAddress, type AddressMode } from "./use-staff-address";
 import { useStaffSelection } from "./use-staff-selection";
 
-type ListSection = Exclude<SettingsSection, "settings">;
+function selectedRecordId(entry: SettingsEntry) {
+  if (entry.section === "promos") {
+    return entry.promoId;
+  }
+  return entry.section === "warranties" ? entry.warrantyId : "";
+}
 
 // Settings address: the path selects the section and the record, the query holds the list that section shows.
 // A section switch or an applied list change pushes; a refresh or a post-write read replaces. Back and Forward
@@ -32,7 +39,7 @@ export function useSettingsAddress(
 ) {
   const initial: SettingsState = {
     section: entry.section,
-    id: entry.section === "promos" ? entry.promoId : entry.warrantyId,
+    id: selectedRecordId(entry),
     filters: entry.filters,
     page: entry.page,
   };
@@ -65,11 +72,12 @@ export function useSettingsAddress(
   });
   const drawers = { promos: promoDrawer, warranties: warrantyDrawer };
   const { section } = workspace;
-  useSelectedRecord(section === "settings" ? "" : drawers[section].id);
+  useSelectedRecord(isRecordSection(section) ? "" : drawers[section].id);
 
   function shown() {
     const snapshots = {
       settings: null,
+      retention: null,
       promos: workspace.promos,
       warranties: workspace.warranties,
     };
@@ -94,10 +102,10 @@ export function useSettingsAddress(
     if (!confirmed) {
       return false;
     }
-    if (previous !== "settings" && previous !== confirmed.section) {
+    if (!isRecordSection(previous) && previous !== confirmed.section) {
       drawers[previous].close(false);
     }
-    const id = confirmed.section === "settings" ? "" : drawers[confirmed.section].id;
+    const id = isRecordSection(confirmed.section) ? "" : drawers[confirmed.section].id;
     address.update({ ...confirmed, id }, mode);
     return true;
   }

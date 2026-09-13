@@ -1,6 +1,7 @@
 import { isUuid } from "@/lib/auth/contracts";
 import {
   emptyListFilters,
+  isRecordSection,
   listParams,
   listUrlQuery,
   type ListFilters,
@@ -12,13 +13,14 @@ export const settingsWorkspace = "/dashboard/settings";
 const sectionSegments = {
   promos: "promos",
   warranties: "warranties",
+  retention: "retention",
 } as const;
 
 export type SettingsSelectionPath = { section: SettingsSection; id: string };
 
 export type SettingsState = SettingsSelectionPath & { filters: ListFilters; page: number };
 
-// Shapes: /dashboard/settings, /dashboard/settings/promos[/<id>] and /dashboard/settings/warranties[/<id>].
+// Shapes: /dashboard/settings, /dashboard/settings/retention, and /dashboard/settings/promos[/<id>] or /warranties[/<id>].
 export function settingsSelectionPath(pathname: string): SettingsSelectionPath | null {
   if (pathname === settingsWorkspace) {
     return { section: "settings", id: "" };
@@ -28,7 +30,12 @@ export function settingsSelectionPath(pathname: string): SettingsSelectionPath |
   }
   const [segment, id = "", ...extra] = pathname.slice(settingsWorkspace.length + 1).split("/");
   const section = Object.entries(sectionSegments).find(([, value]) => value === segment)?.[0];
-  if (!section || extra.length > 0 || (id !== "" && !isUuid(id))) {
+  if (
+    !section ||
+    extra.length > 0 ||
+    (id !== "" && !isUuid(id)) ||
+    (section === "retention" && id !== "")
+  ) {
     return null;
   }
   return { section: section as SettingsSection, id };
@@ -50,7 +57,7 @@ export function settingsSelectionHref({ section, id }: SettingsSelectionPath) {
 
 export function settingsHref(state: SettingsState) {
   const path = settingsSelectionHref(state);
-  if (state.section === "settings") {
+  if (isRecordSection(state.section)) {
     return path;
   }
   const query = listUrlQuery(state.filters, state.page);
@@ -62,10 +69,9 @@ export function settingsLocation(pathname: string, search: string) {
   if (!selection) {
     return null;
   }
-  const { filters, page } =
-    selection.section === "settings"
-      ? { filters: emptyListFilters, page: 1 }
-      : listParams(Object.fromEntries(new URLSearchParams(search)), selection.section);
+  const { filters, page } = isRecordSection(selection.section)
+    ? { filters: emptyListFilters, page: 1 }
+    : listParams(Object.fromEntries(new URLSearchParams(search)), selection.section);
   const state: SettingsState = { ...selection, filters, page };
   return { ...state, href: settingsHref(state) };
 }
