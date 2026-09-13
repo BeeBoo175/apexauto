@@ -15,9 +15,10 @@ public sealed class PasswordResetChallengeConfiguration : IEntityTypeConfigurati
             table.HasCheckConstraint("CK_PasswordResetChallenges_Attempts", "\"DeliveryAttempts\" >= 0");
             table.HasCheckConstraint("CK_PasswordResetChallenges_Receipt", """
                 ("ConsumedAt" IS NULL AND "CompletedSecurityStamp" IS NULL) OR
-                ("ConsumedAt" IS NOT NULL AND "CompletedSecurityStamp" IS NOT NULL AND
-                 length("CompletedSecurityStamp") > 0 AND "ConsumedAt" >= "CreatedAt" AND
-                 "ConsumedAt" < "ExpiresAt" AND "InvalidatedAt" IS NULL)
+                ("ConsumedAt" IS NOT NULL AND
+                 (("CompletedSecurityStamp" IS NOT NULL AND length("CompletedSecurityStamp") > 0) OR
+                  ("CompletedSecurityStamp" IS NULL AND "MinimizedAt" IS NOT NULL)) AND
+                 "ConsumedAt" >= "CreatedAt" AND "ConsumedAt" < "ExpiresAt" AND "InvalidatedAt" IS NULL)
                 """);
             table.HasCheckConstraint("CK_PasswordResetChallenges_Identity", """
                 "Id" <> '00000000-0000-0000-0000-000000000000'::uuid AND ("RecipientEmail" IS NULL OR "RecipientEmail" ~ '[^[:space:]]')

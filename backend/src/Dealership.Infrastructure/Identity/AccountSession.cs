@@ -6,11 +6,14 @@ public sealed class AccountSession
 
     public Guid UserId { get; init; }
 
-    public string SecurityStamp { get; init; } = string.Empty;
+    // NULL once the retention executor has minimized the expired or revoked session.
+    public string? SecurityStamp { get; init; } = string.Empty;
 
     public DateTimeOffset CreatedAt { get; init; }
 
     public DateTimeOffset ExpiresAt { get; init; }
 
     public DateTimeOffset? RevokedAt { get; private set; }
+
+    public DateTimeOffset? MinimizedAt { get; private set; }
 }

@@ -4,6 +4,7 @@ using System.Text;
 using Dealership.Application.Accounts;
 using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Retention;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -14,7 +15,7 @@ namespace Dealership.Infrastructure.Identity;
 
 public sealed class AccountSessionStore(DealershipDbContext database, UserManager<AccountUser> users,
     IOptions<JwtSettings> settings, TimeProvider clock, MissingAccountPasswordHash missingAccountHash,
-    IPasswordHasher<AccountUser> passwordHasher) : IAccountSessionStore
+    IPasswordHasher<AccountUser> passwordHasher, RetentionSignal retention) : IAccountSessionStore
 {
     public async Task<LoginSession?> LoginAsync(Guid loginKey, string email, string password, CancellationToken cancellationToken)
     {
@@ -83,6 +84,8 @@ public sealed class AccountSessionStore(DealershipDbContext database, UserManage
         }
 
         await transaction.CommitAsync(cancellationToken);
+        // The first sign-in after a host wakes is the named activity that lets the retention executor catch up.
+        retention.Request();
         return result;
     }
 

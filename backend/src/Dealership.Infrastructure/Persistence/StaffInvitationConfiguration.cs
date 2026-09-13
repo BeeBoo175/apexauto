@@ -17,8 +17,9 @@ public sealed class StaffInvitationConfiguration : IEntityTypeConfiguration<Staf
                 "((\"Role\" IN ('SalesAgent', 'WorkshopTechnician', 'BranchManager') AND \"BranchId\" IS NOT NULL) OR " +
                 "(\"Role\" IN ('GeneralManager', 'Administrator') AND \"BranchId\" IS NULL))");
             table.HasCheckConstraint("CK_StaffInvitations_Profile",
-                "(\"Email\" IS NOT NULL AND \"Name\" IS NOT NULL AND \"Mobile\" IS NOT NULL AND \"Name\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]') OR " +
-                "(\"ActivatedAt\" IS NOT NULL AND \"Email\" IS NULL AND \"Name\" IS NULL AND \"Mobile\" IS NULL)");
+                "(\"MinimizedAt\" IS NULL AND \"Email\" IS NOT NULL AND \"Name\" IS NOT NULL AND \"Mobile\" IS NOT NULL AND " +
+                "\"Name\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]') OR " +
+                "((\"ActivatedAt\" IS NOT NULL OR \"MinimizedAt\" IS NOT NULL) AND \"Email\" IS NULL AND \"Name\" IS NULL AND \"Mobile\" IS NULL)");
             table.HasCheckConstraint("CK_StaffInvitations_Lifetime",
                 "\"ExpiresAt\" > \"CreatedAt\" AND \"DeliveryAttempts\" >= 0");
             // An invitation is activated or revoked, never both.

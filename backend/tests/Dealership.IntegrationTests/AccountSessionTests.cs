@@ -245,7 +245,7 @@ public sealed class AccountSessionTests(RegistrationDatabase database) : IClassF
                 .Replace("@newId", "'00000000-0000-0000-0000-000000000000'::uuid", StringComparison.Ordinal), PostgresErrorCodes.CheckViolation),
             (string.Format(System.Globalization.CultureInfo.InvariantCulture, copy, "@orphan", "\"SecurityStamp\"", "\"ExpiresAt\"", "NULL"), PostgresErrorCodes.ForeignKeyViolation),
             (string.Format(System.Globalization.CultureInfo.InvariantCulture, copy, "\"UserId\"", "\"SecurityStamp\"", "\"CreatedAt\"", "NULL"), PostgresErrorCodes.CheckViolation),
-            (string.Format(System.Globalization.CultureInfo.InvariantCulture, copy, "\"UserId\"", "NULL", "\"ExpiresAt\"", "NULL"), PostgresErrorCodes.NotNullViolation),
+            (string.Format(System.Globalization.CultureInfo.InvariantCulture, copy, "\"UserId\"", "NULL", "\"ExpiresAt\"", "NULL"), PostgresErrorCodes.CheckViolation),
             (string.Format(System.Globalization.CultureInfo.InvariantCulture, copy, "\"UserId\"", "' '", "\"ExpiresAt\"", "NULL"), PostgresErrorCodes.CheckViolation),
             (string.Format(System.Globalization.CultureInfo.InvariantCulture, copy, "\"UserId\"", "\"SecurityStamp\"", "\"ExpiresAt\"", "\"CreatedAt\" - interval '1 second'"), PostgresErrorCodes.CheckViolation),
             ("INSERT INTO \"AccountSessions\" SELECT * FROM \"AccountSessions\" WHERE \"Id\" = @id", PostgresErrorCodes.UniqueViolation),

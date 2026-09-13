@@ -80,7 +80,9 @@ public sealed class IntakePhotoFixture : IAsyncLifetime, IAsyncDisposable
                 {
                     ["Email:Mode"] = "Disabled",
                     ["AWS:BucketName"] = _bucket,
-                    ["IntakePhotos:CleanupEnabled"] = "false"
+                    ["IntakePhotos:CleanupEnabled"] = "false",
+                    // Retention scenarios own execution, as the expiry scenarios do.
+                    ["Retention:Enabled"] = "false"
                 };
 
                 if (unsubmittedLifetimeHours is not null)

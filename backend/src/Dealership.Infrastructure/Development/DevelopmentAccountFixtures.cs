@@ -1,3 +1,4 @@
+using Dealership.Domain.Accounts;
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
 using Dealership.Application.Vehicles;
@@ -85,7 +86,41 @@ public sealed class DevelopmentAccountFixtures(DealershipDbContext database, Dev
         }
 
         reports.Add(await PurchaseSettingsAsync(seed, cancellationToken));
+        reports.Add(await RetentionSettingsAsync(seed, cancellationToken));
         return reports;
+    }
+
+    // Like the purchase settings, the retention record comes from provisioning and never from a page read; an
+    // existing record, including one an Administrator changed, is reviewed and never overwritten.
+    private async Task<DevelopmentFixtureReport> RetentionSettingsAsync(bool seed, CancellationToken cancellationToken)
+    {
+        var administratorId = DevelopmentFixtureManifest.Staff.Single(item => item.Role == AccountRoles.Administrator).Id;
+        var created = false;
+        if (seed)
+        {
+            created = await database.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO "RetentionSettings" ("Id", "SecurityArtifactDays", "MailDetailDays", "InvitationDays",
+                    "BusinessEvidenceYears", "UpdatedById", "UpdatedAtUtc", "Version")
+                VALUES (1, {RetentionSettings.DefaultDays}, {RetentionSettings.DefaultDays},
+                    {RetentionSettings.DefaultDays}, {RetentionSettings.DefaultBusinessYears}, {administratorId}, now(), 1)
+                ON CONFLICT ("Id") DO NOTHING
+                """, cancellationToken) == 1;
+        }
+
+        var existing = await database.RetentionSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        var matches = existing is
+        {
+            SecurityArtifactDays: RetentionSettings.DefaultDays,
+            MailDetailDays: RetentionSettings.DefaultDays, InvitationDays: RetentionSettings.DefaultDays,
+            BusinessEvidenceYears: RetentionSettings.DefaultBusinessYears
+        };
+        if (!seed)
+        {
+            return new("Retention settings", matches ? "matches" : existing is null ? "missing" : "drift; preserved",
+                !matches);
+        }
+
+        return Report("Retention settings", created, matches);
     }
 
     // The settings record is created here, by the seeds, and never by a page read: the minimal and the demo seed both

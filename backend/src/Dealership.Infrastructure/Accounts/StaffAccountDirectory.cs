@@ -117,7 +117,8 @@ public sealed class StaffAccountDirectory(DealershipDbContext database) : IStaff
     private IQueryable<DirectoryRow> Invitations(DateTimeOffset now)
     {
         return from invitation in database.StaffInvitations.AsNoTracking()
-               where invitation.ActivatedAt == null && invitation.RevokedAt == null
+                   // A minimized (retired) invitation has no contact left to list.
+               where invitation.ActivatedAt == null && invitation.RevokedAt == null && invitation.Email != null
                join branch in database.Branches.AsNoTracking() on invitation.BranchId equals branch.Id into branches
                from branch in branches.DefaultIfEmpty()
                select new DirectoryRow

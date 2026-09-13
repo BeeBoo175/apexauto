@@ -13,7 +13,7 @@ public sealed class StaffInvitationMailSource(DealershipDbContext database, Auth
         var now = clock.GetUtcNow();
         var candidates = database.StaffInvitations.FromSqlInterpolated($"""
             SELECT * FROM "StaffInvitations"
-            WHERE "DeliveredAt" IS NULL AND "ActivatedAt" IS NULL AND "RevokedAt" IS NULL
+            WHERE "DeliveredAt" IS NULL AND "ActivatedAt" IS NULL AND "RevokedAt" IS NULL AND "Email" IS NOT NULL
               AND "ExpiresAt" > {now} AND "NextDeliveryAt" <= {now}
               AND ("DeliveryClaimExpiresAt" IS NULL OR "DeliveryClaimExpiresAt" <= {now})
             ORDER BY "NextDeliveryAt", "CreatedAt", "Id"

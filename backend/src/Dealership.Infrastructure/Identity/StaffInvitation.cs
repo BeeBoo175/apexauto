@@ -66,7 +66,11 @@ public sealed class StaffInvitation : IMailDeliveryState
 
     public DateTimeOffset? DeliveredAt { get; set; }
 
-    public bool IsPending(DateTimeOffset now) => ActivatedAt is null && RevokedAt is null && ExpiresAt > now;
+    // Set once by the retention executor, which clears email, name and mobile of a terminal invitation.
+    public DateTimeOffset? MinimizedAt { get; private set; }
+
+    public bool IsPending(DateTimeOffset now) => ActivatedAt is null && RevokedAt is null && ExpiresAt > now &&
+        Email is not null;
 
     // Queues a fresh send with a new link and the full lifetime.
     public void Renew(DateTimeOffset now)

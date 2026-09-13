@@ -20,6 +20,9 @@ public sealed class PasswordResetChallenge : IMailDeliveryState
 
     public string? CompletedSecurityStamp { get; set; }
 
+    // Set once by the retention executor, which clears the recipient and the completed stamp of a terminal link.
+    public DateTimeOffset? MinimizedAt { get; private set; }
+
     public int DeliveryAttempts { get; set; }
 
     public DateTimeOffset NextDeliveryAt { get; set; }

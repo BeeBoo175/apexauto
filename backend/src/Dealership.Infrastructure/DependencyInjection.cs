@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Retention;
 using Dealership.Application.Photos;
 using Dealership.Infrastructure.Configuration;
 using Dealership.Application.Accounts;
@@ -37,6 +38,10 @@ public static class DependencyInjection
         services.AddSingleton<MailDeliverySignal>();
         services.AddSingleton<PhotoCleanupSignal>();
         services.AddSingleton<ReservationExpirySignal>();
+        services.AddSingleton<RetentionSignal>();
+        services.AddOptions<RetentionOptions>().Bind(configuration.GetSection("Retention"))
+            .Validate(settings => settings.BatchSize is >= 1 and <= 200,
+                "Retention requires a batch size between 1 and 200.").ValidateOnStart();
         services.AddIdentityCore<AccountUser>(options =>
         {
             options.User.RequireUniqueEmail = true;
@@ -66,6 +71,7 @@ public static class DependencyInjection
         services.AddScoped<IPurchaseQuoteStore, PurchaseQuoteStore>();
         services.AddScoped<IPurchaseConfigurationStore, PurchaseConfigurationStore>();
         services.AddScoped<IPurchaseSettingsAdministrationStore, PurchaseSettingsAdministrationStore>();
+        services.AddScoped<IRetentionSettingsStore, RetentionSettingsStore>();
         services.AddScoped<IPromoAdministrationStore, PromoAdministrationStore>();
         services.AddScoped<IWarrantyAdministrationStore, WarrantyAdministrationStore>();
         services.AddScoped<Application.Sales.ISaleCommandStore, Sales.SaleCommandStore>();

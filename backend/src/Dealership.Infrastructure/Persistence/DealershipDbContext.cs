@@ -47,6 +47,10 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
 
     public DbSet<PurchaseSettings> PurchaseSettings => Set<PurchaseSettings>();
 
+    public DbSet<Domain.Accounts.RetentionSettings> RetentionSettings => Set<Domain.Accounts.RetentionSettings>();
+
+    public DbSet<Domain.Accounts.RetentionSettingChange> RetentionSettingChanges => Set<Domain.Accounts.RetentionSettingChange>();
+
     public DbSet<WarrantyPackage> WarrantyPackages => Set<WarrantyPackage>();
 
     public DbSet<Reservation> Reservations => Set<Reservation>();
@@ -162,6 +166,8 @@ public class DealershipDbContext(DbContextOptions<DealershipDbContext> options) 
         builder.ApplyConfiguration(new SaleDeliveryMailConfiguration());
         builder.ApplyConfiguration(new SaleDocumentCorrectionConfiguration());
         builder.ApplyConfiguration(new PurchaseSettingsConfiguration());
+        builder.ApplyConfiguration(new RetentionSettingsConfiguration());
+        builder.ApplyConfiguration(new RetentionSettingChangeConfiguration());
         var reservations = new ReservationConfiguration();
         builder.ApplyConfiguration<Reservation>(reservations);
         builder.ApplyConfiguration<ReservationRelease>(reservations);

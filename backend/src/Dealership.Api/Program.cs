@@ -1,3 +1,4 @@
+using Dealership.Infrastructure.Retention;
 using Dealership.Infrastructure.Photos;
 using Dealership.Infrastructure.Storage;
 using Dealership.Api.Configuration;
@@ -82,6 +83,7 @@ builder.Services.AddSingleton<Dealership.Infrastructure.Sales.SaleDeliveryMailCo
 builder.Services.AddScoped<IMailDeliverySource, Dealership.Infrastructure.Sales.SaleDeliveryMailSource>();
 builder.Services.AddHostedService<MailDeliveryWorker>();
 builder.Services.AddHostedService<ReservationExpiryWorker>();
+builder.Services.AddHostedService<RetentionWorker>();
 builder.Services.AddHostedService<DepositBillSweepWorker>();
 builder.Services.AddSingleton<StaffExportWorker>();
 builder.Services.AddSingleton<IStaffExportWorker>(provider => provider.GetRequiredService<StaffExportWorker>());
@@ -116,6 +118,11 @@ if (!app.Environment.IsDevelopment() &&
     var warnMissingProxy = LoggerMessage.Define(LogLevel.Warning, new EventId(1, "MissingTrustedProxy"),
         "ForwardedHeaders:KnownProxies is empty; multi-user environments require trusted API proxies and TRUSTED_CLIENT_IP_HEADER on Next to avoid shared address budgets.");
     warnMissingProxy(app.Logger, null);
+}
+
+if (!app.Environment.IsDevelopment())
+{
+    await DatabasePrivilegeWarning.WarnAsync(app);
 }
 
 // Prepare missing-account verification before requests so cold initialization cannot become a login signal.
@@ -168,6 +175,7 @@ app.MapStaffTestDriveQueryEndpoints();
 app.MapPublicListingEndpoints();
 app.MapPromoEndpoints();
 app.MapSettingsEndpoints();
+app.MapRetentionSettingsEndpoints();
 app.MapPromoAdministrationEndpoints();
 app.MapWarrantyAdministrationEndpoints();
 app.MapSaleCommandEndpoints();

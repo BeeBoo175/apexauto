@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<ListingEstimateService>();
         services.AddScoped<PurchaseConfigurationService>();
         services.AddScoped<PurchaseSettingsAdministrationService>();
+        services.AddScoped<RetentionSettingsService>();
         services.AddScoped<PromoAdministrationService>();
         services.AddScoped<WarrantyAdministrationService>();
         services.AddScoped<Sales.SaleHandlingService>();

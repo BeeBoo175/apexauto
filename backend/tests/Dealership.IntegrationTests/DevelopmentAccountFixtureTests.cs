@@ -102,7 +102,7 @@ public sealed class DevelopmentAccountFixtureTests(RegistrationDatabase fixture)
         await using var tables = new NpgsqlCommand("""
             SELECT tablename FROM pg_tables WHERE schemaname = 'public'
                 AND tablename NOT IN ('__EFMigrationsHistory', 'Branches', 'AspNetUsers', 'CustomerProfiles',
-                    'StaffProfiles', 'EmailVerificationChallenges', 'AccountSessions', 'PurchaseSettings')
+                    'StaffProfiles', 'EmailVerificationChallenges', 'AccountSessions', 'PurchaseSettings', 'RetentionSettings')
                 ORDER BY tablename
             """, connection);
         var names = new List<string>();
@@ -121,9 +121,11 @@ public sealed class DevelopmentAccountFixtureTests(RegistrationDatabase fixture)
             Assert.False((bool)(await query.ExecuteScalarAsync())!, $"Accounts-only seeding populated {name}");
         }
 
-        // The settings record is the one business row the minimal seed provisions, exactly once.
+        // The two settings records are the only business rows the minimal seed provisions, exactly once each.
         await using var settings = new NpgsqlCommand("SELECT count(*) FROM \"PurchaseSettings\"", connection);
         Assert.Equal(1L, (long)(await settings.ExecuteScalarAsync())!);
+        await using var retention = new NpgsqlCommand("SELECT count(*) FROM \"RetentionSettings\"", connection);
+        Assert.Equal(1L, (long)(await retention.ExecuteScalarAsync())!);
     }
 
     private static async Task<string> SnapshotAsync(DealershipDbContext database) => JsonSerializer.Serialize(new

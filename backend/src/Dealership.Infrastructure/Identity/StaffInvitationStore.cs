@@ -94,7 +94,8 @@ public sealed class StaffInvitationStore(DealershipDbContext database, UserManag
                 return Result(StaffInvitationStatus.NotFound);
             }
 
-            if (invitation.ActivatedAt is not null || invitation.RevokedAt is not null)
+            // A minimized invitation has no contact left to renew; the scrub is its retirement.
+            if (invitation.ActivatedAt is not null || invitation.RevokedAt is not null || invitation.Email is null)
             {
                 return Result(StaffInvitationStatus.Unavailable);
             }
