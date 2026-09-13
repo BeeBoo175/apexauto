@@ -162,6 +162,84 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Dealership.Domain.Accounts.RetentionSettingChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ChangedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("NewValue")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PreviousValue")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Setting")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<long>("SettingsVersion")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("ShorteningConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("Setting", "SettingsVersion")
+                        .IsUnique();
+
+                    b.ToTable("RetentionSettingChanges", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_RetentionSettingChanges_Shape", "\"Setting\" IN ('SecurityArtifactDays', 'MailDetailDays', 'InvitationDays', 'BusinessEvidenceYears') AND \"PreviousValue\" > 0 AND \"NewValue\" > 0 AND \"PreviousValue\" <> \"NewValue\" AND \"SettingsVersion\" > 1 AND isfinite(\"ChangedAtUtc\") AND (NOT \"ShorteningConfirmed\" OR \"NewValue\" < \"PreviousValue\")");
+                        });
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Accounts.RetentionSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("BusinessEvidenceYears")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("InvitationDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MailDetailDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SecurityArtifactDays")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UpdatedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UpdatedById");
+
+                    b.ToTable("RetentionSettings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_RetentionSettings_Shape", "\"Id\" = 1 AND \"SecurityArtifactDays\" BETWEEN 7 AND 365 AND \"MailDetailDays\" BETWEEN 7 AND 365 AND \"InvitationDays\" BETWEEN 7 AND 365 AND \"BusinessEvidenceYears\" BETWEEN 1 AND 10 AND \"Version\" > 0 AND isfinite(\"UpdatedAtUtc\") AND \"UpdatedById\" <> '00000000-0000-0000-0000-000000000000'::uuid");
+                        });
+                });
+
             modelBuilder.Entity("Dealership.Domain.Branches.Branch", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2280,11 +2358,13 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTimeOffset?>("MinimizedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTimeOffset?>("RevokedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("SecurityStamp")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<Guid>("UserId")
@@ -2300,7 +2380,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_AccountSessions_Lifetime", "\"ExpiresAt\" > \"CreatedAt\" AND (\"RevokedAt\" IS NULL OR \"RevokedAt\" >= \"CreatedAt\")");
 
-                            t.HasCheckConstraint("CK_AccountSessions_Stamp", "\"SecurityStamp\" ~ '[^[:space:]]'");
+                            t.HasCheckConstraint("CK_AccountSessions_Stamp", "(\"MinimizedAt\" IS NULL AND \"SecurityStamp\" IS NOT NULL AND \"SecurityStamp\" ~ '[^[:space:]]') OR (\"MinimizedAt\" IS NOT NULL AND \"SecurityStamp\" IS NULL)");
                         });
                 });
 
@@ -2523,6 +2603,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("InvalidatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTimeOffset?>("MinimizedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTimeOffset>("NextDeliveryAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2551,7 +2634,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_PasswordResetChallenges_Lifetime", "\"ExpiresAt\" = \"CreatedAt\" + interval '1 hour'");
 
-                            t.HasCheckConstraint("CK_PasswordResetChallenges_Receipt", "(\"ConsumedAt\" IS NULL AND \"CompletedSecurityStamp\" IS NULL) OR\r\n(\"ConsumedAt\" IS NOT NULL AND \"CompletedSecurityStamp\" IS NOT NULL AND\r\n length(\"CompletedSecurityStamp\") > 0 AND \"ConsumedAt\" >= \"CreatedAt\" AND\r\n \"ConsumedAt\" < \"ExpiresAt\" AND \"InvalidatedAt\" IS NULL)");
+                            t.HasCheckConstraint("CK_PasswordResetChallenges_Receipt", "(\"ConsumedAt\" IS NULL AND \"CompletedSecurityStamp\" IS NULL) OR\r\n(\"ConsumedAt\" IS NOT NULL AND\r\n ((\"CompletedSecurityStamp\" IS NOT NULL AND length(\"CompletedSecurityStamp\") > 0) OR\r\n  (\"CompletedSecurityStamp\" IS NULL AND \"MinimizedAt\" IS NOT NULL)) AND\r\n \"ConsumedAt\" >= \"CreatedAt\" AND \"ConsumedAt\" < \"ExpiresAt\" AND \"InvalidatedAt\" IS NULL)");
                         });
                 });
 
@@ -2593,6 +2676,9 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("InvitedById")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("MinimizedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Mobile")
                         .HasMaxLength(30)
@@ -2654,7 +2740,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_StaffInvitations_Outcome", "(\"ActivatedAt\" IS NULL OR \"RevokedAt\" IS NULL) AND (\"ActivatedAt\" IS NULL) = (\"ActivatedUserId\" IS NULL) AND (\"RevokedAt\" IS NULL) = (\"RevokedById\" IS NULL)");
 
-                            t.HasCheckConstraint("CK_StaffInvitations_Profile", "(\"Email\" IS NOT NULL AND \"Name\" IS NOT NULL AND \"Mobile\" IS NOT NULL AND \"Name\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]') OR (\"ActivatedAt\" IS NOT NULL AND \"Email\" IS NULL AND \"Name\" IS NULL AND \"Mobile\" IS NULL)");
+                            t.HasCheckConstraint("CK_StaffInvitations_Profile", "(\"MinimizedAt\" IS NULL AND \"Email\" IS NOT NULL AND \"Name\" IS NOT NULL AND \"Mobile\" IS NOT NULL AND \"Name\" ~ '[^[:space:]]' AND \"Mobile\" ~ '[^[:space:]]') OR ((\"ActivatedAt\" IS NOT NULL OR \"MinimizedAt\" IS NOT NULL) AND \"Email\" IS NULL AND \"Name\" IS NULL AND \"Mobile\" IS NULL)");
 
                             t.HasCheckConstraint("CK_StaffInvitations_Role", "\"Role\" IN ('SalesAgent', 'WorkshopTechnician', 'BranchManager', 'GeneralManager', 'Administrator') AND ((\"Role\" IN ('SalesAgent', 'WorkshopTechnician', 'BranchManager') AND \"BranchId\" IS NOT NULL) OR (\"Role\" IN ('GeneralManager', 'Administrator') AND \"BranchId\" IS NULL))");
                         });
@@ -3628,6 +3714,24 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasOne("Dealership.Domain.Accounts.AccountPicture", null)
                         .WithOne()
                         .HasForeignKey("Dealership.Domain.Accounts.AccountPictureRemoval", "PictureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Accounts.RetentionSettingChange", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dealership.Domain.Accounts.RetentionSettings", b =>
+                {
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedById")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
