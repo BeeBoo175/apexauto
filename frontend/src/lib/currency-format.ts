@@ -8,6 +8,12 @@ export function formatCurrency(amount: number, currency = "MYR"): string {
   return `${label} ${formatted}`;
 }
 
+// Round amounts in headings, tags and buttons read without cents ("RM 500"). Prices, quotes and ledgers keep
+// formatCurrency's exact cents.
+export function formatWholeCurrency(amount: number): string {
+  return `RM ${new Intl.NumberFormat("en-MY", { maximumFractionDigits: 0 }).format(amount)}`;
+}
+
 const compactCurrency = new Intl.NumberFormat("en-MY", {
   style: "currency",
   currency: "MYR",

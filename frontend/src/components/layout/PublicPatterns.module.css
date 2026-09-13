@@ -1,0 +1,281 @@
+/*
+  Shared patterns for the customer pages: bands, the tag, the sheet, the closing band and the entrance fade.
+  Page width, gutters, type, navigation and buttons stay the live site's own (VehicleLayout.module.css).
+  Spacing uses only 4, 8, 12, 16, 24, 32, 48, 72 and 96px.
+*/
+
+.band {
+  padding-block: 96px;
+  --radius-sm: 8px;
+}
+
+.bandDark {
+  background: var(--color-graphite);
+  color: var(--color-paper);
+}
+
+.bandPaper {
+  background: var(--color-paper);
+  color: var(--color-graphite);
+}
+
+.bandCanvas {
+  background: var(--color-canvas);
+  color: var(--color-graphite);
+}
+
+.sectionHead {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 48px;
+}
+
+.sectionHead h2 {
+  margin: 0;
+}
+
+.lede {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+.bandDark .lede {
+  color: var(--color-line);
+}
+
+.photo {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--color-graphite-soft);
+}
+
+.photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* A tag carries a real figure or a name, never a slogan. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: var(--color-graphite);
+  color: var(--color-paper);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.tagLight {
+  background: var(--color-paper);
+  color: var(--color-graphite);
+}
+
+.sheet {
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-paper);
+  color: var(--color-graphite);
+}
+
+.sheetHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 16px 24px;
+  border-bottom: 2px solid var(--color-graphite);
+}
+
+.sheetTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sheetRows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sheetRows li {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--color-line-soft);
+  font-size: 0.9375rem;
+}
+
+.sheetCode {
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.sheetResult {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The tick is two borders, so no icon is drawn. */
+.tick {
+  display: inline-block;
+  width: 6px;
+  height: 11px;
+  margin-bottom: 3px;
+  border-right: 2px solid var(--color-trust);
+  border-bottom: 2px solid var(--color-trust);
+  transform: rotate(40deg);
+}
+
+.sheetSign {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 16px 24px;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.closing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px 48px;
+  padding-block: 48px;
+}
+
+/* The first screen fades in and lifts 10px. Content is already visible if the animation never runs. */
+.rise {
+  animation: rise 440ms ease-out backwards;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@media (max-width: 640px) {
+  .band {
+    padding-block: 72px;
+  }
+
+  .sectionHead {
+    margin-bottom: 24px;
+  }
+
+  .sheetHead,
+  .sheetRows li,
+  .sheetSign {
+    padding-inline: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+  }
+}
+
+/* Photograph hero shared by the customer pages: a dimmed photograph, a scrim and left-aligned copy. */
+.hero {
+  position: relative;
+  padding-block: 96px;
+  background: var(--color-graphite);
+  color: var(--color-paper);
+}
+
+.heroPhoto {
+  object-fit: cover;
+  opacity: 0.45;
+}
+
+.heroScrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    95deg,
+    rgb(14 27 42 / 94%) 0%,
+    rgb(14 27 42 / 76%) 55%,
+    rgb(14 27 42 / 40%) 100%
+  );
+}
+
+.heroInner {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+}
+
+.heroInner h1 {
+  color: var(--color-paper);
+}
+
+.heroLede {
+  max-width: 56ch;
+  margin: 0;
+  color: var(--color-line-soft);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding-block: 48px;
+  }
+}
+
+/* Section title: the sell panel's voice at section scale, a tight display heading over one muted line. */
+.sectionTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.6vw, 2.875rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.sectionSub {
+  max-width: 64ch;
+  margin: 12px 0 0;
+  color: var(--color-muted);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+.bandDark .sectionSub {
+  color: var(--color-line);
+}

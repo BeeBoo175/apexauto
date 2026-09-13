@@ -1,0 +1,240 @@
+/* The sheet covers the edge of the photograph it describes. */
+.proof {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+}
+
+.media {
+  aspect-ratio: 4 / 5;
+  max-height: 720px;
+}
+
+.copy {
+  position: relative;
+  display: grid;
+  gap: 32px;
+  margin-left: -96px;
+}
+
+.intro {
+  display: grid;
+  gap: 10px;
+  margin-left: 128px;
+}
+
+.intro h2 {
+  margin: 0;
+}
+
+.lead {
+  margin: 6px 0 0;
+  color: var(--color-graphite);
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+
+.lead strong {
+  font-weight: 700;
+}
+
+@media (max-width: 920px) {
+  .proof {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .media {
+    aspect-ratio: 16 / 10;
+  }
+
+  .copy {
+    margin: -48px 0 0;
+  }
+
+  .intro {
+    order: 1;
+    margin-left: 0;
+  }
+}
+
+/* Section standard shared with the showrooms and sell panel: 20px surfaces, pill actions, one reveal. */
+.media {
+  border-radius: var(--radius-surface);
+  box-shadow: var(--shadow-surface);
+}
+
+.media img {
+  transform: scale(1.04);
+  transition: transform 900ms cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+
+.proof:hover .media img {
+  transform: scale(1);
+}
+
+.sheet {
+  border-radius: var(--radius-surface);
+  border-color: var(--color-line-soft);
+  box-shadow: var(--shadow-surface);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-line-soft);
+}
+
+.headTitle {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.headLabel {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.carName {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.grade {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.gradeLabel {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gradeMark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--color-trust);
+  color: var(--color-paper);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Fixed columns: code, name, bar, score. Nothing in a row can move another row's columns. */
+.sheet .row {
+  grid-template-columns: 40px minmax(0, 1fr) 96px 64px;
+  gap: 20px;
+  padding: 18px 24px;
+}
+
+.areaName {
+  display: grid;
+  gap: 2px;
+  font-weight: 600;
+}
+
+.exception {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
+.bar {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-line-soft);
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-trust);
+}
+
+.score {
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.scoreTotal {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+@media (max-width: 520px) {
+  .bar {
+    display: none;
+  }
+
+  .sheet .row {
+    grid-template-columns: 40px minmax(0, 1fr) 56px;
+    gap: 14px;
+    padding-inline: 16px;
+  }
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: var(--radius-sm);
+  background: var(--color-signal);
+  color: var(--color-paper);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    background-color 200ms ease,
+    transform 200ms ease;
+}
+
+.cta:hover {
+  background: var(--color-signal-dark);
+  transform: translateY(-1px);
+}
+
+.cta:focus-visible {
+  outline: 3px solid var(--color-graphite);
+  outline-offset: 3px;
+}
+
+@media (max-width: 920px) {
+  .media {
+  }
+
+  .sheet {
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media img,
+  .cta {
+    transition: none;
+  }
+}

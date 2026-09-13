@@ -3,6 +3,9 @@
 
 :root {
   --radius-sm: 4px;
+  --radius-surface: 12px;
+  --shadow-surface: 0 24px 48px -28px rgb(14 27 42 / 0.35);
+  --shadow-surface-dark: 0 24px 48px -24px rgb(0 0 0 / 0.65);
   --color-graphite: #0e1b2a;
   --color-graphite-soft: #1b2a3c;
   --color-paper: #ffffff;
@@ -24,6 +27,12 @@
 :root {
   --site-header-height: 72px;
   color-scheme: light;
+}
+
+/* Reserve the scrollbar track on every page, so content, the sticky header and anything fixed keep one width
+   whether or not the page is tall enough to scroll, and while a dialog locks scrolling. */
+html {
+  scrollbar-gutter: stable;
 }
 
 @media (max-width: 920px) {

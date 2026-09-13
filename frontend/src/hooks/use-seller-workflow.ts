@@ -51,16 +51,33 @@ export function useSellerWorkflow(initial: SellerSnapshot, actingFor?: string, a
     try {
       const stored = sessionStorage.getItem(handoffKey);
       sessionStorage.removeItem(handoffKey);
-      if (!stored) {
+      if (stored) {
+        const value = parseVehicleDraft(JSON.parse(stored));
+        if (value) {
+          queueMicrotask(() => setVehicle(value));
+        }
         return;
-      }
-      const value = parseVehicleDraft(JSON.parse(stored));
-      if (value) {
-        queueMicrotask(() => setVehicle(value));
       }
     } catch {
       /* Storage can be unavailable; the editable form remains usable. */
     }
+    // The homepage price-range form links here with the chosen make and year.
+    const params = new URLSearchParams(window.location.search);
+    const make = params.get("make") ?? "";
+    const year = params.get("year") ?? "";
+    const knownMake = initial.taxonomy?.makes.some((item) => item.name === make) ?? false;
+    const validYear = /^\d{4}$/.test(year);
+    if (addressed && (knownMake || validYear)) {
+      queueMicrotask(() =>
+        setVehicle((current) => ({
+          ...current,
+          make: knownMake ? make : current.make,
+          manufactureYear: validYear ? year : current.manufactureYear,
+        })),
+      );
+    }
+    // Read once on arrival; later edits belong to the form.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const receivePhoto = useCallback((angle: PhotoAngle, photo: PhotoReceipt | null) => {

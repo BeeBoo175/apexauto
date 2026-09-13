@@ -1,26 +1,28 @@
 "use client";
 
-import { scrollIntoViewRespectingMotion } from "@/lib/motion";
 import { useInitialToast } from "@/hooks/use-initial-toast";
-import { useVehicleTradeIn } from "@/hooks/use-vehicle-trade-in";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
 import type { Taxonomy } from "@/lib/intake/contracts";
 import type { CataloguePage } from "@/lib/vehicles/contracts";
+import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
+import { LandingBuyingSteps } from "./LandingBuyingSteps";
 import { LandingFeaturedVehicles } from "./LandingFeaturedVehicles";
 import { LandingHero } from "./LandingHero";
-import { LandingInspectionOverview } from "./LandingInspectionOverview";
-import { LandingInteractiveTools } from "./LandingInteractiveTools";
-import { LandingSellingAndBranches } from "./LandingSellingAndBranches";
+import { LandingInspectionRecord } from "./LandingInspectionRecord";
+import { LandingSellPanel } from "./LandingSellPanel";
+import { LandingShowrooms } from "./LandingShowrooms";
 
 export function LandingStorefront({
   initialVehicles,
   initialBranches,
   initialTaxonomy,
+  leadDetail,
 }: {
   initialVehicles: ApiResult<CataloguePage>;
   initialBranches: ApiResult<Page<Branch>>;
   initialTaxonomy: ApiResult<Taxonomy>;
+  leadDetail: PublicVehicleDetail | null;
 }) {
   const initialError =
     (!initialVehicles.data && initialVehicles.message) ||
@@ -30,41 +32,24 @@ export function LandingStorefront({
 
   useInitialToast(initialError);
 
-  const tradeIn = useVehicleTradeIn(initialTaxonomy.data ?? null);
   const branches = initialBranches.data?.items ?? null;
-  const featuredVehicles = initialVehicles.data?.items ?? [];
+  const vehicles = initialVehicles.data?.items ?? [];
   const totalVehicles = initialVehicles.data?.total ?? null;
-
-  function handleStartTradeInMake(make: string) {
-    if (make) {
-      tradeIn.changeDraft({
-        ...tradeIn.draft,
-        make,
-        model: "",
-        trim: "",
-      });
-    }
-    if (!tradeIn.editing) {
-      tradeIn.startNewValuation();
-    }
-    const target = document.getElementById("trade-in-calculator");
-    if (target) {
-      scrollIntoViewRespectingMotion(target, { block: "start" });
-    }
-  }
+  // The proof record says "above" only when it describes the lead card.
+  const leadIsProof = leadDetail !== null && leadDetail.listing.id === vehicles[0]?.id;
 
   return (
     <>
       <LandingHero
-        taxonomy={tradeIn.taxonomy ?? initialTaxonomy.data}
+        taxonomy={initialTaxonomy.data ?? null}
         branches={branches}
         totalVehicles={totalVehicles}
-        onStartTradeInMake={handleStartTradeInMake}
       />
       <LandingFeaturedVehicles initial={initialVehicles} />
-      <LandingInspectionOverview />
-      <LandingInteractiveTools tradeIn={tradeIn} featuredVehicles={featuredVehicles} />
-      <LandingSellingAndBranches branches={branches} />
+      <LandingBuyingSteps />
+      <LandingInspectionRecord detail={leadDetail} isLeadCar={leadIsProof} />
+      <LandingSellPanel taxonomy={initialTaxonomy.data} />
+      <LandingShowrooms branches={branches} vehicles={vehicles} />
     </>
   );
 }

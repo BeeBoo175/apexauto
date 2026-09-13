@@ -51,7 +51,15 @@ export function VehicleValuationFields({
         required
         value={value.trim}
         disabled={!model}
-        onChange={(event) => onChange({ ...value, trim: event.target.value, manufactureYear: "" })}
+        onChange={(event) => {
+          const chosen = model?.trims.find((item) => item.name === event.target.value);
+          const kept = supportedManufactureYears(chosen, new Date()).includes(Number(value.manufactureYear));
+          onChange({
+            ...value,
+            trim: event.target.value,
+            manufactureYear: kept ? value.manufactureYear : "",
+          });
+        }}
       >
         <option value="">{model ? "Choose trim" : "Choose a model first"}</option>
         {model?.trims.map((item) => (

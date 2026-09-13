@@ -1,12 +1,9 @@
 import Image from "next/image";
-import Link from "next/link";
-import { buttonClassName } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
-import { formatCurrency } from "@/lib/currency-format";
-import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
+import { RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
 import type { Branch } from "@/lib/branches";
 import type { Taxonomy } from "@/lib/intake/contracts";
-import { LandingHeroWorkbench } from "./LandingHeroWorkbench";
+import patterns from "@/components/layout/PublicPatterns.module.css";
+import { LandingFinder } from "./LandingFinder";
 import styles from "./LandingHero.module.css";
 import layout from "./VehicleLayout.module.css";
 
@@ -14,23 +11,14 @@ interface LandingHeroProps {
   taxonomy: Taxonomy | null;
   branches: Branch[] | null;
   totalVehicles: number | null;
-  onStartTradeInMake: (make: string) => void;
 }
 
-export function LandingHero({
-  taxonomy,
-  branches,
-  totalVehicles,
-  onStartTradeInMake,
-}: LandingHeroProps) {
-  const branchSummary =
-    branches && branches.length > 0 ? `${branches.length} showrooms` : "Malaysian showrooms";
-
+export function LandingHero({ taxonomy, branches, totalVehicles }: LandingHeroProps) {
   return (
     <section className={styles.hero} aria-labelledby="landing-hero-title">
       <div className={styles.media} aria-hidden="true">
         <Image
-          src="/images/apexauto-hero.avif"
+          src="/images/hero-night-showroom.jpg"
           alt=""
           fill
           priority
@@ -40,53 +28,18 @@ export function LandingHero({
         <div className={styles.mediaScrim} />
       </div>
       <div className={`${layout.content} ${styles.inner}`}>
-        <div className={styles.copy}>
+        <div className={`${styles.copy} ${patterns.rise}`}>
           <h1 id="landing-hero-title" className={`${layout.heroHeading} ${styles.title}`}>
             Buy inspected cars. Sell yours with clarity.
           </h1>
           <p className={styles.lead}>
-            Signed 210-point inspection, upfront pricing, and a {RESERVATION_HOLD_HOURS}-hour hold
+            A signed 210-point inspection, one fixed price and a {RESERVATION_HOLD_HOURS}-hour hold
             on every car.
           </p>
-          <div className={styles.actions}>
-            <Link href="/vehicles" prefetch={false} className={buttonClassName("secondary", "lg")}>
-              Browse inspected cars
-            </Link>
-            <Link href="/sell" prefetch={false} className={buttonClassName("shell", "lg")}>
-              Sell your car
-            </Link>
-          </div>
-          <dl className={styles.facts}>
-            <div>
-              <dt>
-                <Icon name="inspection" />
-                <span>210 points</span>
-              </dt>
-              <dd>Signed report on every car</dd>
-            </div>
-            <div>
-              <dt>
-                <Icon name="shield-check" />
-                <span>{formatCurrency(RESERVATION_DEPOSIT, "RM")}</span>
-              </dt>
-              <dd>{RESERVATION_HOLD_HOURS}-hour online hold</dd>
-            </div>
-            <div>
-              <dt>
-                <Icon name="map-pin" />
-                <span>{branchSummary}</span>
-              </dt>
-              <dd>Test drives and trade-ins</dd>
-            </div>
-          </dl>
         </div>
-
-        <LandingHeroWorkbench
-          taxonomy={taxonomy}
-          branches={branches}
-          totalVehicles={totalVehicles}
-          onStartTradeInMake={onStartTradeInMake}
-        />
+        <div className={`${styles.finderRow} ${patterns.rise}`}>
+          <LandingFinder taxonomy={taxonomy} branches={branches} totalVehicles={totalVehicles} />
+        </div>
       </div>
     </section>
   );

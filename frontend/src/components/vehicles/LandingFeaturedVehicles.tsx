@@ -1,198 +1,164 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
-import { StatusPage } from "@/components/ui/StatusPage";
+import Image from "next/image";
 import Link from "next/link";
-import { Button, buttonClassName } from "@/components/ui/Button";
+import { buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { LoadingProgress } from "@/components/ui/LoadingProgress";
-import { useToast } from "@/components/ui/Toast";
-import { apiFetch } from "@/lib/api-browser";
+import { StatusPage } from "@/components/ui/StatusPage";
+import patterns from "@/components/layout/PublicPatterns.module.css";
 import type { ApiResult } from "@/lib/api";
+import { formatCurrency } from "@/lib/currency-format";
 import type { CataloguePage, PublicVehicle } from "@/lib/vehicles/contracts";
-import {
-  FEATURED_QUICK_FILTERS,
-  selectDiverseVehicles,
-  type FeaturedQuickFilter,
-} from "@/lib/vehicles/featured";
-import { parseCatalogue } from "@/lib/vehicles/parse";
-import { catalogueHref, catalogueQuery } from "@/lib/vehicles/query";
-import { VehicleCard } from "./VehicleCard";
+import { catalogueDefaults, catalogueHref } from "@/lib/vehicles/query";
 import styles from "./LandingFeaturedVehicles.module.css";
 import layout from "./VehicleLayout.module.css";
 
-export function LandingFeaturedVehicles({ initial }: { initial: ApiResult<CataloguePage> }) {
-  const [snapshot, setSnapshot] = useState<CataloguePage | null>(initial.data);
-  const [activeId, setActiveId] = useState("all");
-  const [busy, setBusy] = useState(false);
-  const [photoVersion, setPhotoVersion] = useState(0);
-  const controller = useRef<AbortController | null>(null);
-  const { error } = useToast();
+const SECONDARY_CARD_COUNT = 4;
 
-  useEffect(
-    () => () => {
-      controller.current?.abort();
-    },
-    [],
+function vehicleName(vehicle: PublicVehicle) {
+  return `${vehicle.manufactureYear} ${vehicle.make} ${vehicle.model} ${vehicle.trim}`;
+}
+
+function coverUrl(vehicle: PublicVehicle) {
+  return vehicle.coverPhotoId ? `/api/vehicles/${vehicle.id}/photos/${vehicle.coverPhotoId}` : null;
+}
+
+function RailCar({ vehicle }: { vehicle: PublicVehicle }) {
+  const photoUrl = coverUrl(vehicle);
+
+  return (
+    <Link
+      href={`/vehicles/${vehicle.id}`}
+      prefetch={false}
+      className={styles.railCar}
+      aria-label={`View details for ${vehicleName(vehicle)}`}
+    >
+      <span className={styles.railPhoto}>
+        {photoUrl && (
+          <Image
+            src={photoUrl}
+            alt=""
+            fill
+            unoptimized
+            sizes="160px"
+            className={styles.railImage}
+          />
+        )}
+      </span>
+      <span className={styles.railText}>
+        <span className={styles.railName}>{vehicleName(vehicle)}</span>
+        <span className={styles.railMeta}>
+          {vehicle.mileageKilometres.toLocaleString("en-MY")} km · {vehicle.branchName}
+        </span>
+        <span className={styles.railPrice}>{formatCurrency(vehicle.vehiclePrice)}</span>
+      </span>
+      <span className={styles.railArrow} aria-hidden="true">
+        <Icon name="next" />
+      </span>
+    </Link>
   );
+}
 
-  const activeChip =
-    FEATURED_QUICK_FILTERS.find((item) => item.id === activeId) ?? FEATURED_QUICK_FILTERS[0];
-  const browseTargetHref = catalogueHref(activeChip.filters);
+function LeadCar({ vehicle }: { vehicle: PublicVehicle }) {
+  const photoUrl = coverUrl(vehicle);
+  const fuel = vehicle.fuel === "PlugInHybrid" ? "Plug-in hybrid" : vehicle.fuel;
 
-  let featuredItems: PublicVehicle[] = [];
-  if (snapshot) {
-    featuredItems =
-      activeId === "all" ? selectDiverseVehicles(snapshot.items, 4) : snapshot.items.slice(0, 4);
-  }
+  return (
+    <Link
+      href={`/vehicles/${vehicle.id}`}
+      prefetch={false}
+      className={styles.leadCar}
+      aria-label={`View details for ${vehicleName(vehicle)}`}
+    >
+      {photoUrl && (
+        <Image
+          src={photoUrl}
+          alt={`${vehicleName(vehicle)}, cover photograph`}
+          fill
+          unoptimized
+          priority
+          sizes="(max-width: 920px) 100vw, 700px"
+          className={styles.leadPhoto}
+        />
+      )}
+      <span className={styles.banner}>
+        <i className={styles.pulse} aria-hidden="true" />
+        Newest arrival
+      </span>
+      <div className={styles.leadBody}>
+        <span className={styles.leadPrice}>{formatCurrency(vehicle.vehiclePrice)}</span>
+        <h3 className={styles.leadName}>{vehicleName(vehicle)}</h3>
+        <span>
+          {vehicle.mileageKilometres.toLocaleString("en-MY")} km · {vehicle.transmission} · {fuel} ·{" "}
+          {vehicle.branchName}
+        </span>
+      </div>
+    </Link>
+  );
+}
 
-  async function selectFilter(chip: FeaturedQuickFilter) {
-    if (chip.id === "all" && initial.data) {
-      controller.current?.abort();
-      controller.current = null;
-      setBusy(false);
-      setActiveId("all");
-      setSnapshot(initial.data);
-      return;
-    }
-
-    controller.current?.abort();
-    const attempt = new AbortController();
-    controller.current = attempt;
-    setBusy(true);
-
-    try {
-      const query = catalogueQuery(chip.filters, 1);
-      const result = await apiFetch(`/api/vehicles?${query}`, parseCatalogue, {
-        signal: attempt.signal,
-      });
-      if (attempt.signal.aborted || controller.current !== attempt) {
-        return;
-      }
-      if (!result.data) {
-        throw new Error("Featured inventory unavailable");
-      }
-      setSnapshot(result.data);
-      setPhotoVersion((current) => current + 1);
-      setActiveId(chip.id);
-    } catch {
-      if (!attempt.signal.aborted && controller.current === attempt) {
-        error("Could not refresh featured cars right now. Showing your previous list.");
-      }
-    } finally {
-      if (!attempt.signal.aborted && controller.current === attempt) {
-        setBusy(false);
-        controller.current = null;
-      }
-    }
-  }
+export function LandingFeaturedVehicles({ initial }: { initial: ApiResult<CataloguePage> }) {
+  const snapshot = initial.data;
+  const lead = snapshot?.items[0] ?? null;
+  const followers = snapshot?.items.slice(1, 1 + SECONDARY_CARD_COUNT) ?? [];
 
   return (
     <section
-      className={`${layout.band} ${styles.section}`}
+      className={`${patterns.band} ${styles.section}`}
       aria-labelledby="featured-vehicles-heading"
     >
-      <LoadingProgress label="Loading featured vehicles" active={busy} />
-      <div className={`${layout.content} ${styles.inner}`}>
-        <header className={styles.header}>
-          <div className={styles.heading}>
-            <h2 id="featured-vehicles-heading" className={layout.sectionHeading}>
-              Inspected cars ready to reserve
+      <div className={layout.content}>
+        <div className={styles.head}>
+          <div>
+            <h2 id="featured-vehicles-heading" className={patterns.sectionTitle}>
+              Latest cars
             </h2>
-            <p>Verified mileage, full photo galleries, and upfront RM pricing.</p>
+            <p className={patterns.sectionSub}>Just listed, inspected and fixed-price.</p>
           </div>
-          <Link href={browseTargetHref} prefetch={false} className={layout.arrowLink}>
-            {snapshot
-              ? `View all ${snapshot.total} matching cars`
-              : "Browse full vehicle catalogue"}
-            <Icon name="next" />
-          </Link>
-        </header>
+          {snapshot && (
+            <Link href={catalogueHref(catalogueDefaults)} prefetch={false} className={styles.all}>
+              See all {snapshot.total} cars <Icon name="next" />
+            </Link>
+          )}
+        </div>
 
-        <div className={styles.chips} role="group" aria-label="Filter featured inventory">
-          {FEATURED_QUICK_FILTERS.map((chip) => {
-            const active = activeId === chip.id;
-            return (
-              <Button
-                key={chip.id}
-                type="button"
-                variant={active ? "primary" : "secondary"}
-                size="compact"
-                aria-pressed={active}
-                disabled={busy}
-                onClick={() => void selectFilter(chip)}
+        {lead && (
+          <div className={styles.lot}>
+            <LeadCar vehicle={lead} />
+            <ul className={styles.rail}>
+              {followers.map((vehicle) => (
+                <li key={vehicle.id}>
+                  <RailCar vehicle={vehicle} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {snapshot && !lead && (
+          <div className={styles.empty}>
+            <h3 className={layout.cardHeading}>No cars are on sale right now</h3>
+            <p>Stock updates as inspections finish. Check the catalogue again soon.</p>
+          </div>
+        )}
+
+        {!snapshot && (
+          <StatusPage
+            tone="alert"
+            code="503"
+            icon="alert-triangle"
+            title="Latest cars could not be loaded"
+            actions={
+              <Link
+                href="/vehicles"
+                prefetch={false}
+                className={buttonClassName("secondary", "md")}
               >
-                {chip.label}
-              </Button>
-            );
-          })}
-        </div>
-
-        <div aria-busy={busy}>
-          {snapshot && featuredItems.length > 0 && (
-            <>
-              <p className={styles.status} aria-live="polite">
-                Showing {featuredItems.length} of {snapshot.total} available vehicles
-              </p>
-              <div className={styles.grid}>
-                {featuredItems.map((vehicle, index) => (
-                  <VehicleCard
-                    key={vehicle.id}
-                    vehicle={vehicle}
-                    first={index === 0}
-                    photoVersion={photoVersion}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-
-          {snapshot && featuredItems.length === 0 && (
-            <div className={styles.emptyCard}>
-              <h3>No available vehicles match {activeChip.label}</h3>
-              <p>
-                Showroom stock updates continuously as inspections complete. Try another category or
-                search the full catalogue.
-              </p>
-              <div className={styles.emptyActions}>
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => void selectFilter(FEATURED_QUICK_FILTERS[0])}
-                >
-                  Show all featured cars
-                </Button>
-                <Link
-                  href="/vehicles"
-                  prefetch={false}
-                  className={buttonClassName("secondary", "md")}
-                >
-                  Browse full catalogue
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {!snapshot && (
-            <StatusPage
-              tone="alert"
-              code="503"
-              icon="alert-triangle"
-              title="Featured cars could not be loaded"
-              actions={
-                <Link
-                  href="/vehicles"
-                  prefetch={false}
-                  className={buttonClassName("secondary", "md")}
-                >
-                  Open vehicle catalogue
-                </Link>
-              }
-            >
-              Reload the page to try again, or continue to the vehicle catalogue.
-            </StatusPage>
-          )}
-        </div>
+                Open vehicle catalogue
+              </Link>
+            }
+          >
+            Reload the page to try again, or continue to the vehicle catalogue.
+          </StatusPage>
+        )}
       </div>
     </section>
   );
