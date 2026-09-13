@@ -195,7 +195,7 @@ public sealed class RetentionMinimizationTests(IntakePhotoFixture fixture) : ICl
         Assert.All(await RecipientsAsync(database), Assert.Null);
     }
 
-    private static RetentionWorker Worker(WebApplicationFactory<Program> factory)
+    internal static RetentionWorker Worker(WebApplicationFactory<Program> factory)
     {
         return factory.Services.GetServices<IHostedService>().OfType<RetentionWorker>().Single();
     }
@@ -269,14 +269,14 @@ public sealed class RetentionMinimizationTests(IntakePhotoFixture fixture) : ICl
             $"{created}, {expires}, {{2}}, ARRAY[]::timestamptz[], 0, {created})", id, invitedBy, Guid.NewGuid());
     }
 
-    private static async Task<string> FailureAsync(DealershipDbContext database, string sql, params object[] values)
+    internal static async Task<string> FailureAsync(DealershipDbContext database, string sql, params object[] values)
     {
         var exception = await Assert.ThrowsAnyAsync<Exception>(() => database.Database.ExecuteSqlRawAsync(sql, values));
         var postgres = exception as PostgresException ?? exception.InnerException as PostgresException;
         return Assert.IsType<PostgresException>(postgres).SqlState;
     }
 
-    private static async Task ExecuteAsync(NpgsqlConnection connection, string sql)
+    internal static async Task ExecuteAsync(NpgsqlConnection connection, string sql)
     {
         await using var command = new NpgsqlCommand(sql, connection);
         await command.ExecuteNonQueryAsync();

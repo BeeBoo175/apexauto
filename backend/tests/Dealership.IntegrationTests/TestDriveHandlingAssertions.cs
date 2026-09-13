@@ -158,6 +158,18 @@ internal static class TestDriveHandlingAssertions
         var immutable = await Assert.ThrowsAsync<PostgresException>(() => database.Database.ExecuteSqlInterpolatedAsync(
             $"UPDATE \"TestDriveOutcomes\" SET \"Notes\" = 'Changed' WHERE \"Id\" = {outcome.Id}"));
         Assert.Equal("CK_TestDriveHandling_Immutable", immutable.ConstraintName);
+        // Disposal may only remove the free-text note; any other column change stays refused.
+        var rewritten = await Assert.ThrowsAsync<PostgresException>(() => database.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE \"TestDriveOutcomes\" SET \"Notes\" = NULL, \"CustomerPresent\" = NOT \"CustomerPresent\" WHERE \"Id\" = {outcome.Id}"));
+        Assert.Equal("CK_TestDriveHandling_Immutable", rewritten.ConstraintName);
+        // Removing only the note is allowed; this probe runs in a transaction that is rolled back.
+        await using (var probe = await database.Database.BeginTransactionAsync())
+        {
+            Assert.Equal(1, await database.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE \"TestDriveOutcomes\" SET \"Notes\" = NULL WHERE \"Id\" = {outcome.Id}"));
+            await probe.RollbackAsync();
+        }
+
         var newBooking = await services.GetRequiredService<TestDriveBookingService>().BookAsync(customer, booking.VehicleId,
             new(Guid.NewGuid(), publication.Id, slots[^2].StartsAt), default);
         Assert.Equal(TestDriveBookingStatus.Succeeded, newBooking.Status);

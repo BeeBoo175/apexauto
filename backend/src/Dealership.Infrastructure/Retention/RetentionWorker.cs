@@ -73,7 +73,8 @@ public sealed class RetentionWorker(IServiceScopeFactory scopes, IOptions<Retent
         return new RetentionCutoffs(
             now.AddDays(-(settings?.SecurityArtifactDays ?? RetentionSettings.DefaultDays)),
             now.AddDays(-(settings?.MailDetailDays ?? RetentionSettings.DefaultDays)),
-            now.AddDays(-(settings?.InvitationDays ?? RetentionSettings.DefaultDays)));
+            now.AddDays(-(settings?.InvitationDays ?? RetentionSettings.DefaultDays)),
+            now);
     }
 
     // Walks the class in key order so a failing row is skipped rather than occupying the batch. Returns whether the
@@ -125,8 +126,8 @@ public sealed class RetentionWorker(IServiceScopeFactory scopes, IOptions<Retent
     {
         await using var scope = scopes.CreateAsyncScope();
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-        var sql = $"SELECT \"Id\" AS \"Value\" FROM \"{rule.Table}\" WHERE ({rule.Eligible}) AND \"Id\" > {{1}} " +
-            "ORDER BY \"Id\" LIMIT {2}";
+        var sql = $"SELECT \"{rule.Key}\" AS \"Value\" FROM \"{rule.Table}\" WHERE ({rule.Eligible}) AND \"{rule.Key}\" > {{1}} " +
+            $"ORDER BY \"{rule.Key}\" LIMIT {{2}}";
         return await database.Database.SqlQueryRaw<Guid>(sql, cutoff, after, limit).ToListAsync(cancellationToken);
     }
 
@@ -137,7 +138,7 @@ public sealed class RetentionWorker(IServiceScopeFactory scopes, IOptions<Retent
         {
             await using var scope = scopes.CreateAsyncScope();
             var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-            var sql = $"UPDATE \"{rule.Table}\" SET {rule.Minimize} WHERE \"Id\" = {{1}} AND ({rule.Eligible})";
+            var sql = $"UPDATE \"{rule.Table}\" SET {rule.Minimize} WHERE \"{rule.Key}\" = {{1}} AND ({rule.Eligible})";
             // A single statement is its own short transaction; the predicate is re-checked under the row lock.
             return await database.Database.ExecuteSqlRawAsync(sql, [cutoff, id], cancellationToken) == 1;
         }
@@ -148,12 +149,14 @@ public sealed class RetentionWorker(IServiceScopeFactory scopes, IOptions<Retent
         }
     }
 
-    private sealed record RetentionCutoffs(DateTimeOffset Security, DateTimeOffset Mail, DateTimeOffset Invitation)
+    private sealed record RetentionCutoffs(DateTimeOffset Security, DateTimeOffset Mail, DateTimeOffset Invitation,
+        DateTimeOffset Business)
     {
         public DateTimeOffset For(RetentionHorizon horizon) => horizon switch
         {
             RetentionHorizon.SecurityArtifacts => Security,
             RetentionHorizon.MailDetails => Mail,
+            RetentionHorizon.BusinessEvidence => Business,
             _ => Invitation
         };
     }
