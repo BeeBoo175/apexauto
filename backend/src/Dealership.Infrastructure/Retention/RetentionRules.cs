@@ -60,7 +60,23 @@ internal static class RetentionRules
             "\"Notes\" IS NOT NULL AND " +
             Deadline("GREATEST(\"EndedAt\", " + VehicleSaleAnchor(OutcomeVehicle) + ")") +
             " AND " + NoUnfinishedSale(OutcomeVehicle),
-            "\"Notes\" = NULL")
+            "\"Notes\" = NULL"),
+        // A reservation keeps its buyer name; the contact and NRIC copies go once its sale is finished (or it was
+        // released), no refund of the customer is still owed and the deadline of the whole chain has passed.
+        new RetentionRule("ReservationBuyerCopies", "Reservations", RetentionHorizon.BusinessEvidence,
+            "NOT \"IsActive\" AND (\"BuyerEmail\" IS NOT NULL OR \"BuyerMobile\" IS NOT NULL OR \"BuyerNric\" IS NOT NULL) AND " +
+            "NOT EXISTS (SELECT 1 FROM \"SalesOrders\" s WHERE s.\"Id\" = \"Reservations\".\"Id\" AND " +
+            "s.\"Status\" NOT IN ('Delivered', 'Cancelled', 'Expired')) AND " +
+            "NOT EXISTS (SELECT 1 FROM \"ReservationRefunds\" f WHERE f.\"CustomerId\" = \"Reservations\".\"CustomerId\" AND " +
+            "f.\"State\" <> 'Completed') AND " +
+            Deadline("GREATEST(\"ExpiresAt\", " +
+                "(SELECT max(r.\"RecordedAt\") FROM \"ReservationReleases\" r WHERE r.\"ReservationId\" = \"Reservations\".\"Id\"), " +
+                "(SELECT max(e.\"RecordedAt\") FROM \"SalesOrderEvents\" e WHERE e.\"SalesOrderId\" = \"Reservations\".\"Id\"))"),
+            "\"BuyerEmail\" = NULL, \"BuyerMobile\" = NULL, \"BuyerNric\" = NULL"),
+        // Bank code and last four digits stay as reconciliation evidence; the holder name goes after completion.
+        new RetentionRule("RefundHolder", "ReservationRefunds", RetentionHorizon.BusinessEvidence,
+            "\"AccountHolder\" IS NOT NULL AND \"State\" = 'Completed' AND " + Deadline("\"SettledAt\""),
+            "\"AccountHolder\" = NULL", "PaymentRequestId")
     ]);
 
     private static string Deadline(string anchor) => $"public.retention_business_deadline({anchor}) <= {{0}}";

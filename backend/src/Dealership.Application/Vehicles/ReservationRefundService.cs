@@ -153,7 +153,7 @@ public sealed class ReservationRefundService(IReservationRefundStore refunds, IP
         try
         {
             var payout = await gateway.CreatePayoutAsync(new(refund.Reference, refund.BankCode, accountNumber,
-                refund.AccountHolder, refund.AmountSen, "ApexAuto reservation deposit refund"), cancellationToken);
+                refund.AccountHolder!, refund.AmountSen, "ApexAuto reservation deposit refund"), cancellationToken);
             refund.AttachPayout(payout.Id);
             if (payout.Outcome == PayoutOutcome.Completed)
             {

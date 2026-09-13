@@ -40,7 +40,7 @@ public sealed class ReservationBuyerMinimizationTests(IntakePhotoFixture fixture
 
         Assert.Equal(ReservationStatus.Succeeded, (await services.GetRequiredService<ReservationCancellationService>()
             .CancelAsync(data.OwnerId, request.OperationId, new(Guid.NewGuid(), null), CancellationToken.None)).Status);
-        await ExpectCheckViolationAsync(database, removeContact, request.OperationId);
+        // A finished reservation may also lose its copies to the retention executor, so the removal statement is allowed.
 
         await database.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE "AspNetUsers" SET "ClosedAt" = now(), "IsActive" = false, "PasswordHash" = NULL,

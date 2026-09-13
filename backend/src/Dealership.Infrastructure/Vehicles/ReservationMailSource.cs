@@ -16,7 +16,8 @@ public sealed class ReservationMailSource(DealershipDbContext database, TimeProv
               AND NOT EXISTS (
                 SELECT 1 FROM "Reservations" AS reservation
                 JOIN "AspNetUsers" AS owner ON owner."Id" = reservation."CustomerId"
-                WHERE reservation."Id" = "ReservationMailOutbox"."ReservationId" AND owner."ClosedAt" IS NOT NULL)
+                WHERE reservation."Id" = "ReservationMailOutbox"."ReservationId" AND
+                  (owner."ClosedAt" IS NOT NULL OR reservation."BuyerEmail" IS NULL))
             ORDER BY "NextDeliveryAt", "Id" LIMIT 1 FOR UPDATE SKIP LOCKED
             """);
 

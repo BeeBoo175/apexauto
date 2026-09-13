@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 // The helpers below build SQL from fixed timestamp fragments, never from request data.
@@ -193,6 +194,47 @@ public sealed class RetentionMinimizationTests(IntakePhotoFixture fixture) : ICl
             "ALTER TABLE \"AppointmentMailOutbox\" ENABLE TRIGGER protect_appointment_mail;");
         await Worker(data.Factory).RunBatchAsync(CancellationToken.None);
         Assert.All(await RecipientsAsync(database), Assert.Null);
+    }
+
+    [Fact]
+    public async Task EveryRetentionRuleRunsAgainstTheCurrentSchema()
+    {
+        var warnings = new List<string>();
+        using var factory = fixture.CreateFactory().WithWebHostBuilder(builder => builder.ConfigureServices(services => services.AddLogging(
+            logging => logging.AddProvider(new WarningCapture(warnings)))));
+        using var client = factory.CreateClient();
+
+        await Worker(factory).RunBatchAsync(CancellationToken.None);
+
+        Assert.DoesNotContain(warnings, message => message.Contains("Retention of", StringComparison.Ordinal));
+    }
+
+    private sealed class WarningCapture(List<string> messages) : ILoggerProvider
+    {
+        public ILogger CreateLogger(string categoryName) => new Capture(messages);
+
+        public void Dispose()
+        {
+        }
+
+        private sealed class Capture(List<string> messages) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => logLevel == LogLevel.Warning;
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+                Func<TState, Exception?, string> formatter)
+            {
+                if (logLevel == LogLevel.Warning)
+                {
+                    lock (messages)
+                    {
+                        messages.Add(formatter(state, exception));
+                    }
+                }
+            }
+        }
     }
 
     internal static RetentionWorker Worker(WebApplicationFactory<Program> factory)
