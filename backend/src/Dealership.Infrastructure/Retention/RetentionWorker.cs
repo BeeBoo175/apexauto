@@ -1,5 +1,6 @@
 using Dealership.Domain.Accounts;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Photos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -11,7 +12,7 @@ namespace Dealership.Infrastructure.Retention;
 // Routine minimization of expired security artifacts, terminal invitations and delivered mail details. Like the
 // reservation expiry worker it runs once at start and then only when a commit signals it: no timer, no polling.
 public sealed class RetentionWorker(IServiceScopeFactory scopes, IOptions<RetentionOptions> options,
-    RetentionSignal signal, ILogger<RetentionWorker> logger) : BackgroundService
+    RetentionSignal signal, PhotoCleanupSignal photoCleanup, ILogger<RetentionWorker> logger) : BackgroundService
 {
     private static readonly Action<ILogger, string, string, Exception?> RowFailure = LoggerMessage.Define<string, string>(
         LogLevel.Warning, new EventId(4, nameof(RowFailure)),
@@ -104,6 +105,11 @@ public sealed class RetentionWorker(IServiceScopeFactory scopes, IOptions<Retent
                 if (await MinimizeRowAsync(rule, cutoff, id, cancellationToken))
                 {
                     minimized++;
+                    if (rule.Statement is not null)
+                    {
+                        // A queued photograph removal waits for the photo worker, which this commit wakes.
+                        photoCleanup.Request();
+                    }
                 }
 
                 if (minimized >= batchSize)
@@ -138,7 +144,8 @@ public sealed class RetentionWorker(IServiceScopeFactory scopes, IOptions<Retent
         {
             await using var scope = scopes.CreateAsyncScope();
             var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
-            var sql = $"UPDATE \"{rule.Table}\" SET {rule.Minimize} WHERE \"{rule.Key}\" = {{1}} AND ({rule.Eligible})";
+            var sql = rule.Statement ??
+                $"UPDATE \"{rule.Table}\" SET {rule.Minimize} WHERE \"{rule.Key}\" = {{1}} AND ({rule.Eligible})";
             // A single statement is its own short transaction; the predicate is re-checked under the row lock.
             return await database.Database.ExecuteSqlRawAsync(sql, [cutoff, id], cancellationToken) == 1;
         }

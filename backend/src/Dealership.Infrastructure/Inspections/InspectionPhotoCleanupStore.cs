@@ -29,13 +29,15 @@ public sealed class InspectionPhotoCleanupStore(DealershipDbContext database, IO
                 $"SELECT * FROM \"InspectionPhotos\" WHERE \"Id\" = {id} FOR UPDATE")
                 .SingleOrDefaultAsync(cancellationToken);
             var now = await database.DatabaseNowAsync(cancellationToken);
-            if (photo is null || photo.ExpiresAt > now ||
-                await database.InspectionDraftPhotos.AnyAsync(link => link.PhotoId == id, cancellationToken))
+            var removal = await database.InspectionPhotoRemovals.SingleOrDefaultAsync(item => item.PhotoId == id, cancellationToken);
+            // A retention receipt already proved its eligibility, although the photograph is attached to a signed save.
+            var retained = removal?.Reason == InspectionPhotoRemovalReason.RetentionExpired;
+            if (photo is null || !retained && (photo.ExpiresAt > now ||
+                await database.InspectionDraftPhotos.AnyAsync(link => link.PhotoId == id, cancellationToken)))
             {
                 return null;
             }
 
-            var removal = await database.InspectionPhotoRemovals.SingleOrDefaultAsync(item => item.PhotoId == id, cancellationToken);
             if (removal is { DeletedAt: not null } || removal?.NextAttemptAt > now || removal?.ClaimExpiresAt > now)
             {
                 return null;

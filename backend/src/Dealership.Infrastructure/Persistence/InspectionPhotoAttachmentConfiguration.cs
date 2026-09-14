@@ -22,12 +22,14 @@ public sealed class InspectionPhotoAttachmentConfiguration : IEntityTypeConfigur
     public void Configure(EntityTypeBuilder<InspectionPhotoRemoval> builder)
     {
         builder.ToTable("InspectionPhotoRemovals", table => table.HasCheckConstraint("CK_InspectionPhotoRemovals_Shape",
-            "isfinite(\"EligibleAt\") AND isfinite(\"RequestedAt\") AND \"RequestedAt\" >= \"EligibleAt\" AND \"Attempts\" >= 0 AND " +
+            "\"Reason\" IN ('UnattachedExpired', 'RetentionExpired') AND isfinite(\"EligibleAt\") AND isfinite(\"RequestedAt\") AND \"RequestedAt\" >= \"EligibleAt\" AND \"Attempts\" >= 0 AND " +
             "isfinite(\"NextAttemptAt\") AND (\"DeletedAt\" IS NULL OR (isfinite(\"DeletedAt\") AND \"DeletedAt\" >= \"RequestedAt\")) AND " +
             "((\"ClaimId\" IS NULL) = (\"ClaimExpiresAt\" IS NULL)) AND (\"ClaimId\" IS NULL OR " +
             "(\"ClaimId\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"ClaimExpiresAt\")))"));
         builder.HasKey(item => item.PhotoId);
         builder.Property(item => item.PhotoId).ValueGeneratedNever();
+        builder.Property(item => item.Reason).HasConversion<string>().HasMaxLength(32)
+            .HasDefaultValue(InspectionPhotoRemovalReason.UnattachedExpired);
         builder.HasOne<InspectionPhoto>().WithOne().HasForeignKey<InspectionPhotoRemoval>(item => item.PhotoId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(item => new { item.NextAttemptAt, item.PhotoId });

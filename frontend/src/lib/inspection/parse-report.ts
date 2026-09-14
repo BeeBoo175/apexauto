@@ -74,7 +74,7 @@ export function parseReport(v: unknown): Report | null {
     !isRecord(v) ||
     !ids(v, ["operationId", "inspectionId", "branchId", "saveId", "technicianId"]) ||
     !versions(v, ["revision", "saveVersion", "assignmentVersion"]) ||
-    !text(v.technicianIdentity) ||
+    !(v.technicianIdentity == null || text(v.technicianIdentity)) ||
     !text(v.catalogVersion) ||
     !isUtcInstant(v.signedAt)
   ) {
@@ -97,7 +97,13 @@ export function parseReport(v: unknown): Report | null {
   ) {
     return null;
   }
-  return { ...v, assessment, checklist, vehicle } as Report;
+  return {
+    ...v,
+    technicianIdentity: v.technicianIdentity ?? null,
+    assessment,
+    checklist,
+    vehicle,
+  } as Report;
 }
 
 export function parseAssignment(v: unknown): Assignment | null {
@@ -200,7 +206,7 @@ function parseRevision(v: unknown): RevisionSummary | null {
     typeof v.hasRepairRequests !== "boolean" ||
     !ids(v, ["operationId", "technicianId"]) ||
     !versions(v, ["revision", "saveVersion", "assignmentVersion"]) ||
-    !text(v.technicianIdentity) ||
+    !(v.technicianIdentity == null || text(v.technicianIdentity)) ||
     !text(v.catalogVersion) ||
     !isUtcInstant(v.signedAt)
   ) {
@@ -211,7 +217,12 @@ function parseRevision(v: unknown): RevisionSummary | null {
   if (!assessment || (v.reopening !== null && !reopening)) {
     return null;
   }
-  return { ...v, assessment, reopening } as RevisionSummary;
+  return {
+    ...v,
+    technicianIdentity: v.technicianIdentity ?? null,
+    assessment,
+    reopening,
+  } as RevisionSummary;
 }
 
 function historyPage(v: Record<string, unknown>) {

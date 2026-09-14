@@ -6,7 +6,10 @@ public enum PhotoRemovalReason
     CancelledRetentionExpired,
 
     // The owner's account was erased: unattached uploads and photographs of appointments that never happened.
-    OwnerErased
+    OwnerErased,
+
+    // The seven-year business-evidence period ended for the checked-in appointment the photograph belongs to.
+    RetentionExpired
 }
 
 public sealed class PhotoRemoval

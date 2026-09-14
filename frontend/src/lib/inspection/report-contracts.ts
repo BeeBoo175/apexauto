@@ -37,7 +37,7 @@ export type Report = {
     checkedInAt: string;
   };
   technicianId: string;
-  technicianIdentity: string;
+  technicianIdentity: string | null;
   catalogVersion: string;
   assessment: Assessment;
   checklist: ReportPoint[];
@@ -94,7 +94,7 @@ export type RevisionSummary = {
   saveVersion: number;
   assignmentVersion: number;
   technicianId: string;
-  technicianIdentity: string;
+  technicianIdentity: string | null;
   catalogVersion: string;
   assessment: Assessment;
   signedAt: string;

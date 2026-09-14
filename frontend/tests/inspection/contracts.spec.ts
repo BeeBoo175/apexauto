@@ -134,6 +134,13 @@ test("inspection history requires explicit repair availability before offering a
   }
   expect(parseRevisions({ ...history, items: [item] })).toBeNull();
   expect(parseRevisions({ ...history, items: [{ ...item, hasRepairRequests: "yes" }] })).toBeNull();
+  // The retention period removes the technician's sign-in name from a signed report; the revision stays valid.
+  for (const technicianIdentity of [null, undefined]) {
+    const removed = { ...item, hasRepairRequests: false, technicianIdentity };
+    expect(
+      parseRevisions({ ...history, items: [removed] })?.items[0].technicianIdentity,
+    ).toBeNull();
+  }
 });
 
 test("inspection adapters normalize numeric API enums and reject unknown authority values", () => {

@@ -237,7 +237,7 @@ public sealed partial class InspectionReportDocumentRenderer : IInspectionReport
             column.Item().Element(title => SectionTitle(title, "Sign-off"));
             column.Item().PaddingTop(SectionGap).Row(row =>
             {
-                Fact(row, "Signed by", report.TechnicianIdentity, span: 2);
+                Fact(row, "Signed by", report.TechnicianIdentity ?? "Details removed after the retention period", span: 2);
                 Fact(row, "Signed", Moment(report.SignedAt));
                 Fact(row, "Revision", report.Revision.ToString(CultureInfo.InvariantCulture));
             });

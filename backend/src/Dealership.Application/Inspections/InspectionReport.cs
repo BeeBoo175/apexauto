@@ -5,7 +5,7 @@ namespace Dealership.Application.Inspections;
 
 public sealed record InspectionReport(Guid OperationId, Guid InspectionId, long Revision, Guid BranchId,
     Guid SaveId, long SaveVersion, long AssignmentVersion, InspectionReportVehicle Vehicle,
-    Guid TechnicianId, string TechnicianIdentity, string CatalogVersion, InspectionDraftAssessment Assessment,
+    Guid TechnicianId, string? TechnicianIdentity, string CatalogVersion, InspectionDraftAssessment Assessment,
     IReadOnlyList<InspectionReportPoint> Checklist, DateTimeOffset SignedAt)
 {
     public bool Matches(Guid actorId, Guid inspectionId, InspectionSignRequest request) =>

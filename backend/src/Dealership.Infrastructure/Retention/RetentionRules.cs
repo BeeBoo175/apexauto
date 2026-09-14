@@ -11,9 +11,10 @@ internal enum RetentionHorizon
 // One routine minimization class: the rows whose terminal moment is at or before the cutoff ({0}) lose only the listed
 // columns. Eligibility is repeated inside the UPDATE, so a row that changed meanwhile is simply left alone. The strings
 // are fixed constants and never carry request data; the cutoff and cursor are always parameters. A business-evidence
-// class receives the database clock itself as its cutoff and computes the deadline in SQL.
+// class receives the database clock itself as its cutoff and computes the deadline in SQL. A rule with a Statement runs
+// that whole statement instead of the UPDATE ({0} the cutoff, {1} the key): it queues an exact-key photograph removal.
 internal sealed record RetentionRule(string Name, string Table, RetentionHorizon Horizon, string Eligible, string Minimize,
-    string Key = "Id");
+    string Key = "Id", string? Statement = null);
 
 internal static class RetentionRules
 {
@@ -87,8 +88,42 @@ internal static class RetentionRules
             "(\"ContentsJson\"->'Review') - 'BuyerName' - 'BuyerNric' - 'BuyerAddress')"),
         new RetentionRule("SaleCorrections", "SaleDocumentCorrections", RetentionHorizon.BusinessEvidence,
             "\"MinimizedAt\" IS NULL AND " + FinishedSale("\"SaleDocumentCorrections\".\"SalesOrderId\""),
-            "\"BuyerName\" = NULL, \"BuyerAddress\" = NULL, \"Reason\" = NULL, \"MinimizedAt\" = now()")
+            "\"BuyerName\" = NULL, \"BuyerAddress\" = NULL, \"Reason\" = NULL, \"MinimizedAt\" = now()"),
+        // The signed report keeps its findings, vehicle facts and photograph hashes; the technician's sign-in name
+        // leaves it once the inspection's chain is old enough.
+        new RetentionRule("SignedTechnician", "InspectionSignedRevisions", RetentionHorizon.BusinessEvidence,
+            "\"ReportJson\"->'technicianIdentity' IS NOT NULL AND " +
+            InspectionDue("\"InspectionSignedRevisions\".\"InspectionId\""),
+            "\"ReportJson\" = \"ReportJson\" - 'technicianIdentity'"),
+        // Photographs of a finished chain are queued for the existing exact-key removal; the worker deletes the object.
+        PhotoRemoval("InspectionPhotos", "InspectionPhotos", "InspectionPhotoRemovals",
+            "EXISTS (SELECT 1 FROM \"InspectionDraftPhotos\" l WHERE l.\"PhotoId\" = \"InspectionPhotos\".\"Id\") AND " +
+            "NOT EXISTS (SELECT 1 FROM \"InspectionPhotoRemovals\" x WHERE x.\"PhotoId\" = \"InspectionPhotos\".\"Id\") AND " +
+            InspectionDue("\"InspectionPhotos\".\"InspectionId\"")),
+        PhotoRemoval("CheckInPhotos", "IntakePhotos", "PhotoRemovals",
+            "EXISTS (SELECT 1 FROM \"AppointmentPhotos\" a JOIN \"AppointmentCheckIns\" k " +
+            "ON k.\"AppointmentId\" = a.\"AppointmentId\" WHERE a.\"PhotoId\" = \"IntakePhotos\".\"Id\" AND " +
+            Deadline("GREATEST(k.\"CheckedInAt\", k.\"CorrectionRecordedAt\", " + VehicleSaleAnchor("k.\"VehicleId\"") + ")") +
+            " AND " + NoUnfinishedSale("k.\"VehicleId\"") + ") AND " +
+            "NOT EXISTS (SELECT 1 FROM \"PhotoRemovals\" x WHERE x.\"PhotoId\" = \"IntakePhotos\".\"Id\")")
     ]);
+
+    // Exact-key photograph removal: the receipt is inserted once and the shared photo worker deletes the object.
+    private static RetentionRule PhotoRemoval(string name, string table, string removals, string eligible) =>
+        new(name, table, RetentionHorizon.BusinessEvidence, eligible, string.Empty, Statement:
+            $"INSERT INTO \"{removals}\" (\"PhotoId\", \"Reason\", \"EligibleAt\", \"RequestedAt\", \"Attempts\", \"NextAttemptAt\") " +
+            $"SELECT \"Id\", 'RetentionExpired', {{0}}, now(), 0, now() FROM \"{table}\" " +
+            $"WHERE \"Id\" = {{1}} AND ({eligible})");
+
+    // A signed inspection is due once the latest signature of the inspection and the latest sale event of its
+    // vehicle lie beyond the years in force, and no sale of the vehicle is unfinished or held.
+    private static string InspectionDue(string inspectionId)
+    {
+        var vehicle = $"(SELECT d.\"VehicleId\" FROM \"InspectionDrafts\" d WHERE d.\"Id\" = {inspectionId})";
+        return Deadline("GREATEST((SELECT max(r.\"SignedAt\") FROM \"InspectionSignedRevisions\" r " +
+            $"WHERE r.\"InspectionId\" = {inspectionId}), " + VehicleSaleAnchor(vehicle) + ")") +
+            " AND " + NoUnfinishedSale(vehicle);
+    }
 
     private static string Deadline(string anchor) => $"public.retention_business_deadline({anchor}) <= {{0}}";
 
@@ -117,8 +152,9 @@ internal static class RetentionRules
         "(SELECT max(e.\"RecordedAt\") FROM \"SalesOrderEvents\" e JOIN \"SalesOrders\" s ON s.\"Id\" = e.\"SalesOrderId\" " +
         $"WHERE s.\"VehicleId\" = {vehicle})";
 
-    // A vehicle with a sale that is not yet Delivered, Cancelled or Expired keeps every record of its chain.
+    // A vehicle with a sale that is not yet Delivered, Cancelled or Expired, or whose sale is under a live hold,
+    // keeps every record of its chain.
     private static string NoUnfinishedSale(string vehicle) =>
         $"NOT EXISTS (SELECT 1 FROM \"SalesOrders\" s WHERE s.\"VehicleId\" = {vehicle} AND " +
-        "s.\"Status\" NOT IN ('Delivered', 'Cancelled', 'Expired'))";
+        "(s.\"Status\" NOT IN ('Delivered', 'Cancelled', 'Expired') OR s.\"RetentionHoldUntil\" > {0}))";
 }

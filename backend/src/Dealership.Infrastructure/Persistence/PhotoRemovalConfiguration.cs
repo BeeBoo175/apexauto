@@ -11,7 +11,7 @@ public sealed class PhotoRemovalConfiguration : IEntityTypeConfiguration<PhotoRe
         builder.ToTable("PhotoRemovals", table =>
         {
             table.HasCheckConstraint("CK_PhotoRemovals_Shape",
-                "\"Reason\" IN ('UnsubmittedExpired', 'CancelledRetentionExpired', 'OwnerErased') AND \"RequestedAt\" >= \"EligibleAt\" AND \"Attempts\" >= 0 AND (\"DeletedAt\" IS NULL OR \"DeletedAt\" >= \"RequestedAt\") AND ((\"ClaimId\" IS NULL) = (\"ClaimExpiresAt\" IS NULL))");
+                "\"Reason\" IN ('UnsubmittedExpired', 'CancelledRetentionExpired', 'OwnerErased', 'RetentionExpired') AND \"RequestedAt\" >= \"EligibleAt\" AND \"Attempts\" >= 0 AND (\"DeletedAt\" IS NULL OR \"DeletedAt\" >= \"RequestedAt\") AND ((\"ClaimId\" IS NULL) = (\"ClaimExpiresAt\" IS NULL))");
         });
         builder.HasKey(item => item.PhotoId);
         builder.Property(item => item.PhotoId).ValueGeneratedNever();

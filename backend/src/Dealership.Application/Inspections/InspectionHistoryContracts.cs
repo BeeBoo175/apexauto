@@ -8,7 +8,7 @@ public sealed record InspectionHistoryQuery(int Page = 1, int PageSize = Paginat
 }
 
 public sealed record InspectionRevisionSummary(Guid OperationId, long Revision, long SaveVersion, long AssignmentVersion,
-    Guid TechnicianId, string TechnicianIdentity, string CatalogVersion, InspectionDraftAssessment Assessment,
+    Guid TechnicianId, string? TechnicianIdentity, string CatalogVersion, InspectionDraftAssessment Assessment,
     DateTimeOffset SignedAt, InspectionReopenReceipt? Reopening)
 {
     public bool HasRepairRequests { get; init; }
