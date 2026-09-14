@@ -66,12 +66,19 @@ public sealed class SaleDocumentRenderer : ISaleDocumentRenderer
                 Fact(row, "Original purchase order", contents.Sale.OrderNumber!);
             });
             column.Item().Element(item => SectionTitle(item, "Buyer"));
+            if (contents.Review.BuyerDetailsRemoved)
+            {
+                column.Item().Text("The buyer's personal details were removed after the retention period.")
+                    .FontColor(Muted);
+                return;
+            }
+
             column.Item().Row(row =>
             {
-                Fact(row, "Name", contents.Review.BuyerName, span: 3, bold: true);
-                Fact(row, "NRIC", contents.Review.BuyerNric);
+                Fact(row, "Name", contents.Review.BuyerName!, span: 3, bold: true);
+                Fact(row, "NRIC", contents.Review.BuyerNric!);
             });
-            column.Item().Text(contents.Review.BuyerAddress);
+            column.Item().Text(contents.Review.BuyerAddress!);
         });
     }
 
@@ -198,11 +205,15 @@ public sealed class SaleDocumentRenderer : ISaleDocumentRenderer
         container.Column(column =>
         {
             column.Spacing(Related);
-            column.Item().Text("This document retains the details recorded when issued.")
+            var removed = document.Contents.Review.BuyerDetailsRemoved;
+            column.Item().Text(removed
+                    ? "The buyer's personal details were removed after the retention period; the commercial record is retained."
+                    : "This document retains the details recorded when issued.")
                 .FontSize(Small).FontColor(Muted);
             if (document.ReplacementDocumentId is not null)
             {
-                column.Item().Text($"Correction recorded {Moment(document.Correction!.RecordedAt)}: {document.Correction.Reason}");
+                var reason = document.Correction!.Reason is { } text ? $": {text}" : ".";
+                column.Item().Text($"Correction recorded {Moment(document.Correction.RecordedAt)}{reason}");
             }
 
             if (document.ReplacesDocumentId is { } originalId)

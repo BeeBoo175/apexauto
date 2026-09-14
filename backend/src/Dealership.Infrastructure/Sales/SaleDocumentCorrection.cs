@@ -32,15 +32,19 @@ public sealed class SaleDocumentCorrection
 
     public long ExpectedVersion { get; private set; }
 
-    public string BuyerName { get; private set; } = string.Empty;
+    public string? BuyerName { get; private set; }
 
-    public string BuyerAddress { get; private set; } = string.Empty;
+    public string? BuyerAddress { get; private set; }
 
-    public string Reason { get; private set; } = string.Empty;
+    public string? Reason { get; private set; }
+
+    // Set when the retention period removed the buyer spelling and the reason; the record itself remains.
+    public DateTimeOffset? MinimizedAt { get; private set; }
 
     public DateTimeOffset RecordedAt { get; private set; }
 
     public SaleDocumentCorrectionRecord Record(SaleDocument replacement) => new(
-        new(Id, ExpectedVersion, OriginalDocumentId, new(BuyerName, BuyerAddress, Reason)),
+        new(Id, ExpectedVersion, OriginalDocumentId,
+            new(BuyerName ?? string.Empty, BuyerAddress ?? string.Empty, Reason ?? string.Empty)),
         new(Id, SalesOrderId, OriginalDocumentId, replacement.Id, replacement.Number, ActorId, RecordedAt, Reason));
 }

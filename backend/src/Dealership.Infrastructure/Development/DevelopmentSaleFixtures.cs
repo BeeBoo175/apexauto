@@ -121,7 +121,7 @@ public sealed class DevelopmentSaleFixtures(DealershipDbContext database, SaleHa
         }
 
         var request = new SaleDocumentCorrectionRequest(scenario.OperationId("correct-address"), scenario.FinalVersion, original.Id,
-            new(original.Contents().Review.BuyerName, scenario.CorrectedBuyerAddress!, "Correct the buyer address spelling"));
+            new(original.Contents().Review.BuyerName!, scenario.CorrectedBuyerAddress!, "Correct the buyer address spelling"));
         if (seed)
         {
             return (await corrections.ReissueAsync(scenario.ManagerId, scenario.ReservationId, request,

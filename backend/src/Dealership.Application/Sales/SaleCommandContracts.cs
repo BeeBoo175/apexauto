@@ -13,7 +13,8 @@ public enum SaleResultStatus
     NotFound,
     Conflict,
     Unavailable,
-    CustomerClosed
+    CustomerClosed,
+    DetailsRemoved
 }
 
 // Every command names its operation and the sale version it was based on, so a lost response can be replayed exactly.
@@ -47,7 +48,8 @@ public sealed record SaleStaff(Guid Id, bool IsActive, string Role, Guid? Branch
 public sealed record SaleTradeInChoice(Guid AppointmentId, string Label, decimal Maximum, bool TakenByAnotherSale);
 
 public sealed record SaleCommandContext(SaleStaff? Actor, bool BranchActive, SalesOrder? Sale,
-    SalesOrderEvent? Existing, DateTimeOffset Now, bool VehicleOccupied = false, bool CustomerClosed = false);
+    SalesOrderEvent? Existing, DateTimeOffset Now, bool VehicleOccupied = false, bool CustomerClosed = false,
+    bool DetailsRemoved = false);
 
 public interface ISaleCommandTransaction : IAsyncDisposable
 {

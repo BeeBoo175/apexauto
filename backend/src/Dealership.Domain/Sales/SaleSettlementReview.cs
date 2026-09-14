@@ -4,9 +4,13 @@ using Dealership.Domain.Vehicles;
 namespace Dealership.Domain.Sales;
 
 // The agent submits the facts they reviewed; identity and vehicle facts must still match under the sale locks.
-public sealed record SaleSettlementReview(string BuyerName, string BuyerNric, string BuyerAddress,
+// After the retention period the buyer name, NRIC and address are removed from the stored copy and read as null,
+// while the vehicle facts stay.
+public sealed record SaleSettlementReview(string? BuyerName, string? BuyerNric, string? BuyerAddress,
     SaleReviewedVehicle Vehicle)
 {
+    public bool BuyerDetailsRemoved => BuyerName is null && BuyerNric is null && BuyerAddress is null;
+
     // Callers refuse a customer whose details were removed first, so a review is never built from NULL columns.
     public static SaleSettlementReview From(CustomerProfile profile, SaleReviewedVehicle vehicle)
     {

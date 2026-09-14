@@ -108,6 +108,7 @@ public static class SaleQueryEndpoints
                 SaleResultStatus.Forbidden => Results.Forbid(),
                 SaleResultStatus.NotFound => Results.NotFound(),
                 SaleResultStatus.CustomerClosed => ClosedCustomer.Problem(),
+                SaleResultStatus.DetailsRemoved => RemovedDetails.Problem(),
                 _ => Unavailable()
             };
         }

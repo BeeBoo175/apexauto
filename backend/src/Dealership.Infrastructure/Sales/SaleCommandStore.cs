@@ -1,5 +1,6 @@
 using Dealership.Infrastructure.TestDrives;
 using Dealership.Application.Sales;
+using Dealership.Domain.Sales;
 using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -51,8 +52,11 @@ public sealed class SaleCommandStore(DealershipDbContext database, MailDeliveryS
                 .AnyAsync(item => item.VehicleId == sale.VehicleId, cancellationToken);
             var customerClosed = await database.Users.AsNoTracking()
                 .AnyAsync(user => user.Id == sale.CustomerId && user.ClosedAt != null, cancellationToken);
+            // Only a settled or delivered sale holds issued documents whose buyer details retention can remove.
+            var detailsRemoved = sale.Status is SalesOrderStatus.Settled or SalesOrderStatus.Delivered &&
+                await SaleRemovedDetails.AnyAsync(database, sale.Id, cancellationToken);
             return new SaleCommandTransaction(database, transaction,
-                new(actor, branchActive, sale, existing, now, occupied, customerClosed), mail);
+                new(actor, branchActive, sale, existing, now, occupied, customerClosed, detailsRemoved), mail);
         }
         catch
         {

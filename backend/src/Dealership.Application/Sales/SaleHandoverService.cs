@@ -16,6 +16,11 @@ public sealed class SaleHandoverService(ISaleCommandStore sales)
             [SalesOrderEventKind.Delivered], SaleAccess.MayKeyTerms,
             async (transaction, actor, sale) =>
             {
+                if (transaction.Context.DetailsRemoved)
+                {
+                    return new SaleCommandResult(SaleResultStatus.DetailsRemoved);
+                }
+
                 var mileage = await transaction.ReadVehicleMileageAsync(cancellationToken);
                 return await SaleCommandSteps.ApplyAsync(transaction,
                     () => sale.Deliver(request.OperationId, request.Evidence, mileage, actor.Id,

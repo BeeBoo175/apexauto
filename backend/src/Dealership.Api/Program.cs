@@ -180,6 +180,7 @@ app.MapPromoAdministrationEndpoints();
 app.MapWarrantyAdministrationEndpoints();
 app.MapSaleCommandEndpoints();
 app.MapSaleQueryEndpoints();
+app.MapSaleRetentionHoldEndpoints();
 app.MapListingQueryEndpoints();
 app.MapListingPhotoEndpoints();
 app.MapRegistrationEndpoints();

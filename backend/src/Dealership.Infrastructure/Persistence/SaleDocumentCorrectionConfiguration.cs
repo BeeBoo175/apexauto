@@ -10,13 +10,16 @@ public sealed class SaleDocumentCorrectionConfiguration : IEntityTypeConfigurati
 {
     public void Configure(EntityTypeBuilder<SaleDocumentCorrection> builder)
     {
+        // The buyer spelling and reason are all present, or all removed together with the marker after retention.
         builder.ToTable("SaleDocumentCorrections", table => table.HasCheckConstraint("CK_SaleDocumentCorrections_Shape",
             "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"ExpectedVersion\" > 0 AND " +
-            "isfinite(\"RecordedAt\") AND length(\"BuyerName\") BETWEEN 1 AND 200 AND " +
+            "isfinite(\"RecordedAt\") AND ((\"MinimizedAt\" IS NULL AND \"BuyerName\" IS NOT NULL AND " +
+            "\"BuyerAddress\" IS NOT NULL AND \"Reason\" IS NOT NULL AND length(\"BuyerName\") BETWEEN 1 AND 200 AND " +
             "length(\"BuyerAddress\") BETWEEN 1 AND 1000 AND length(\"Reason\") BETWEEN 1 AND 1000 AND " +
             "\"BuyerName\" = btrim(\"BuyerName\") AND \"BuyerName\" ~ '[^[:space:]]' AND \"BuyerName\" !~ '[[:cntrl:]]' AND " +
             "\"BuyerAddress\" = btrim(\"BuyerAddress\") AND \"BuyerAddress\" ~ '[^[:space:]]' AND \"BuyerAddress\" !~ '[[:cntrl:]]' AND " +
-            "\"Reason\" = btrim(\"Reason\") AND \"Reason\" ~ '[^[:space:]]' AND \"Reason\" !~ '[[:cntrl:]]'"));
+            "\"Reason\" = btrim(\"Reason\") AND \"Reason\" ~ '[^[:space:]]' AND \"Reason\" !~ '[[:cntrl:]]') OR " +
+            "(\"MinimizedAt\" IS NOT NULL AND \"BuyerName\" IS NULL AND \"BuyerAddress\" IS NULL AND \"Reason\" IS NULL))"));
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
         builder.Property(item => item.BuyerName).HasMaxLength(200);

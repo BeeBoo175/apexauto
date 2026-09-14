@@ -71,6 +71,8 @@ public static class SaleCommandEndpoints
                 SaleResultStatus.NotFound => Results.NotFound(),
                 SaleResultStatus.Conflict => Results.Problem(statusCode: 409,
                     title: "The sale changed or this operation was already used for different contents."),
+                SaleResultStatus.CustomerClosed => ClosedCustomer.Problem(),
+                SaleResultStatus.DetailsRemoved => RemovedDetails.Problem(),
                 SaleResultStatus.Unavailable => Results.Problem(statusCode: 503, title: "Sale terms are temporarily unavailable."),
                 _ => Results.Problem(statusCode: 500)
             };

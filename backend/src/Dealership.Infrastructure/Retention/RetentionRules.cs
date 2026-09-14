@@ -62,13 +62,12 @@ internal static class RetentionRules
             " AND " + NoUnfinishedSale(OutcomeVehicle),
             "\"Notes\" = NULL"),
         // A reservation keeps its buyer name; the contact and NRIC copies go once its sale is finished (or it was
-        // released), no refund of the customer is still owed and the deadline of the whole chain has passed.
+        // released), no money of the customer is still owed, no hold applies and the chain's deadline has passed.
         new RetentionRule("ReservationBuyerCopies", "Reservations", RetentionHorizon.BusinessEvidence,
             "NOT \"IsActive\" AND (\"BuyerEmail\" IS NOT NULL OR \"BuyerMobile\" IS NOT NULL OR \"BuyerNric\" IS NOT NULL) AND " +
             "NOT EXISTS (SELECT 1 FROM \"SalesOrders\" s WHERE s.\"Id\" = \"Reservations\".\"Id\" AND " +
-            "s.\"Status\" NOT IN ('Delivered', 'Cancelled', 'Expired')) AND " +
-            "NOT EXISTS (SELECT 1 FROM \"ReservationRefunds\" f WHERE f.\"CustomerId\" = \"Reservations\".\"CustomerId\" AND " +
-            "f.\"State\" <> 'Completed') AND " +
+            "(s.\"Status\" NOT IN ('Delivered', 'Cancelled', 'Expired') OR s.\"RetentionHoldUntil\" > {0})) AND " +
+            "NOT " + MoneyOwed("\"Reservations\".\"CustomerId\"") + " AND " +
             Deadline("GREATEST(\"ExpiresAt\", " +
                 "(SELECT max(r.\"RecordedAt\") FROM \"ReservationReleases\" r WHERE r.\"ReservationId\" = \"Reservations\".\"Id\"), " +
                 "(SELECT max(e.\"RecordedAt\") FROM \"SalesOrderEvents\" e WHERE e.\"SalesOrderId\" = \"Reservations\".\"Id\"))"),
@@ -76,10 +75,42 @@ internal static class RetentionRules
         // Bank code and last four digits stay as reconciliation evidence; the holder name goes after completion.
         new RetentionRule("RefundHolder", "ReservationRefunds", RetentionHorizon.BusinessEvidence,
             "\"AccountHolder\" IS NOT NULL AND \"State\" = 'Completed' AND " + Deadline("\"SettledAt\""),
-            "\"AccountHolder\" = NULL", "PaymentRequestId")
+            "\"AccountHolder\" = NULL", "PaymentRequestId"),
+        // The buyer's name, NRIC and address leave the settlement review, both issued documents and corrections of a
+        // delivered sale; vehicle facts, terms and payment evidence stay. A Settled sale never qualifies.
+        new RetentionRule("SaleReviews", "SalesOrderEvents", RetentionHorizon.BusinessEvidence,
+            "\"SettlementReview\"->'BuyerName' IS NOT NULL AND " + FinishedSale("\"SalesOrderEvents\".\"SalesOrderId\""),
+            "\"SettlementReview\" = \"SettlementReview\" - 'BuyerName' - 'BuyerNric' - 'BuyerAddress'"),
+        new RetentionRule("SaleDocuments", "SaleDocuments", RetentionHorizon.BusinessEvidence,
+            "\"ContentsJson\"->'Review'->'BuyerName' IS NOT NULL AND " + FinishedSale("\"SaleDocuments\".\"SalesOrderId\""),
+            "\"ContentsJson\" = jsonb_set(\"ContentsJson\", ARRAY['Review'], " +
+            "(\"ContentsJson\"->'Review') - 'BuyerName' - 'BuyerNric' - 'BuyerAddress')"),
+        new RetentionRule("SaleCorrections", "SaleDocumentCorrections", RetentionHorizon.BusinessEvidence,
+            "\"MinimizedAt\" IS NULL AND " + FinishedSale("\"SaleDocumentCorrections\".\"SalesOrderId\""),
+            "\"BuyerName\" = NULL, \"BuyerAddress\" = NULL, \"Reason\" = NULL, \"MinimizedAt\" = now()")
     ]);
 
     private static string Deadline(string anchor) => $"public.retention_business_deadline({anchor}) <= {{0}}";
+
+    // Money of the customer is owed while a refund is not completed, or a deposit was paid unmatched or after a
+    // release and no completed refund returned it.
+    private static string MoneyOwed(string customer) =>
+        $"(EXISTS (SELECT 1 FROM \"ReservationRefunds\" f WHERE f.\"CustomerId\" = {customer} AND f.\"State\" <> 'Completed') OR " +
+        "EXISTS (SELECT 1 FROM \"ReservationDepositPayments\" p JOIN \"ReservationDepositRequests\" q ON q.\"Id\" = p.\"RequestId\" " +
+        $"WHERE q.\"CustomerId\" = {customer} AND (p.\"State\" = 'PaidUnmatched' AND p.\"PaidAmountSen\" > 0 OR " +
+        "p.\"State\" = 'Paid' AND EXISTS (SELECT 1 FROM \"ReservationReleases\" r WHERE r.\"ReservationId\" = p.\"RequestId\")) AND " +
+        "NOT EXISTS (SELECT 1 FROM \"ReservationRefunds\" f WHERE f.\"PaymentRequestId\" = p.\"RequestId\" AND f.\"State\" = 'Completed')))";
+
+    // A delivered sale without a live hold or money owed whose latest anchor (delivery, any history entry, correction
+    // or refund of its deposit) lies beyond the years in force.
+    private static string FinishedSale(string saleId) =>
+        $"EXISTS (SELECT 1 FROM \"SalesOrders\" s WHERE s.\"Id\" = {saleId} AND s.\"Status\" = 'Delivered' AND " +
+        "(s.\"RetentionHoldUntil\" IS NULL OR s.\"RetentionHoldUntil\" <= {0}) AND " +
+        "NOT " + MoneyOwed("s.\"CustomerId\"") + " AND " +
+        Deadline("GREATEST(s.\"DeliveredAt\", " +
+            "(SELECT max(e.\"RecordedAt\") FROM \"SalesOrderEvents\" e WHERE e.\"SalesOrderId\" = s.\"Id\"), " +
+            "(SELECT max(c.\"RecordedAt\") FROM \"SaleDocumentCorrections\" c WHERE c.\"SalesOrderId\" = s.\"Id\"), " +
+            "(SELECT max(f.\"SettledAt\") FROM \"ReservationRefunds\" f WHERE f.\"PaymentRequestId\" = s.\"Id\"))") + ")";
 
     // The latest sale event of the vehicle: a later sale on the same vehicle extends the chain's anchor.
     private static string VehicleSaleAnchor(string vehicle) =>

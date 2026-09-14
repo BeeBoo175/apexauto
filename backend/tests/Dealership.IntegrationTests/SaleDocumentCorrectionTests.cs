@@ -268,7 +268,7 @@ public sealed class SaleDocumentCorrectionTests(IntakePhotoFixture fixture) : IC
         var original = await database.SaleDocuments.AsNoTracking().SingleAsync(item =>
             item.SalesOrderId == hold.Id && item.Kind == SaleDocumentKind.PurchaseOrder);
         return (hold.Id, original, new(Guid.NewGuid(), deliver ? 5 : 4, original.Id,
-            new(review.BuyerName, "27 Jalan Meranti, Petaling Jaya, Selangor", "Correct buyer address spelling")));
+            new(review.BuyerName!, "27 Jalan Meranti, Petaling Jaya, Selangor", "Correct buyer address spelling")));
     }
 
     private async Task LoginAsync(HttpClient client, Guid actorId)

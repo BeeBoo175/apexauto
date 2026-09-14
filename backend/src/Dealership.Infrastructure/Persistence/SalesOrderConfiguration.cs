@@ -29,6 +29,13 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
                 "isfinite(\"UpdatedAt\") AND \"UpdatedAt\" >= \"CreatedAt\" AND " +
                 "((\"OrderNumber\" IS NULL AND \"SubmittedAt\" IS NULL) OR " +
                 "(\"OrderNumber\" ~ '^VPO-[0-9]{4}-[0-9]{6}$' AND \"SubmittedAt\" IS NOT NULL))");
+            // A preservation hold is all three columns or none, with a bounded reason.
+            table.HasCheckConstraint("CK_SalesOrders_Hold",
+                "(\"RetentionHoldUntil\" IS NULL AND \"RetentionHoldReason\" IS NULL AND \"RetentionHoldById\" IS NULL) OR " +
+                "(\"RetentionHoldUntil\" IS NOT NULL AND \"RetentionHoldById\" IS NOT NULL AND " +
+                "isfinite(\"RetentionHoldUntil\") AND \"RetentionHoldReason\" IS NOT NULL AND " +
+                "length(\"RetentionHoldReason\") BETWEEN 1 AND 1000 AND " +
+                "\"RetentionHoldReason\" = btrim(\"RetentionHoldReason\") AND \"RetentionHoldReason\" !~ '[[:cntrl:]]')");
             // An open sale runs against its deadline; a handled one has an agent and paused time; a closed one is dated.
             table.HasCheckConstraint("CK_SalesOrders_Handling",
                 "(\"Status\" = 'Open' AND \"DueAt\" IS NOT NULL AND \"AgentId\" IS NULL AND \"ClaimedAt\" IS NULL AND " +
@@ -120,6 +127,9 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
         }
 
         builder.Property(item => item.Version).IsConcurrencyToken();
+        builder.Property(item => item.RetentionHoldReason).HasMaxLength(1000);
+        builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.RetentionHoldById)
+            .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Vehicle>().WithMany().HasForeignKey(item => item.VehicleId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Branch>().WithMany().HasForeignKey(item => item.BranchId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<AccountUser>().WithMany().HasForeignKey(item => item.CustomerId).OnDelete(DeleteBehavior.Restrict);

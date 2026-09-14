@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Dealership.Domain.Common;
 using Dealership.Domain.Vehicles;
 using static Dealership.Domain.Sales.SaleCommandRules;
 
@@ -8,6 +9,8 @@ namespace Dealership.Domain.Sales;
 // Every action returns the history entry that records it; the entry carries the sale as it stood afterwards.
 public sealed partial class SalesOrder
 {
+    public const int MaximumHoldYears = 10;
+
     private static readonly SalesOrderStatus[] Handled =
         [SalesOrderStatus.Handling, SalesOrderStatus.PendingApproval, SalesOrderStatus.Approved];
 
@@ -97,6 +100,14 @@ public sealed partial class SalesOrder
     public SaleHandoverEvidence? HandoverEvidence { get; private set; }
 
     public DateTimeOffset? DeliveredAt { get; private set; }
+
+    // An Administrator's preservation hold keeps the sale's personal details until the date passes. It never advances
+    // the sale's version or history, so the database admits it as a change of these three columns alone.
+    public DateTimeOffset? RetentionHoldUntil { get; private set; }
+
+    public string? RetentionHoldReason { get; private set; }
+
+    public Guid? RetentionHoldById { get; private set; }
 
     public bool IsHandled => Handled.Contains(Status);
 
@@ -338,6 +349,29 @@ public sealed partial class SalesOrder
         ClaimedAt = null;
         PausedSeconds = null;
         return Record(operationId, kind, status, actorId, now, reason, null, previous, releaseId);
+    }
+
+    // The hold must lie in the future and at most ten years ahead, and it carries the Administrator's reason.
+    public static bool ValidHold(DateTimeOffset until, string? reason, DateTimeOffset now) =>
+        until > now && until <= now.AddYears(MaximumHoldYears) && BoundedText.IsValidRequired(reason);
+
+    public void PlaceRetentionHold(DateTimeOffset until, string reason, Guid actorId, DateTimeOffset now)
+    {
+        if (actorId == Guid.Empty || !ValidHold(until, reason, now))
+        {
+            throw new ArgumentException("A hold needs a future date within ten years, a reason and an Administrator.");
+        }
+
+        RetentionHoldUntil = until;
+        RetentionHoldReason = reason.Trim();
+        RetentionHoldById = actorId;
+    }
+
+    public void ReleaseRetentionHold()
+    {
+        RetentionHoldUntil = null;
+        RetentionHoldReason = null;
+        RetentionHoldById = null;
     }
 
     private SalesOrderEvent Record(Guid operationId, SalesOrderEventKind kind, SalesOrderStatus next, Guid actorId,

@@ -77,6 +77,7 @@ public static class DependencyInjection
         services.AddScoped<Application.Sales.ISaleCommandStore, Sales.SaleCommandStore>();
         services.AddScoped<Application.Sales.ISaleReadStore, Sales.SaleReadStore>();
         services.AddScoped<Application.Sales.ISaleDocumentStore, Sales.SaleDocumentStore>();
+        services.AddScoped<Application.Sales.ISaleRetentionHoldStore, Sales.SaleRetentionHoldStore>();
         services.AddSingleton<Application.Sales.ISaleDocumentRenderer, Sales.SaleDocumentRenderer>();
         services.AddScoped<Application.Sales.ISaleListStore, Sales.SaleListStore>();
         services.AddScoped<Application.Sales.ISaleVehiclePhotoStore, Sales.SaleVehiclePhotoStore>();

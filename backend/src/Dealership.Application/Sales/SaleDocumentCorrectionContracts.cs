@@ -6,7 +6,7 @@ public sealed record SaleDocumentCorrectionRequest(Guid OperationId, long Expect
     SaleBuyerCorrection Correction);
 
 public sealed record SaleDocumentCorrectionReceipt(Guid OperationId, Guid SaleId, Guid OriginalDocumentId,
-    Guid ReplacementDocumentId, string ReplacementNumber, Guid ActorId, DateTimeOffset RecordedAt, string Reason);
+    Guid ReplacementDocumentId, string ReplacementNumber, Guid ActorId, DateTimeOffset RecordedAt, string? Reason);
 
 public sealed record SaleDocumentCorrectionRecord(SaleDocumentCorrectionRequest Request,
     SaleDocumentCorrectionReceipt Receipt);

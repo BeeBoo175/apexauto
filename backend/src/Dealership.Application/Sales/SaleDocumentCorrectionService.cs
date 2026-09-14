@@ -61,6 +61,12 @@ public sealed class SaleDocumentCorrectionService(ISaleCommandStore sales)
             return new(SaleResultStatus.NotFound);
         }
 
+        // Retention removed this document's buyer details; a correction would write new ones into evidence.
+        if (original.Document.Contents.Review.BuyerDetailsRemoved)
+        {
+            return new(SaleResultStatus.DetailsRemoved);
+        }
+
         if (original.IsVoided)
         {
             return new(SaleResultStatus.Conflict);
