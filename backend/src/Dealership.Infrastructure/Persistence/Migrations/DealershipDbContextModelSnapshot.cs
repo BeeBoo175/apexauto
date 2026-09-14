@@ -916,7 +916,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("PhotoRemovals", null, t =>
                         {
-                            t.HasCheckConstraint("CK_PhotoRemovals_Shape", "\"Reason\" IN ('UnsubmittedExpired', 'CancelledRetentionExpired', 'OwnerErased') AND \"RequestedAt\" >= \"EligibleAt\" AND \"Attempts\" >= 0 AND (\"DeletedAt\" IS NULL OR \"DeletedAt\" >= \"RequestedAt\") AND ((\"ClaimId\" IS NULL) = (\"ClaimExpiresAt\" IS NULL))");
+                            t.HasCheckConstraint("CK_PhotoRemovals_Shape", "\"Reason\" IN ('UnsubmittedExpired', 'CancelledRetentionExpired', 'OwnerErased', 'RetentionExpired') AND \"RequestedAt\" >= \"EligibleAt\" AND \"Attempts\" >= 0 AND (\"DeletedAt\" IS NULL OR \"DeletedAt\" >= \"RequestedAt\") AND ((\"ClaimId\" IS NULL) = (\"ClaimExpiresAt\" IS NULL))");
                         });
                 });
 
@@ -2870,6 +2870,13 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("NextAttemptAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("UnattachedExpired");
+
                     b.Property<DateTimeOffset>("RequestedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2879,7 +2886,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("InspectionPhotoRemovals", null, t =>
                         {
-                            t.HasCheckConstraint("CK_InspectionPhotoRemovals_Shape", "isfinite(\"EligibleAt\") AND isfinite(\"RequestedAt\") AND \"RequestedAt\" >= \"EligibleAt\" AND \"Attempts\" >= 0 AND isfinite(\"NextAttemptAt\") AND (\"DeletedAt\" IS NULL OR (isfinite(\"DeletedAt\") AND \"DeletedAt\" >= \"RequestedAt\")) AND ((\"ClaimId\" IS NULL) = (\"ClaimExpiresAt\" IS NULL)) AND (\"ClaimId\" IS NULL OR (\"ClaimId\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"ClaimExpiresAt\")))");
+                            t.HasCheckConstraint("CK_InspectionPhotoRemovals_Shape", "\"Reason\" IN ('UnattachedExpired', 'RetentionExpired') AND isfinite(\"EligibleAt\") AND isfinite(\"RequestedAt\") AND \"RequestedAt\" >= \"EligibleAt\" AND \"Attempts\" >= 0 AND isfinite(\"NextAttemptAt\") AND (\"DeletedAt\" IS NULL OR (isfinite(\"DeletedAt\") AND \"DeletedAt\" >= \"RequestedAt\")) AND ((\"ClaimId\" IS NULL) = (\"ClaimExpiresAt\" IS NULL)) AND (\"ClaimId\" IS NULL OR (\"ClaimId\" <> '00000000-0000-0000-0000-000000000000'::uuid AND isfinite(\"ClaimExpiresAt\")))");
                         });
                 });
 
