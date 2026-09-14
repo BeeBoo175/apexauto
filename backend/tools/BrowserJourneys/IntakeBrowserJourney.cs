@@ -20,6 +20,11 @@ internal static class IntakeBrowserJourney
         await using var fixture = new IntakePhotoFixture();
         await fixture.InitializeAsync();
         await IntakeBrowserSeed.SeedAsync(fixture);
+        if (specification == "intake-ui-staff-erasure.spec.ts")
+        {
+            await IntakeBrowserSeed.SeedSpareEmployeeAsync(fixture);
+        }
+
         if (!specification.StartsWith("vehicles-ui", StringComparison.Ordinal))
         {
             await IntakeBrowserSeed.SeedArrivalsAsync(fixture, specification == "inspection-ui-lifecycle.spec.ts");

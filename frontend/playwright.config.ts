@@ -5,8 +5,11 @@ const browserJourneys = Boolean(process.env.BROWSER_EVIDENCE_DIR);
 const appBaseUrl = process.env.APP_BASE_URL;
 const nextOrigin = process.env.BROWSER_NEXT_ORIGIN;
 const intakeUi = Boolean(process.env.BROWSER_INTAKE);
-// Mobile runs only the golden purchase journey; every other journey is desktop-only.
-const goldenMobileTests = "e2e/vehicles-ui-sales-completion.spec.ts";
+// Only the golden purchase journey and the phone-width retention settings check run on the mobile device.
+const goldenMobileTests = [
+  "e2e/vehicles-ui-sales-completion.spec.ts",
+  "e2e/intake-ui-retention-mobile.spec.ts",
+];
 
 // Journeys act as returning visitors so the first-visit disclosure never covers the page under test.
 function acknowledgedDisclosure() {

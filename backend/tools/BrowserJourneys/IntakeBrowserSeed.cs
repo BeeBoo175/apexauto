@@ -98,6 +98,18 @@ internal static class IntakeBrowserSeed
         }
     }
 
+    // A current employee outside the protected sample set with no open work, so the staff erasure journey can erase them.
+    public static async Task SeedSpareEmployeeAsync(IntakePhotoFixture fixture)
+    {
+        using var factory = fixture.CreateFactory().WithWebHostBuilder(builder => builder.UseContentRoot(
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../../backend/src/Dealership.Api"))));
+        using var scope = factory.Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<StaffProvisioningService>().ProvisionStaffAsync(
+            new StaffProvisioningRequest(Guid.NewGuid(), "retiring.employee@example.invalid", "Password123!",
+                AccountRoles.SalesAgent, DevelopmentFixtureManifest.Branches[0].Id, "Hanis Binti Roslan", "0123456703"),
+            CancellationToken.None);
+    }
+
     public static async Task SeedAsync(IntakePhotoFixture fixture)
     {
         var connection = fixture.Database.ConnectionString;

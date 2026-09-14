@@ -5,6 +5,9 @@ internal static class BrowserJourneysCli
     // Mobile adds cost for every environment, so only the golden purchase journey runs on both devices.
     private const string GoldenMobileSpecification = "vehicles-ui-sales-completion.spec.ts";
 
+    // The retention settings tab is an administrator page that is also checked at phone width, on that device only.
+    private const string MobileOnlySpecification = "intake-ui-retention-mobile.spec.ts";
+
     public static async Task<int> Main(string[] args)
     {
         if (args.Length == 0 || args.Contains("--help", StringComparer.Ordinal))
@@ -58,6 +61,11 @@ internal static class BrowserJourneysCli
 
     private static string[] ProjectsFor(string selection, string[] requested)
     {
+        if (selection == MobileOnlySpecification)
+        {
+            return ["mobile"];
+        }
+
         if (selection == GoldenMobileSpecification)
         {
             return requested;
