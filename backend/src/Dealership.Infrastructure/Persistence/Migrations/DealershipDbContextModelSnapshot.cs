@@ -1056,6 +1056,16 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("PromoId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("RetentionHoldById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RetentionHoldReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset?>("RetentionHoldUntil")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<decimal>("RoadTax")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -1127,6 +1137,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PromoId");
 
+                    b.HasIndex("RetentionHoldById");
+
                     b.HasIndex("TradeInAppointmentId")
                         .IsUnique()
                         .HasFilter("\"TradeInAppointmentId\" IS NOT NULL AND \"Status\" IN ('Open', 'Handling', 'PendingApproval', 'Approved', 'Settled', 'Delivered')");
@@ -1151,6 +1163,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_SalesOrders_Delivery", "(\"Status\" = 'Delivered' AND \"HandoverEvidence\" IS NOT NULL AND \"DeliveredAt\" IS NOT NULL AND isfinite(\"DeliveredAt\") AND \"DeliveredAt\" >= \"SettledAt\" AND \"DeliveredAt\" = \"UpdatedAt\") OR (\"Status\" <> 'Delivered' AND \"HandoverEvidence\" IS NULL AND \"DeliveredAt\" IS NULL)");
 
                             t.HasCheckConstraint("CK_SalesOrders_Handling", "(\"Status\" = 'Open' AND \"DueAt\" IS NOT NULL AND \"AgentId\" IS NULL AND \"ClaimedAt\" IS NULL AND \"PausedSeconds\" IS NULL AND \"ClosedAt\" IS NULL) OR (\"Status\" IN ('Handling', 'PendingApproval', 'Approved') AND \"DueAt\" IS NULL AND \"AgentId\" IS NOT NULL AND \"ClaimedAt\" IS NOT NULL AND \"PausedSeconds\" BETWEEN 1 AND 172800 AND \"ClosedAt\" IS NULL) OR (\"Status\" IN ('Expired', 'Cancelled') AND \"AgentId\" IS NULL AND \"ClaimedAt\" IS NULL AND \"PausedSeconds\" IS NULL AND \"ClosedAt\" IS NOT NULL) OR (\"Status\" = 'Settled' AND \"DueAt\" IS NULL AND \"AgentId\" IS NOT NULL AND \"ClaimedAt\" IS NOT NULL AND \"PausedSeconds\" IS NULL AND \"ClosedAt\" IS NULL) OR (\"Status\" = 'Delivered' AND \"DueAt\" IS NULL AND \"AgentId\" IS NOT NULL AND \"ClaimedAt\" IS NOT NULL AND \"PausedSeconds\" IS NULL AND \"ClosedAt\" = \"DeliveredAt\")");
+
+                            t.HasCheckConstraint("CK_SalesOrders_Hold", "(\"RetentionHoldUntil\" IS NULL AND \"RetentionHoldReason\" IS NULL AND \"RetentionHoldById\" IS NULL) OR (\"RetentionHoldUntil\" IS NOT NULL AND \"RetentionHoldById\" IS NOT NULL AND isfinite(\"RetentionHoldUntil\") AND \"RetentionHoldReason\" IS NOT NULL AND length(\"RetentionHoldReason\") BETWEEN 1 AND 1000 AND \"RetentionHoldReason\" = btrim(\"RetentionHoldReason\") AND \"RetentionHoldReason\" !~ '[[:cntrl:]]')");
 
                             t.HasCheckConstraint("CK_SalesOrders_Price", "\"BasePrice\" > 0 AND \"RoadTax\" >= 0 AND \"ProcessingFee\" >= 0 AND \"SstRate\" BETWEEN 0 AND 1 AND \"PromoDiscount\" >= 0 AND \"NegotiatedDiscount\" >= 0 AND \"WarrantyPrice\" >= 0 AND \"DepositCredit\" >= 0 AND \"TradeInAllowance\" >= 0 AND \"PromoDiscount\" + \"NegotiatedDiscount\" <= \"BasePrice\" AND \"ServiceTax\" = round(\"ProcessingFee\" * \"SstRate\", 2) AND \"BalancePayable\" >= 0 AND \"BalancePayable\" = \"BasePrice\" - \"PromoDiscount\" - \"NegotiatedDiscount\" + \"ProcessingFee\" + \"RoadTax\" + \"ServiceTax\" + \"WarrantyPrice\" - \"DepositCredit\" - \"TradeInAllowance\"");
 
@@ -3310,23 +3324,23 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("BuyerAddress")
-                        .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
                     b.Property<string>("BuyerName")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
                     b.Property<long>("ExpectedVersion")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTimeOffset?>("MinimizedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("OriginalDocumentId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Reason")
-                        .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
@@ -3349,7 +3363,7 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.ToTable("SaleDocumentCorrections", null, t =>
                         {
-                            t.HasCheckConstraint("CK_SaleDocumentCorrections_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"ExpectedVersion\" > 0 AND isfinite(\"RecordedAt\") AND length(\"BuyerName\") BETWEEN 1 AND 200 AND length(\"BuyerAddress\") BETWEEN 1 AND 1000 AND length(\"Reason\") BETWEEN 1 AND 1000 AND \"BuyerName\" = btrim(\"BuyerName\") AND \"BuyerName\" ~ '[^[:space:]]' AND \"BuyerName\" !~ '[[:cntrl:]]' AND \"BuyerAddress\" = btrim(\"BuyerAddress\") AND \"BuyerAddress\" ~ '[^[:space:]]' AND \"BuyerAddress\" !~ '[[:cntrl:]]' AND \"Reason\" = btrim(\"Reason\") AND \"Reason\" ~ '[^[:space:]]' AND \"Reason\" !~ '[[:cntrl:]]'");
+                            t.HasCheckConstraint("CK_SaleDocumentCorrections_Shape", "\"Id\" <> '00000000-0000-0000-0000-000000000000'::uuid AND \"ExpectedVersion\" > 0 AND isfinite(\"RecordedAt\") AND ((\"MinimizedAt\" IS NULL AND \"BuyerName\" IS NOT NULL AND \"BuyerAddress\" IS NOT NULL AND \"Reason\" IS NOT NULL AND length(\"BuyerName\") BETWEEN 1 AND 200 AND length(\"BuyerAddress\") BETWEEN 1 AND 1000 AND length(\"Reason\") BETWEEN 1 AND 1000 AND \"BuyerName\" = btrim(\"BuyerName\") AND \"BuyerName\" ~ '[^[:space:]]' AND \"BuyerName\" !~ '[[:cntrl:]]' AND \"BuyerAddress\" = btrim(\"BuyerAddress\") AND \"BuyerAddress\" ~ '[^[:space:]]' AND \"BuyerAddress\" !~ '[[:cntrl:]]' AND \"Reason\" = btrim(\"Reason\") AND \"Reason\" ~ '[^[:space:]]' AND \"Reason\" !~ '[[:cntrl:]]') OR (\"MinimizedAt\" IS NOT NULL AND \"BuyerName\" IS NULL AND \"BuyerAddress\" IS NULL AND \"Reason\" IS NULL))");
                         });
                 });
 
@@ -3946,6 +3960,11 @@ namespace Dealership.Infrastructure.Persistence.Migrations
                     b.HasOne("Dealership.Domain.Vehicles.PromoCode", null)
                         .WithMany()
                         .HasForeignKey("PromoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Dealership.Infrastructure.Identity.AccountUser", null)
+                        .WithMany()
+                        .HasForeignKey("RetentionHoldById")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Dealership.Domain.Intake.IntakeAppointment", null)
