@@ -42,6 +42,8 @@ interface BrowserRequestPolicy {
   parseConflict?: (code: unknown) => ApiConflict | undefined;
   // Reads from the server even when a snapshot exists.
   fresh?: boolean;
+  // A 401 is an expected answer to this request, so it is returned instead of announcing a lost session.
+  expectSessionLoss?: boolean;
 }
 
 export function privateApiFetch<T>(
@@ -133,7 +135,7 @@ async function requestAttempt<T>(
 ): Promise<ApiResult<T>> {
   signal.throwIfAborted();
   const response = await fetch(path, { ...options, cache: "no-store", signal });
-  if (response.status === 401) {
+  if (response.status === 401 && !policy.expectSessionLoss) {
     window.dispatchEvent(new Event("apexauto-session-invalid"));
   }
   const value = await readBoundedJson(

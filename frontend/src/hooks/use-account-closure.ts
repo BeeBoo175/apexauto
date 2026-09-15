@@ -95,7 +95,7 @@ export function useAccountClosure(enabled: boolean) {
           body: attempt.current,
           signal: operation.signal,
         },
-        { parseConflict: closureConflict },
+        { parseConflict: closureConflict, expectSessionLoss: replaying },
       );
       if (operation.signal.aborted) {
         return;
