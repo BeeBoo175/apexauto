@@ -57,6 +57,14 @@ public sealed class AccountErasureSchemaTests(IntakePhotoFixture fixture) : ICla
         using var scope = factory.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<DealershipDbContext>();
         var id = await UserIdAsync(database, registration.Email!);
+        // A receipt for an account that is still open is refused, so no one can pre-empt a real erasure with a forged one.
+        await ExpectFailureAsync(database, PostgresErrorCodes.CheckViolation,
+            "INSERT INTO \"AccountEvents\" (\"Id\", \"TargetId\", \"ActorId\", \"Kind\", \"RecordedAt\", \"MinimizedAt\") " +
+            "VALUES ({0}, {1}, {1}, 'Erased', now(), now())", Guid.NewGuid(), id);
+        await database.Database.ExecuteSqlRawAsync(
+            "UPDATE \"AspNetUsers\" SET \"ClosedAt\" = now(), \"IsActive\" = false, \"PasswordHash\" = NULL, " +
+            "\"EmailConfirmed\" = false, \"Email\" = NULL, \"NormalizedEmail\" = NULL, \"UserName\" = NULL, " +
+            "\"NormalizedUserName\" = NULL, \"AccountUsername\" = NULL WHERE \"Id\" = {0}", id);
         database.AccountEvents.Add(new AccountEvent(Guid.NewGuid(), id, id, AccountEventKind.Erased, null, null,
             DateTimeOffset.UtcNow));
         await database.SaveChangesAsync();
