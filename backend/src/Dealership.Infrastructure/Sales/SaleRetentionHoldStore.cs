@@ -10,6 +10,38 @@ namespace Dealership.Infrastructure.Sales;
 public sealed class SaleRetentionHoldStore(DealershipDbContext database, RetentionSignal retention)
     : ISaleRetentionHoldStore
 {
+    public async Task<SaleRetentionHoldResult> SetByNumberAsync(Guid actorId, string reservationNumber,
+        SaleRetentionHoldRequest request, CancellationToken cancellationToken)
+    {
+        if (!await AdministratorScope.IsAdministratorAsync(database, actorId, cancellationToken))
+        {
+            return new(SaleRetentionHoldStatus.Forbidden);
+        }
+
+        var saleId = await database.Reservations.AsNoTracking().Where(item => item.Number == reservationNumber)
+            .Select(item => (Guid?)item.Id).SingleOrDefaultAsync(cancellationToken);
+        return saleId is null
+            ? new(SaleRetentionHoldStatus.NotFound)
+            : await SetAsync(actorId, saleId.Value, request, cancellationToken);
+    }
+
+    public async Task<SaleRetentionHoldListResult> ListAsync(Guid actorId, CancellationToken cancellationToken)
+    {
+        if (!await AdministratorScope.IsAdministratorAsync(database, actorId, cancellationToken))
+        {
+            return new(SaleRetentionHoldStatus.Forbidden);
+        }
+
+        var holds = await (from sale in database.SalesOrders.AsNoTracking()
+                           join reservation in database.Reservations.AsNoTracking() on sale.Id equals reservation.Id
+                           where sale.RetentionHoldUntil != null
+                           orderby sale.RetentionHoldUntil, reservation.Number
+                           select new SaleRetentionHoldRow(sale.Id, reservation.Number, sale.RetentionHoldUntil!.Value,
+                               sale.RetentionHoldReason!))
+            .Take(100).ToListAsync(cancellationToken);
+        return new(SaleRetentionHoldStatus.Succeeded, holds);
+    }
+
     public async Task<SaleRetentionHoldResult> SetAsync(Guid actorId, Guid saleId, SaleRetentionHoldRequest request,
         CancellationToken cancellationToken)
     {

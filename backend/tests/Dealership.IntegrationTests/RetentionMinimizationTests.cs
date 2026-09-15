@@ -209,7 +209,7 @@ public sealed class RetentionMinimizationTests(IntakePhotoFixture fixture) : ICl
         Assert.DoesNotContain(warnings, message => message.Contains("Retention of", StringComparison.Ordinal));
     }
 
-    private sealed class WarningCapture(List<string> messages) : ILoggerProvider
+    internal sealed class WarningCapture(List<string> messages) : ILoggerProvider
     {
         public ILogger CreateLogger(string categoryName) => new Capture(messages);
 

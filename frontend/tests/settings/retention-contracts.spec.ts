@@ -7,6 +7,13 @@ import {
   retentionUnchanged,
 } from "../../src/lib/settings/retention";
 import { settingsLocation, settingsSelectionRoute } from "../../src/lib/settings/settings-location";
+import {
+  holdUntilInstant,
+  parseRetentionHoldChange,
+  parseRetentionHolds,
+  validHoldDraft,
+  wrapRetentionHolds,
+} from "../../src/lib/settings/retention-holds";
 
 const bounds = {
   minimumDays: 7,
@@ -69,4 +76,27 @@ test("retention has its own address with no record segment or list query", () =>
   );
   expect(settingsSelectionRoute("retention")).toEqual({ section: "retention", id: "" });
   expect(settingsSelectionRoute("retention", ["5b0f3a1e-6c1d-4f4e-9d0a-2f4f6f1a7c11"])).toBeNull();
+});
+
+test("preservation hold lists and changes parse only complete rows", () => {
+  const hold = {
+    saleId: "4f1d2c3b-5a6e-4b7c-8d9e-0f1a2b3c4d5e",
+    reservationNumber: "RSV-2026-000001",
+    until: "2030-01-31T15:59:59Z",
+    reason: "Dispute under review",
+  };
+  expect(parseRetentionHolds({ holds: [hold] })?.holds).toHaveLength(1);
+  expect(wrapRetentionHolds([hold])?.holds[0].reservationNumber).toBe("RSV-2026-000001");
+  expect(parseRetentionHolds({ holds: [{ ...hold, reason: "" }] })).toBeNull();
+  expect(parseRetentionHolds({ holds: [{ ...hold, saleId: "x" }] })).toBeNull();
+  expect(wrapRetentionHolds({})).toBeNull();
+  expect(parseRetentionHoldChange({ until: null })?.until).toBeNull();
+  expect(parseRetentionHoldChange({ until: "tomorrow" })).toBeNull();
+  expect(holdUntilInstant("2030-01-31")).toBe("2030-01-31T15:59:59.000Z");
+  expect(validHoldDraft({ reservationNumber: "RSV-1", until: "2030-01-31", reason: " " })).toBe(
+    false,
+  );
+  expect(
+    validHoldDraft({ reservationNumber: "RSV-1", until: "2030-01-31", reason: "Dispute" }),
+  ).toBe(true);
 });

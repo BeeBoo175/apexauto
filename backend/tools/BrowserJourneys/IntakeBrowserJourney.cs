@@ -71,6 +71,10 @@ internal static class IntakeBrowserJourney
                 var records = await references.ServiceProvider.GetRequiredService<DealershipDbContext>()
                     .IntakeAppointments.Select(item => new { item.Id, item.BranchId, item.RegistrationPlate, item.StartsAt }).ToArrayAsync();
                 File.WriteAllText(Path.Combine(directory, "references.json"), JsonSerializer.Serialize(records, JsonSerializerOptions.Web));
+                // The retention settings journey places a preservation hold on a canonical sale by its number.
+                var reservation = await references.ServiceProvider.GetRequiredService<DealershipDbContext>()
+                    .Reservations.OrderBy(item => item.Number).Select(item => item.Number).FirstAsync();
+                File.WriteAllText(Path.Combine(directory, "reservation-number.txt"), reservation);
             }
             var nextOrigin = BrowserProcess.AllocateNextOrigin();
             await using var ingress = await TrustedIngress.StartAsync(nextOrigin);

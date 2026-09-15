@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { signInAs } from "./staff-session";
 
@@ -36,6 +38,31 @@ test("an administrator extends and then shortens a retention period with confirm
   await expect(page.getByText("Retention settings saved.")).toBeVisible();
   await page.reload();
   await expect(page.getByLabel("Security records (days)", { exact: true })).toHaveValue("14");
+
+  // A preservation hold is placed by reservation number, listed and released.
+  const reservation = readFileSync(
+    path.join(process.env.BROWSER_EVIDENCE_DIR!, "reservation-number.txt"),
+    "utf8",
+  ).trim();
+  const place = page.getByRole("button", { name: "Place hold", exact: true });
+  await expect(page.getByText("No sale is held.")).toBeVisible();
+  await expect(place).toBeDisabled();
+  await page.getByLabel("Reservation number", { exact: true }).fill("RSV-0000-000000");
+  await page.getByLabel("Hold until", { exact: true }).fill("2030-01-31");
+  await page.getByLabel("Reason", { exact: true }).fill("Dispute under review");
+  await place.click();
+  await expect(page.getByText("No reservation has that number.")).toBeVisible();
+  await page.getByLabel("Reservation number", { exact: true }).fill(reservation);
+  await place.click();
+  await expect(page.getByText("Preservation hold placed.")).toBeVisible();
+  const holds = page.getByRole("list", { name: "Current holds" });
+  await expect(holds).toContainText(reservation);
+  await expect(holds).toContainText("Dispute under review");
+  await page.reload();
+  await expect(page.getByRole("list", { name: "Current holds" })).toContainText(reservation);
+  await page.getByRole("button", { name: `Release ${reservation}`, exact: true }).click();
+  await expect(page.getByText("Preservation hold released.")).toBeVisible();
+  await expect(page.getByText("No sale is held.")).toBeVisible();
 
   // The section tab is reachable from the other settings sections.
   await page.getByRole("button", { name: "Promos", exact: true }).click();

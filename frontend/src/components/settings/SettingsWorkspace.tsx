@@ -18,6 +18,7 @@ import type { SettingsDraft } from "@/lib/settings/settings-draft";
 import { MasterDataTable } from "./MasterDataTable";
 import { PromoDrawer } from "./PromoDrawer";
 import { RetentionForm } from "./RetentionForm";
+import { RetentionHolds } from "./RetentionHolds";
 import { SettingsForm } from "./SettingsForm";
 import { WarrantyDrawer } from "./WarrantyDrawer";
 import { promoTableFilters, warrantyTableFilters, type LoadList } from "./settings-filters";
@@ -109,7 +110,9 @@ export function SettingsWorkspace({ entry }: { entry: SettingsEntry }) {
             onDraft={setRetentionDraft}
             onSaved={state.setRetention}
             onLocked={setEditingLocked}
-          />
+          >
+            <RetentionHolds />
+          </RetentionForm>
         </>
       );
     } else if (state.retentionMissing) {

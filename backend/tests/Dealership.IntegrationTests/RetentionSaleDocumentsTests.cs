@@ -60,6 +60,15 @@ public sealed class RetentionSaleDocumentsTests(IntakePhotoFixture fixture) : IC
             "UPDATE \"SalesOrders\" SET \"ClaimedAt\" = \"ClaimedAt\" + interval '1 second' WHERE \"Id\" = '" +
             delivered.SaleId + "'"));
 
+        // The Administrator finds a hold by the reservation number and sees it in the list.
+        var number = await database.Reservations.AsNoTracking().Where(item => item.Id == delivered.SaleId)
+            .Select(item => item.Number).SingleAsync();
+        var listed = await holds.ListAsync(administrator, default);
+        Assert.Equal(number, Assert.Single(listed.Holds!, item => item.SaleId == delivered.SaleId).ReservationNumber);
+        Assert.Equal(SaleRetentionHoldStatus.Forbidden, (await holds.ListAsync(world.Manager, default)).Status);
+        Assert.Equal(SaleRetentionHoldStatus.NotFound, (await holds.SetByNumberAsync(administrator,
+            new("RSV-0000-000000", until, "Dispute under review"), default)).Status);
+
         await using var owner = new NpgsqlConnection(fixture.Database.ConnectionString);
         await owner.OpenAsync();
         await AgeAsync(owner, "6 years");
@@ -71,8 +80,10 @@ public sealed class RetentionSaleDocumentsTests(IntakePhotoFixture fixture) : IC
         await Worker(fixture.CreateFactory()).RunBatchAsync(CancellationToken.None);
         Assert.False(await RemovedAsync(database, delivered.SaleId));
 
-        Assert.Equal(SaleRetentionHoldStatus.Succeeded, (await holds.SetAsync(administrator, delivered.SaleId,
-            new(null, null), default)).Status);
+        Assert.Equal(SaleRetentionHoldStatus.Succeeded, (await holds.SetByNumberAsync(administrator,
+            new(number, null, null), default)).Status);
+        Assert.DoesNotContain((await holds.ListAsync(administrator, default)).Holds!,
+            item => item.SaleId == delivered.SaleId);
         await Worker(fixture.CreateFactory()).RunBatchAsync(CancellationToken.None);
         Assert.True(await RemovedAsync(database, delivered.SaleId));
 

@@ -18,6 +18,7 @@ import {
   requireJsonRequest,
 } from "@/lib/server/http/staff-relay";
 import { hasSettingsAccess, warrantyGrades } from "./settings";
+import { parseRetentionHoldChange, wrapRetentionHolds } from "./retention-holds";
 
 export type SettingsResource = "settings" | "promos" | "warranties" | "retention";
 
@@ -234,5 +235,76 @@ export function shapeRetention(body: Body) {
     businessEvidenceYears: body.businessEvidenceYears,
     expectedVersion: body.expectedVersion,
     shorteningConfirmed: body.shorteningConfirmed,
+  };
+}
+
+const holdsUpstream = "/api/staff/retention-holds";
+
+export async function relayRetentionHolds(request: Request) {
+  try {
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
+    const current = await settingsActor(signal);
+    if (current.denied) {
+      return current.denied;
+    }
+    const result = await privateApiRead(holdsUpstream, wrapRetentionHolds, signal);
+    return apiJson({ ...result, actor: current.actor });
+  } catch (error) {
+    return apiError(error);
+  }
+}
+
+export async function relayRetentionHoldChange(request: Request) {
+  try {
+    requireSameOrigin(request);
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
+    const token = await sessionToken();
+    if (!token) {
+      throw new HttpError(401, "Sign in to continue.");
+    }
+    const current = await settingsActor(signal);
+    if (current.denied) {
+      return current.denied;
+    }
+    requireJsonRequest(request);
+    const body = await readBoundedJson(request.body, signal, 8 * 1024);
+    const forwarded = isRecord(body) ? shapeRetentionHold(body) : null;
+    if (!forwarded) {
+      throw new HttpError(400, "Provide a reservation number, a future date and a reason.");
+    }
+    const result = await requestApiJson(holdsUpstream, parseRetentionHoldChange, {
+      token,
+      signal,
+      method: "PUT",
+      body: forwarded,
+    });
+    return apiJson({ ...result, actor: current.actor });
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return apiError(new HttpError(400, "Provide valid JSON details."));
+    }
+    return apiError(error);
+  }
+}
+
+function shapeRetentionHold(body: Body) {
+  const release = body.until === null && body.reason === null;
+  const place =
+    isUtcInstant(body.until) &&
+    typeof body.reason === "string" &&
+    body.reason.trim().length > 0 &&
+    body.reason.length <= 1000;
+  if (
+    typeof body.reservationNumber !== "string" ||
+    body.reservationNumber.trim().length === 0 ||
+    body.reservationNumber.length > 40 ||
+    !(release || place)
+  ) {
+    return null;
+  }
+  return {
+    reservationNumber: body.reservationNumber.trim(),
+    until: body.until,
+    reason: body.reason,
   };
 }

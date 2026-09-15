@@ -6,6 +6,14 @@ public sealed record SaleRetentionHoldRequest(DateTimeOffset? Until, string? Rea
 
 public sealed record SaleRetentionHoldView(Guid SaleId, DateTimeOffset? Until, string? Reason, Guid? SetById);
 
+// The Administrator names a sale by its reservation number, which staff and customers already see.
+public sealed record SaleRetentionHoldByNumberRequest(string? ReservationNumber, DateTimeOffset? Until, string? Reason);
+
+public sealed record SaleRetentionHoldRow(Guid SaleId, string ReservationNumber, DateTimeOffset Until, string Reason);
+
+public sealed record SaleRetentionHoldListResult(SaleRetentionHoldStatus Status,
+    IReadOnlyList<SaleRetentionHoldRow>? Holds = null);
+
 public enum SaleRetentionHoldStatus
 {
     Succeeded,
@@ -20,4 +28,9 @@ public interface ISaleRetentionHoldStore
 {
     Task<SaleRetentionHoldResult> SetAsync(Guid actorId, Guid saleId, SaleRetentionHoldRequest request,
         CancellationToken cancellationToken);
+
+    Task<SaleRetentionHoldResult> SetByNumberAsync(Guid actorId, string reservationNumber,
+        SaleRetentionHoldRequest request, CancellationToken cancellationToken);
+
+    Task<SaleRetentionHoldListResult> ListAsync(Guid actorId, CancellationToken cancellationToken);
 }

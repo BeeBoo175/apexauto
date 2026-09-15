@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { StaffWorkspaceFooter } from "@/components/staff/StaffWorkspaceFooter";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -49,6 +50,7 @@ export function RetentionForm({
   onDraft,
   onSaved,
   onLocked,
+  children,
 }: {
   settings: RetentionSettings;
   draft: RetentionDraft | null;
@@ -56,6 +58,7 @@ export function RetentionForm({
   onDraft: (draft: RetentionDraft | null) => void;
   onSaved: (settings: RetentionSettings) => void;
   onLocked: (locked: boolean) => void;
+  children?: ReactNode;
 }) {
   const form = useRetentionSettingsForm({ settings, draft, busy, onDraft, onSaved, onLocked });
   const { saver, current, errors, changed, shortened, uncertain, disabled } = form;
@@ -118,6 +121,7 @@ export function RetentionForm({
               />
             </div>
           </section>
+          {children}
           {shortened && (
             <label className={styles.check}>
               <input
