@@ -171,3 +171,44 @@ test("current documents have unique kinds and older correction bodies retain the
     parseSaleDocument({ ...document, contents: { ...document.contents, customerId: "invalid" } }),
   ).toBeNull();
 });
+
+test("a document whose buyer details were removed by retention still parses and cannot be half removed", () => {
+  const stripped = { vehicle: review.vehicle };
+  const removed = parseSaleDocument({
+    ...document,
+    contents: { ...document.contents, review: stripped },
+  });
+  expect(removed?.contents.review.buyerName).toBeNull();
+  expect(removed?.contents.review.vehicle.id).toBe(id);
+  const explicitNulls = {
+    ...stripped,
+    buyerName: null,
+    buyerNric: null,
+    buyerAddress: null,
+  };
+  expect(
+    parseSaleDocument({ ...document, contents: { ...document.contents, review: explicitNulls } }),
+  ).not.toBeNull();
+  // One surviving buyer field means the removal was partial, which the database never produces.
+  expect(
+    parseSaleDocument({
+      ...document,
+      contents: { ...document.contents, review: { ...stripped, buyerName: "Tan Hui Min" } },
+    }),
+  ).toBeNull();
+  // A correction whose reason was removed still reads as a correction.
+  const correction = {
+    operationId: id,
+    saleId: id,
+    originalDocumentId: id,
+    replacementDocumentId: other,
+    replacementNumber: "VPO-2026-000002",
+    actorId: id,
+    recordedAt: time,
+    reason: null,
+  };
+  expect(
+    parseSaleDocument({ ...document, replacementDocumentId: other, correction })?.correction
+      ?.reason,
+  ).toBeNull();
+});

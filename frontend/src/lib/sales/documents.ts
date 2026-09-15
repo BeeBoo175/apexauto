@@ -20,6 +20,16 @@ export interface SaleSettlementReview {
   vehicle: SaleReviewedVehicle;
 }
 
+// After the retention period the buyer's name, NRIC and address are removed from an issued document's copy.
+export interface SaleDocumentReview {
+  buyerName: string | null;
+  buyerNric: string | null;
+  buyerAddress: string | null;
+  vehicle: SaleReviewedVehicle;
+}
+
+export const buyerDetailsRemoved = (review: SaleDocumentReview) => review.buyerName === null;
+
 export const documentLabels = {
   PurchaseOrder: "Purchase order",
   PaymentReceipt: "Payment receipt",
@@ -34,7 +44,7 @@ export interface SaleDocumentCorrectionReceipt {
   replacementNumber: string;
   actorId: string;
   recordedAt: string;
-  reason: string;
+  reason: string | null;
 }
 
 export interface SaleDocument {
@@ -48,7 +58,7 @@ export interface SaleDocument {
     branchName: string;
     branchAddress: string;
     reservationNumber: string;
-    review: SaleSettlementReview;
+    review: SaleDocumentReview;
     sale: SaleSnapshot;
   };
   replacesDocumentId: string | null;
@@ -56,26 +66,53 @@ export interface SaleDocument {
   correction: SaleDocumentCorrectionReceipt | null;
 }
 
+function validVehicle(vehicle: Record<string, unknown>) {
+  return (
+    isUuid(vehicle.id) &&
+    [vehicle.registrationPlate, vehicle.vin, vehicle.make, vehicle.model].every(text) &&
+    typeof vehicle.trim === "string" &&
+    isPositiveInteger(vehicle.manufactureYear) &&
+    Number.isSafeInteger(vehicle.mileageKilometres) &&
+    Number(vehicle.mileageKilometres) >= 0
+  );
+}
+
 export function parseSettlementReview(value: unknown): SaleSettlementReview | null {
   if (!isRecord(value) || !isRecord(value.vehicle)) {
     return null;
   }
-  const vehicle = value.vehicle;
   if (
     !text(value.buyerName) ||
     typeof value.buyerNric !== "string" ||
     !/^\d{12}$/.test(value.buyerNric) ||
     !text(value.buyerAddress) ||
-    !isUuid(vehicle.id) ||
-    ![vehicle.registrationPlate, vehicle.vin, vehicle.make, vehicle.model].every(text) ||
-    typeof vehicle.trim !== "string" ||
-    !isPositiveInteger(vehicle.manufactureYear) ||
-    !Number.isSafeInteger(vehicle.mileageKilometres) ||
-    Number(vehicle.mileageKilometres) < 0
+    !validVehicle(value.vehicle)
   ) {
     return null;
   }
   return value as unknown as SaleSettlementReview;
+}
+
+// An issued document's review is complete, or has all three buyer fields removed together.
+export function parseDocumentReview(value: unknown): SaleDocumentReview | null {
+  if (!isRecord(value) || !isRecord(value.vehicle)) {
+    return null;
+  }
+  const removed = [value.buyerName, value.buyerNric, value.buyerAddress].every(
+    (field) => field === null || field === undefined,
+  );
+  if (!removed) {
+    return parseSettlementReview(value);
+  }
+  if (!validVehicle(value.vehicle)) {
+    return null;
+  }
+  return {
+    buyerName: null,
+    buyerNric: null,
+    buyerAddress: null,
+    vehicle: value.vehicle as unknown as SaleReviewedVehicle,
+  };
 }
 
 export function parseDocumentCorrection(value: unknown): SaleDocumentCorrectionReceipt | null {
@@ -90,12 +127,12 @@ export function parseDocumentCorrection(value: unknown): SaleDocumentCorrectionR
     ].every(isUuid) ||
     !text(value.replacementNumber) ||
     !isUtcInstant(value.recordedAt) ||
-    !text(value.reason) ||
+    !(value.reason === null || value.reason === undefined || text(value.reason)) ||
     value.originalDocumentId === value.replacementDocumentId
   ) {
     return null;
   }
-  return value as unknown as SaleDocumentCorrectionReceipt;
+  return { ...value, reason: value.reason ?? null } as unknown as SaleDocumentCorrectionReceipt;
 }
 
 export function parseSaleDocument(value: unknown): SaleDocument | null {
@@ -103,7 +140,7 @@ export function parseSaleDocument(value: unknown): SaleDocument | null {
     return null;
   }
   const contents = value.contents;
-  const review = parseSettlementReview(contents.review);
+  const review = parseDocumentReview(contents.review);
   const sale = parseSaleSnapshot(contents.sale);
   const correction = value.correction === null ? null : parseDocumentCorrection(value.correction);
   if (

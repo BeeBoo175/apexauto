@@ -3,7 +3,12 @@
 import { Button } from "@/components/ui/Button";
 import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { useSaleDocumentVersion } from "@/hooks/use-sale-document-version";
-import { documentLabels, saleDocumentPdf, type SaleDocument } from "@/lib/sales/documents";
+import {
+  buyerDetailsRemoved,
+  documentLabels,
+  saleDocumentPdf,
+  type SaleDocument,
+} from "@/lib/sales/documents";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import links from "./SaleDocumentLinks.module.css";
 
@@ -27,13 +32,17 @@ export function SaleDocumentLinks({
   if (!document) {
     return <ReloadNotice subject="Document" />;
   }
+  const removed = buyerDetailsRemoved(document.contents.review);
   const details = (
     <>
       <p>
         Issued {formatMalaysianDateTime(document.issuedAt)}
         {document.replacementDocumentId ? " · Superseded" : ""}
       </p>
-      {document.correction && <p>Correction: {document.correction.reason}</p>}
+      {document.correction && (
+        <p>Correction{document.correction.reason ? `: ${document.correction.reason}` : "."}</p>
+      )}
+      {removed && <p>Buyer details were removed after the retention period.</p>}
       {document.replacesDocumentId && (
         <Button
           size="compact"
@@ -54,7 +63,7 @@ export function SaleDocumentLinks({
           View replacement document
         </Button>
       )}
-      {onCorrect && !document.replacementDocumentId && (
+      {onCorrect && !removed && !document.replacementDocumentId && (
         <Button
           size="compact"
           variant="secondary"

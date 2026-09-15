@@ -77,12 +77,17 @@ export function useSaleDocumentCorrection(sale: Sale, onChanged: () => void) {
     operating,
     submit,
     start: (document: SaleDocument) => {
+      const { buyerName, buyerAddress } = document.contents.review;
+      // Retention removed this document's buyer details, so there is nothing left to correct.
+      if (buyerName === null || buyerAddress === null) {
+        return;
+      }
       if (allowed && !operating && !document.replacementDocumentId) {
         setDraft({
           document,
           version: sale.sale.version,
-          buyerName: document.contents.review.buyerName,
-          buyerAddress: document.contents.review.buyerAddress,
+          buyerName,
+          buyerAddress,
           reason: "",
         });
       }
