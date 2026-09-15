@@ -25,16 +25,16 @@ internal sealed class AdversarialWorld(WebApplicationFactory<Program> factory) :
     }
 
     public Task<AccountErasureResult> EraseCustomerAsync(Guid administratorId, Guid customerId, Guid operationId,
-        string password, string? reason = "Subject request") =>
+        string? password, string? reason = "Subject request") =>
         RunAsync(services => services.GetRequiredService<AccountErasureService>().EraseCustomerAsync(administratorId,
             customerId, new(operationId, reason, password), CancellationToken.None));
 
     public Task<AccountErasureResult> EraseStaffAsync(Guid administratorId, Guid staffId, Guid operationId,
-        string password, string? reason = "Left the company") =>
+        string? password, string? reason = "Left the company") =>
         RunAsync(services => services.GetRequiredService<AccountErasureService>().EraseStaffAsync(administratorId,
             staffId, new(operationId, reason, password), CancellationToken.None));
 
-    public Task<CustomerClosureResult> CloseAsync(Guid customerId, Guid operationId, string password) =>
+    public Task<CustomerClosureResult> CloseAsync(Guid customerId, Guid operationId, string? password) =>
         RunAsync(services => services.GetRequiredService<CustomerClosureService>().CloseAsync(customerId,
             new(operationId, password), CancellationToken.None));
 

@@ -124,17 +124,18 @@ public sealed class AdversarialErasureTests(IntakePhotoFixture fixture) : IClass
             var theirs = Guid.NewGuid();
             var closing = world.CloseAsync(customerId, own, registration.Password);
             var erasing = world.EraseCustomerAsync(admin, customerId, theirs, Password);
-            await Task.WhenAll(closing, erasing);
+            var closingResult = await closing;
+            var erasingResult = await erasing;
 
             Assert.False(await world.IsOpenAsync(customerId));
             Assert.Equal(1, await world.ErasedEventCountAsync(customerId));
-            Assert.True(closing.Result.Status is CustomerClosureStatus.Closed or CustomerClosureStatus.Forbidden or
+            Assert.True(closingResult.Status is CustomerClosureStatus.Closed or CustomerClosureStatus.Forbidden or
                 CustomerClosureStatus.RetryLater or CustomerClosureStatus.SessionChanged or CustomerClosureStatus.WrongPassword,
-                closing.Result.Status.ToString());
-            Assert.True(erasing.Result.Status is AccountErasureStatus.Erased or AccountErasureStatus.NotFound or
-                AccountErasureStatus.RetryLater or AccountErasureStatus.Conflict, erasing.Result.Status.ToString());
-            Assert.True(closing.Result.Status == CustomerClosureStatus.Closed ||
-                erasing.Result.Status == AccountErasureStatus.Erased);
+                closingResult.Status.ToString());
+            Assert.True(erasingResult.Status is AccountErasureStatus.Erased or AccountErasureStatus.NotFound or
+                AccountErasureStatus.RetryLater or AccountErasureStatus.Conflict, erasingResult.Status.ToString());
+            Assert.True(closingResult.Status == CustomerClosureStatus.Closed ||
+                erasingResult.Status == AccountErasureStatus.Erased);
         }
     }
 

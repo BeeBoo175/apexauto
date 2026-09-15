@@ -21,16 +21,17 @@ public sealed class AdversarialLastAdministratorTests(IntakePhotoFixture fixture
 
         var firstAction = world.EraseStaffAsync(first, second, Guid.NewGuid(), Password);
         var secondAction = world.EraseStaffAsync(second, first, Guid.NewGuid(), Password);
-        await Task.WhenAll(firstAction, secondAction);
+        var firstResult = await firstAction;
+        var secondResult = await secondAction;
 
         var active = await ActiveAdministratorsAsync(world);
         Assert.Single(active);
         var survivor = active.Single();
         var erased = survivor == first ? second : first;
         Assert.Equal(AccountErasureStatus.Erased,
-            survivor == first ? firstAction.Result.Status : secondAction.Result.Status);
+            survivor == first ? firstResult.Status : secondResult.Status);
         Assert.NotEqual(AccountErasureStatus.Erased,
-            survivor == first ? secondAction.Result.Status : firstAction.Result.Status);
+            survivor == first ? secondResult.Status : firstResult.Status);
         Assert.NotNull((await world.UserAsync(erased)).ClosedAt);
 
         // The last Administrator is refused, whoever asks, and stays active and able to sign in.

@@ -64,13 +64,13 @@ public sealed class AdversarialRetentionSettingsTests(IntakePhotoFixture fixture
         await SeedAsync(factory, admin);
 
         var same = await admin.PutAsync(Path, Json(Body("30", "30", "30", "7", "1")));
-        Assert.True((int)same.StatusCode < 500, ((int)same.StatusCode).ToString());
+        Assert.True((int)same.StatusCode < 500, ((int)same.StatusCode).ToString(System.Globalization.CultureInfo.InvariantCulture));
         Assert.Equal(0, await ChangeCountAsync(factory));
 
         var withUnknown = await admin.PutAsync(Path, Json(
             "{\"securityArtifactDays\":31,\"mailDetailDays\":30,\"invitationDays\":30,\"businessEvidenceYears\":7," +
             "\"expectedVersion\":1,\"shorteningConfirmed\":false,\"updatedById\":\"" + Guid.NewGuid() + "\",\"version\":99}"));
-        Assert.True((int)withUnknown.StatusCode < 500, ((int)withUnknown.StatusCode).ToString());
+        Assert.True((int)withUnknown.StatusCode < 500, ((int)withUnknown.StatusCode).ToString(System.Globalization.CultureInfo.InvariantCulture));
         var current = (await admin.GetFromJsonAsync<RetentionSettingsView>(Path))!;
         // Whatever the answer, the client cannot choose the version or the actor recorded for the change.
         using var scope = factory.Services.CreateScope();
@@ -130,8 +130,8 @@ public sealed class AdversarialRetentionSettingsTests(IntakePhotoFixture fixture
         for (var round = 0; round < 6; round++)
         {
             var version = (await first.GetFromJsonAsync<RetentionSettingsView>(Path))!.Version;
-            var firstSave = first.PutAsync(Path, Json(Body((40 + round * 2).ToString(), "30", "30", "7", version.ToString(), true)));
-            var secondSave = second.PutAsync(Path, Json(Body((41 + round * 2).ToString(), "30", "30", "7", version.ToString(), true)));
+            var firstSave = first.PutAsync(Path, Json(Body((40 + round * 2).ToString(System.Globalization.CultureInfo.InvariantCulture), "30", "30", "7", version.ToString(System.Globalization.CultureInfo.InvariantCulture), true)));
+            var secondSave = second.PutAsync(Path, Json(Body((41 + round * 2).ToString(System.Globalization.CultureInfo.InvariantCulture), "30", "30", "7", version.ToString(System.Globalization.CultureInfo.InvariantCulture), true)));
             var results = await Task.WhenAll(firstSave, secondSave);
 
             Assert.Single(results, item => item.StatusCode == HttpStatusCode.OK);

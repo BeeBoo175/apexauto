@@ -185,11 +185,11 @@ public sealed class AdversarialSaleDisposalTests(IntakePhotoFixture fixture) : I
             "ALTER TABLE \"RetentionSettingChanges\" ENABLE TRIGGER USER; ALTER TABLE \"RetentionSettings\" ENABLE TRIGGER USER;");
 
         // No settings row: the approved default of seven years applies.
-        Assert.Equal(DateTimeOffset.Parse("2027-02-28T12:00:00Z"), await DeadlineAsync(owner, "2020-02-29T12:00:00Z"));
-        Assert.Equal(DateTimeOffset.Parse("2028-02-29T00:00:00Z"), await DeadlineAsync(owner, "2021-02-28T23:59:59Z") .ContinueWith(
-            result => result.Result.AddSeconds(1)));
-        Assert.Equal(DateTimeOffset.Parse("2033-12-31T23:59:59Z"), await DeadlineAsync(owner, "2026-12-31T23:59:59Z"));
-        Assert.Equal(DateTimeOffset.Parse("2033-01-01T00:00:00Z"), await DeadlineAsync(owner, "2026-01-01T00:00:00Z"));
+        Assert.Equal(DateTimeOffset.Parse("2027-02-28T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture), await DeadlineAsync(owner, "2020-02-29T12:00:00Z"));
+        Assert.Equal(DateTimeOffset.Parse("2028-02-28T23:59:59Z", System.Globalization.CultureInfo.InvariantCulture), await DeadlineAsync(owner, "2021-02-28T23:59:59Z"));
+        Assert.Equal(DateTimeOffset.Parse("2028-03-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), await DeadlineAsync(owner, "2021-03-01T00:00:00Z"));
+        Assert.Equal(DateTimeOffset.Parse("2033-12-31T23:59:59Z", System.Globalization.CultureInfo.InvariantCulture), await DeadlineAsync(owner, "2026-12-31T23:59:59Z"));
+        Assert.Equal(DateTimeOffset.Parse("2033-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), await DeadlineAsync(owner, "2026-01-01T00:00:00Z"));
 
         var administrator = Guid.NewGuid();
         using (var factory = fixture.CreateFactory())
@@ -205,14 +205,14 @@ public sealed class AdversarialSaleDisposalTests(IntakePhotoFixture fixture) : I
             $"INSERT INTO \"RetentionSettingChanges\" (\"Id\", \"SettingsVersion\", \"Setting\", \"PreviousValue\", \"NewValue\", \"ShorteningConfirmed\", \"ActorId\", \"ChangedAtUtc\") " +
             $"VALUES (gen_random_uuid(), 2, 'BusinessEvidenceYears', 7, 1, true, '{administrator}', '2030-01-01Z'); " +
             "ALTER TABLE \"RetentionSettingChanges\" ENABLE TRIGGER USER; ALTER TABLE \"RetentionSettings\" ENABLE TRIGGER USER;");
-        Assert.Equal(DateTimeOffset.Parse("2036-06-01T00:00:00Z"), await DeadlineAsync(owner, "2029-06-01T00:00:00Z"));
-        Assert.Equal(DateTimeOffset.Parse("2031-06-01T00:00:00Z"), await DeadlineAsync(owner, "2030-06-01T00:00:00Z"));
+        Assert.Equal(DateTimeOffset.Parse("2036-06-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), await DeadlineAsync(owner, "2029-06-01T00:00:00Z"));
+        Assert.Equal(DateTimeOffset.Parse("2031-06-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), await DeadlineAsync(owner, "2030-06-01T00:00:00Z"));
 
         // Extended to ten years afterwards: every anchor, old or new, gets at least ten.
         await ExecuteAsync(owner, "ALTER TABLE \"RetentionSettings\" DISABLE TRIGGER USER; UPDATE \"RetentionSettings\" SET \"BusinessEvidenceYears\" = 10; " +
             "ALTER TABLE \"RetentionSettings\" ENABLE TRIGGER USER;");
-        Assert.Equal(DateTimeOffset.Parse("2039-06-01T00:00:00Z"), await DeadlineAsync(owner, "2029-06-01T00:00:00Z"));
-        Assert.Equal(DateTimeOffset.Parse("2040-06-01T00:00:00Z"), await DeadlineAsync(owner, "2030-06-01T00:00:00Z"));
+        Assert.Equal(DateTimeOffset.Parse("2039-06-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), await DeadlineAsync(owner, "2029-06-01T00:00:00Z"));
+        Assert.Equal(DateTimeOffset.Parse("2040-06-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), await DeadlineAsync(owner, "2030-06-01T00:00:00Z"));
     }
 
     private static async Task<DateTimeOffset> DeadlineAsync(NpgsqlConnection owner, string anchor)
@@ -251,7 +251,7 @@ public sealed class AdversarialSaleDisposalTests(IntakePhotoFixture fixture) : I
     private static async Task AgeAsync(NpgsqlConnection owner, string age)
     {
         await ExecuteAsync(owner, "ALTER TABLE \"SalesOrders\" DISABLE TRIGGER USER");
-        await ExecuteAsync(owner, "UPDATE \"SalesOrders\" SET " + string.Format(AgeColumns, age));
+        await ExecuteAsync(owner, "UPDATE \"SalesOrders\" SET " + AgeColumns.Replace("{0}", age, StringComparison.Ordinal));
         await ExecuteAsync(owner, "ALTER TABLE \"SalesOrders\" ENABLE TRIGGER USER");
         await ExecuteAsync(owner, "ALTER TABLE \"SalesOrderEvents\" DISABLE TRIGGER USER");
         await ExecuteAsync(owner, $"UPDATE \"SalesOrderEvents\" SET \"RecordedAt\" = \"RecordedAt\" - ({age})");

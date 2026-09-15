@@ -145,7 +145,7 @@ public sealed class AdversarialAccessTests(IntakePhotoFixture fixture) : IClassF
 
         foreach (var response in new[] { malformed, oversized, empty, wrongType })
         {
-            Assert.True((int)response.StatusCode is >= 400 and < 500, ((int)response.StatusCode).ToString());
+            Assert.True((int)response.StatusCode is >= 400 and < 500, ((int)response.StatusCode).ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
 
         Assert.True(await world.IsOpenAsync(customerId));
@@ -207,7 +207,7 @@ public sealed class AdversarialAccessTests(IntakePhotoFixture fixture) : IClassF
         var nullBody = await admin.PostAsync($"/api/accounts/{victim}/erasures", Json("null"));
         Assert.Equal(HttpStatusCode.BadRequest, hugeReason.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, notAGuid.StatusCode);
-        Assert.True((int)nullBody.StatusCode is >= 400 and < 500, ((int)nullBody.StatusCode).ToString());
+        Assert.True((int)nullBody.StatusCode is >= 400 and < 500, ((int)nullBody.StatusCode).ToString(System.Globalization.CultureInfo.InvariantCulture));
         Assert.True(await world.IsOpenAsync(victim));
     }
 
