@@ -35,6 +35,7 @@ public static class CustomerClosureEndpoints
         {
             CustomerClosureStatus.Closed => Results.Ok(result.Receipt),
             CustomerClosureStatus.Forbidden => Results.Forbid(),
+            CustomerClosureStatus.Conflict => Results.Json(new { code = "conflict" }, statusCode: 409),
             CustomerClosureStatus.WrongPassword => Results.Json(new { code = "wrong-password" }, statusCode: 409),
             CustomerClosureStatus.ProtectedSample => Results.Json(new { code = "protected-sample" }, statusCode: 409),
             CustomerClosureStatus.SessionChanged => Results.Json(new { code = "session-changed" }, statusCode: 409),

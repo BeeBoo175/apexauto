@@ -19,6 +19,8 @@ public enum CustomerClosureStatus
     // Employees and unknown accounts cannot close through the self-service command.
     Forbidden,
     WrongPassword,
+    // The operation id already recorded a different action.
+    Conflict,
     // A record still needs the customer; the result lists each one.
     Blocked,
     // A published sample account that the demo keeps available to every visitor.

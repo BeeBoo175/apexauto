@@ -123,6 +123,12 @@ public sealed class AccountErasureStore(DealershipDbContext database, IPasswordH
             return await ErasedAsync(customerId, receipt.Id, receipt.RecordedAt, staff: false, cancellationToken);
         }
 
+        // An operation id already recorded for anything else is a conflict, never a second row with the same key.
+        if (await database.AccountEvents.AsNoTracking().AnyAsync(item => item.Id == request.OperationId, cancellationToken))
+        {
+            return new(AccountErasureStatus.Conflict);
+        }
+
         var actor = await database.Users.FromSqlInterpolated(
             $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {administratorId} FOR SHARE").AsNoTracking()
             .SingleOrDefaultAsync(cancellationToken);

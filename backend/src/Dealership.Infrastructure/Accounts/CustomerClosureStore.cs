@@ -100,6 +100,11 @@ public sealed class CustomerClosureStore(DealershipDbContext database,
             return await ClosedAsync(customerId, receipt.Id, receipt.RecordedAt, cancellationToken);
         }
 
+        if (await database.AccountEvents.AsNoTracking().AnyAsync(item => item.Id == operationId, cancellationToken))
+        {
+            return new(CustomerClosureStatus.Conflict);
+        }
+
         var user = await database.Users.FromSqlInterpolated(
             $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {customerId} FOR UPDATE").AsNoTracking()
             .SingleOrDefaultAsync(cancellationToken);
