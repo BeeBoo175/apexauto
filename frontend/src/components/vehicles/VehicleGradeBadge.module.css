@@ -1,0 +1,30 @@
+.badge {
+  min-height: 32px;
+  gap: 8px;
+  border: 0;
+  box-shadow: var(--shadow-surface);
+  cursor: pointer;
+  transition: background-color 180ms ease;
+}
+
+.badge:hover {
+  background: var(--color-signal-dark);
+}
+
+.badge:focus-visible {
+  outline: 3px solid var(--color-paper);
+  outline-offset: 2px;
+}
+
+.hint {
+  padding-left: 8px;
+  border-left: 1px solid currentcolor;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge {
+    transition: none;
+  }
+}

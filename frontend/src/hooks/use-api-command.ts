@@ -20,6 +20,8 @@ export function useApiCommand<T>(
   const [receipt, setReceipt] = useState<T | null>(null);
   const attempt = useRef<string | null>(null);
   const controller = useRef<AbortController | null>(null);
+  // Set just before the page itself navigates away on purpose, such as to a payment page.
+  const leaving = useRef(false);
   const { success, error, warning } = useToast();
 
   useEffect(() => () => controller.current?.abort(), []);
@@ -27,7 +29,11 @@ export function useApiCommand<T>(
     if (!busy && !uncertain) {
       return;
     }
-    const guard = (event: BeforeUnloadEvent) => event.preventDefault();
+    const guard = (event: BeforeUnloadEvent) => {
+      if (!leaving.current) {
+        event.preventDefault();
+      }
+    };
     window.addEventListener("beforeunload", guard);
     return () => window.removeEventListener("beforeunload", guard);
   }, [busy, uncertain]);
@@ -36,6 +42,7 @@ export function useApiCommand<T>(
     if (controller.current) {
       return null;
     }
+    leaving.current = false;
     // Reconciliation must replay the captured payload and operation ID, even if the form changes.
     attempt.current ??= JSON.stringify(body);
     const operation = new AbortController();
@@ -84,5 +91,11 @@ export function useApiCommand<T>(
     }
   }
 
-  return { busy, uncertain, receipt, submit };
+  // The command has finished and the page is about to move on by itself. The guard stays attached until React
+  // re-renders after the command settles, so without this the browser warns about the page's own redirect.
+  function allowLeave() {
+    leaving.current = true;
+  }
+
+  return { busy, uncertain, receipt, submit, allowLeave };
 }

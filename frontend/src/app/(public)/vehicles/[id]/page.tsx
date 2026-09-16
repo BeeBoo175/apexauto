@@ -1,14 +1,22 @@
 import { cache } from "react";
 import type { Metadata } from "next";
 import { VehicleDetail } from "@/components/vehicles/VehicleDetail";
+import { parsePage } from "@/lib/api";
 import { isUuid } from "@/lib/auth/contracts";
+import { parseBranch } from "@/lib/branches";
+import { resolveShowrooms } from "@/lib/guide/showrooms";
 import { requestApiJson } from "@/lib/server/http/api";
+import { catalogueDefaults, catalogueQuery } from "@/lib/vehicles/query";
+import { CATALOGUE_PAGE_SIZE } from "@/lib/vehicles/contracts";
+import { parseCatalogue } from "@/lib/vehicles/parse";
 import { parsePublicDetail } from "@/lib/vehicles/public-detail";
 import { readCustomerVehicleAccess } from "@/lib/vehicles/customer-access-server";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
+
+const MORE_CAR_COUNT = 10;
 
 // Metadata and content share only this request's bounded, fresh snapshot.
 const readDetail = cache(async (id: string) => {
@@ -39,5 +47,44 @@ export default async function VehiclePage({ params }: Props) {
     readDetail(id),
     readCustomerVehicleAccess(),
   ]);
-  return <VehicleDetail key={id} id={id} initial={initial} reservationAccess={reservationAccess} />;
+
+  // The showroom block and the car carousels read beside the detail; a failed read only omits its block.
+  const listing = initial.data?.listing;
+  const [branches, catalogue, branchCatalogue] = listing
+    ? await Promise.all([
+        requestApiJson("/api/branches?page=1&pageSize=25", (value) =>
+          parsePage(value, parseBranch),
+        ),
+        requestApiJson(
+          `/api/vehicles?${catalogueQuery(catalogueDefaults, 1)}&pageSize=${CATALOGUE_PAGE_SIZE}`,
+          parseCatalogue,
+        ),
+        requestApiJson(
+          `/api/vehicles?${catalogueQuery({ ...catalogueDefaults, branchId: listing.branchId }, 1)}&pageSize=${CATALOGUE_PAGE_SIZE}`,
+          parseCatalogue,
+        ),
+      ])
+    : [null, null, null];
+
+  const showroom =
+    resolveShowrooms(branches?.data?.items ?? []).find((item) => item.id === listing?.branchId) ??
+    null;
+  const otherCars = (catalogue?.data?.items ?? [])
+    .filter((vehicle) => vehicle.id !== id)
+    .slice(0, MORE_CAR_COUNT);
+  const branchCars = (branchCatalogue?.data?.items ?? [])
+    .filter((vehicle) => vehicle.id !== id)
+    .slice(0, MORE_CAR_COUNT);
+
+  return (
+    <VehicleDetail
+      key={id}
+      id={id}
+      initial={initial}
+      reservationAccess={reservationAccess}
+      showroom={showroom}
+      moreCars={otherCars}
+      branchCars={branchCars}
+    />
+  );
 }

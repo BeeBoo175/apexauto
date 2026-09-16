@@ -33,7 +33,7 @@ export function VehicleTestDrive({
         prefetch={false}
         className={buttonClassName("secondary", "md")}
       >
-        Sign in to book a test drive
+        Book a test drive
       </Link>
     );
   }

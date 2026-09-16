@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { ListingPhoto } from "./ListingGallery";
@@ -15,10 +15,12 @@ export function VehicleDetailGallery({
   vehicleId,
   name,
   photos,
+  badge,
 }: {
   vehicleId: string;
   name: string;
   photos: VehicleDetailPhoto[];
+  badge?: ReactNode;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [failedThumbnails, setFailedThumbnails] = useState(() => new Set<string>());
@@ -60,6 +62,7 @@ export function VehicleDetailGallery({
           frameClassName={styles.selectedFrame}
           imageClassName={styles.selectedImage}
         />
+        {badge && <div className={styles.badge}>{badge}</div>}
       </div>
       {photos.length > 1 && (
         <div className={styles.thumbnails} aria-label="Choose a vehicle photo">

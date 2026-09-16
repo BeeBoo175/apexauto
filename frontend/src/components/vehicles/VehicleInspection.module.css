@@ -130,6 +130,12 @@
   min-width: min(100%, 200px);
 }
 
+/* The field and the filter button share one 44px control height. */
+.controls input {
+  box-sizing: border-box;
+  min-height: 44px;
+}
+
 .resultCount {
   margin: 16px 0 12px;
   color: var(--color-muted);

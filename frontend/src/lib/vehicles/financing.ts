@@ -38,6 +38,15 @@ export function defaultCashContribution(total: number): string {
   return exactMyr(roundedDivision(totalSen, BigInt(10)))?.toFixed(2) ?? "";
 }
 
+// The listing card quotes the same starting terms the vehicle page opens with: 10% cash over seven years.
+export function defaultMonthlyInstallment(total: number): number | null {
+  const cash = parseMyr(defaultCashContribution(total));
+  if (cash === null) {
+    return null;
+  }
+  return calculateFinancing(total, cash, 7)?.monthlyInstallment ?? null;
+}
+
 // This local estimate mirrors PurchasePricing; the backend owns agreed terms.
 export function calculateFinancing(
   total: number,

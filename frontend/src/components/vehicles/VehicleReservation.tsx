@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { usePaymentMode } from "@/hooks/use-payment-mode";
 import { ReloadNotice } from "@/components/ui/ReloadNotice";
@@ -15,7 +15,7 @@ import { authHref, type CustomerAccount } from "@/lib/auth/contracts";
 import type { CustomerVehicleAccess } from "@/lib/vehicles/customer-access";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import type { PurchaseQuote } from "@/lib/vehicles/purchase-quote";
-import { formatCurrency } from "@/lib/currency-format";
+import { formatCurrency, formatWholeCurrency } from "@/lib/currency-format";
 import {
   PAYMENT_WINDOW_MINUTES,
   RESERVATION_DEPOSIT,
@@ -60,9 +60,9 @@ export function VehicleReservation({
           <Link
             href={authHref("/login", `/vehicles/${detail.listing.id}`)}
             prefetch={false}
-            className={buttonClassName("muted", "md")}
+            className={buttonClassName("primary", "md")}
           >
-            Sign in to reserve this car
+            Reserve for {formatWholeCurrency(RESERVATION_DEPOSIT)}
           </Link>
           {testDrive}
           {financing}
@@ -246,7 +246,7 @@ function OwnReservation({
           disabled={disabled || reservation.locked}
           onClick={() => reservation.open(promo?.promoId ?? null)}
         >
-          Reserve this car
+          Reserve for {formatWholeCurrency(RESERVATION_DEPOSIT)}
         </Button>
         {testDrive}
         {financing}
@@ -257,7 +257,7 @@ function OwnReservation({
         confirmLabel={
           command.uncertain
             ? "Reconcile reservation"
-            : `Confirm ${formatCurrency(RESERVATION_DEPOSIT, "RM")} ${live ? "deposit" : "simulated deposit"}`
+            : `Confirm ${formatWholeCurrency(RESERVATION_DEPOSIT)} ${live ? "deposit" : "simulated deposit"}`
         }
         cancelLabel="Keep browsing"
         busy={command.busy}
@@ -277,8 +277,8 @@ function OwnReservation({
       >
         <p>
           {live
-            ? `This holds the car for ${PAYMENT_WINDOW_MINUTES} minutes while you pay a refundable ${formatCurrency(RESERVATION_DEPOSIT, "RM")} deposit securely online. The reservation is made only once your payment is confirmed.`
-            : `This reservation records a refundable ${formatCurrency(RESERVATION_DEPOSIT, "RM")} deposit and holds the car for ${RESERVATION_HOLD_HOURS} hours. No real payment is taken.`}{" "}
+            ? `This holds the car for ${PAYMENT_WINDOW_MINUTES} minutes while you pay a refundable ${formatWholeCurrency(RESERVATION_DEPOSIT)} deposit securely online. The reservation is made only once your payment is confirmed.`
+            : `This reservation records a refundable ${formatWholeCurrency(RESERVATION_DEPOSIT)} deposit and holds the car for ${RESERVATION_HOLD_HOURS} hours. No real payment is taken.`}{" "}
           The deposit counts toward your cash contribution.
         </p>
         <p>

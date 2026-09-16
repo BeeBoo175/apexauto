@@ -7,11 +7,14 @@ import Link from "next/link";
 import { Button, buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Input, Select } from "@/components/ui/Input";
+import { useCountedNumber } from "@/hooks/use-counted-number";
 import { useVehicleFinancing } from "@/hooks/use-vehicle-financing";
 import { formatCurrency } from "@/lib/currency-format";
 import { parseMyr } from "@/lib/currency-input";
 import styles from "./VehicleFinancing.module.css";
 import layout from "./VehicleLayout.module.css";
+
+const DEPOSIT_PERCENT_PRESETS = [10, 20, 30] as const;
 
 export interface FinancingPreset {
   id: string;
@@ -53,6 +56,7 @@ export function VehicleFinancing({
 
   const { cashContribution, setCashContribution, termYears, setTermYears, estimate, error } =
     useVehicleFinancing(effectiveTotal, tradeInAllowance);
+  const monthlyShown = useCountedNumber(estimate?.monthlyInstallment ?? 0);
   const cash = parseMyr(cashContribution);
   const sliderCash = Math.min(effectiveTotal, cash ?? 0);
   const appliedCash = Math.max(0, cash ?? 0);
@@ -137,6 +141,26 @@ export function VehicleFinancing({
                 aria-valuetext={formatCurrency(sliderCash)}
                 onChange={(event) => setCashContribution(Number(event.target.value).toFixed(2))}
               />
+              <div
+                className={styles.presets}
+                role="group"
+                aria-label="Deposit as a share of the price"
+              >
+                {DEPOSIT_PERCENT_PRESETS.map((percent) => (
+                  <button
+                    key={percent}
+                    type="button"
+                    aria-pressed={
+                      cash !== null && Math.abs(cash - (effectiveTotal * percent) / 100) < 0.005
+                    }
+                    onClick={() =>
+                      setCashContribution(((effectiveTotal * percent) / 100).toFixed(2))
+                    }
+                  >
+                    {percent}%
+                  </button>
+                ))}
+              </div>
               <div className={styles.rangeLabels}>
                 <span>RM 0</span>
                 <span>{formatCurrency(effectiveTotal)}</span>
@@ -185,7 +209,7 @@ export function VehicleFinancing({
                     ? "No financing required"
                     : "Estimated monthly installment"}
                 </p>
-                <p className={styles.monthly}>{formatCurrency(estimate.monthlyInstallment)}</p>
+                <p className={styles.monthly}>{formatCurrency(monthlyShown)}</p>
                 <p className={styles.resultNote}>{termYears}-year term · 3% annual flat interest</p>
                 <div className={styles.mixWrap}>
                   <div className={styles.mixBar} aria-hidden="true">
@@ -300,7 +324,7 @@ export function VehicleFinancing({
             Indicative only. Final purchase terms require confirmation.
           </p>
           <Link
-            href="/buying-guide#financing"
+            href="/buying-guide#settle"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="How this estimate works (opens in a new tab)"

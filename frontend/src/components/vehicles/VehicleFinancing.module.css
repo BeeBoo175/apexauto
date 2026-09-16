@@ -300,3 +300,76 @@
     transition: none;
   }
 }
+
+/* Form beside a dark result panel. */
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.presets button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  background: var(--color-paper);
+  color: var(--color-graphite);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.presets button[aria-pressed="true"] {
+  border-color: var(--color-graphite);
+  background: var(--color-graphite);
+  color: var(--color-paper);
+}
+
+.sliderField input[type="range"] {
+  accent-color: var(--color-graphite);
+}
+
+.result {
+  border-color: var(--color-graphite);
+  background: var(--color-graphite);
+  color: var(--color-paper);
+}
+
+.result .monthly {
+  color: var(--color-paper);
+  font-size: clamp(2.25rem, 3.4vw, 3rem);
+}
+
+.result .resultNote,
+.result .mixLegend,
+.result .summary dt,
+.result .qualification {
+  color: var(--color-line);
+}
+
+.result .summary dd {
+  color: var(--color-paper);
+}
+
+.result .allowance {
+  color: var(--color-line-soft);
+}
+
+.result .mixBar {
+  background: var(--color-graphite-soft);
+}
+
+.result .breakdown summary {
+  color: var(--color-paper);
+}
+
+.result .qualification {
+  border-top-color: var(--color-graphite-soft);
+}
+
+.result a:not([class*="button"]) {
+  color: var(--color-paper);
+}

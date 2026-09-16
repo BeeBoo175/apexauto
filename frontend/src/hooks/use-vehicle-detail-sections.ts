@@ -84,7 +84,7 @@ export function useVehicleDetailSections() {
       });
       const atBottom =
         window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
-      const next = atBottom ? "trade-in" : (active.at(-1) ?? "overview");
+      const next = atBottom ? "showroom" : (active.at(-1) ?? "overview");
       setSection(next);
       updateSectionUrl(next);
     }

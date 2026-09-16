@@ -54,6 +54,7 @@ export function useVehicleReservation(detail: PublicVehicleDetail, account: Cust
     const result = await command.submit(command.uncertain ? null : confirmation);
     if (result?.data && isReservationPayment(result.data)) {
       // The customer pays on the provider's page and returns to the confirm page with the signed result.
+      command.allowLeave();
       window.location.assign(result.data.paymentUrl);
       return;
     }

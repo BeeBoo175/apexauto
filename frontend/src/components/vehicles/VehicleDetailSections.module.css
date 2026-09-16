@@ -1,5 +1,6 @@
 .sections {
-  --section-space: 48px;
+  display: grid;
+  gap: 32px;
   min-width: 0;
 }
 
@@ -7,28 +8,38 @@
   position: sticky;
   top: var(--site-header-height);
   z-index: 10;
-  border-top: 1px solid var(--color-line-soft);
-  border-bottom: 1px solid var(--color-line);
+  display: flex;
+  overflow-x: auto;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
   background: var(--color-paper);
 }
 
-.tabsInner {
-  display: flex;
-  justify-content: flex-start;
-  min-height: 62px;
+/* A zero-height marker: once it passes under the site header the tab bar is stuck. */
+.sentinel {
+  height: 0;
+  margin-bottom: -32px;
+}
+
+/* A stuck bar meets the header edge to edge, so its top corners square off. */
+.tabs[data-stuck] {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 .tabs a {
   display: inline-flex;
+  flex: 1 0 auto;
   align-items: center;
   justify-content: center;
-  min-height: 62px;
+  min-height: 56px;
   padding: 16px 24px;
   color: var(--color-muted);
   font-size: 0.9375rem;
   font-weight: 600;
   text-align: center;
   text-decoration: none;
+  white-space: nowrap;
   transition:
     background-color 180ms ease,
     color 180ms ease;
@@ -55,49 +66,26 @@
   outline-offset: -4px;
 }
 
+/* Sections are open content on the page canvas, separated by a rule; only the tab bar is a surface. */
 .panel {
   min-width: 0;
-  padding-block: var(--section-space);
-  scroll-margin-top: calc(var(--site-header-height) + 68px);
+  padding-top: 32px;
+  border-top: 1px solid var(--color-line);
+  scroll-margin-top: calc(var(--site-header-height) + 72px);
 }
 
-.panel[data-section="overview"],
-.panel[data-section="trade-in"] {
-  background: var(--color-canvas);
-}
-
-.panel[data-section="inspection"] {
-  background: var(--color-graphite);
-  color: var(--color-paper);
-}
-
-.panel[data-section="financing"] {
-  background: var(--color-paper);
-  border-bottom: 1px solid var(--color-line-soft);
-}
-
-.inspectionCard {
-  padding: 32px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--color-paper);
-  color: var(--color-graphite);
-  box-shadow: 0 8px 28px rgb(7 15 24 / 24%);
+.tabs + .panel {
+  padding-top: 8px;
+  border-top: 0;
 }
 
 @media (max-width: 600px) {
-  .sections {
-    --section-space: 36px;
-  }
-
-  .inspectionCard {
-    padding: 24px 20px;
+  .panel {
+    padding-top: 24px;
   }
 
   .tabs a {
-    flex: 1;
-    min-width: 0;
-    padding: 14px 8px;
+    padding: 14px 16px;
     font-size: 0.8125rem;
   }
 }

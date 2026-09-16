@@ -1,7 +1,7 @@
 import type { SearchParams } from "@/lib/query";
 import { isUuid } from "@/lib/auth/contracts";
 import { parseMyr } from "@/lib/currency-input";
-import { fuels, transmissions, type CatalogueFilters } from "./contracts";
+import { fuels, parseGradeList, transmissions, type CatalogueFilters } from "./contracts";
 import { MINIMUM_MANUFACTURE_YEAR } from "@/lib/vehicles/listing-limits";
 
 export const catalogueDefaults: CatalogueFilters = {
@@ -13,6 +13,7 @@ export const catalogueDefaults: CatalogueFilters = {
   maximumPrice: "",
   transmission: "",
   fuel: "",
+  grade: "",
   branchId: "",
   search: "",
   sort: "published",
@@ -60,6 +61,7 @@ export function trimCatalogueFilters(filters: CatalogueFilters): CatalogueFilter
     maximumPrice: filters.maximumPrice.trim(),
     transmission: filters.transmission.trim(),
     fuel: filters.fuel.trim(),
+    grade: filters.grade.trim(),
     branchId: filters.branchId.trim(),
     search: filters.search.trim(),
     sort: filters.sort.trim(),
@@ -97,6 +99,7 @@ export function catalogueFilterError(filters: CatalogueFilters): string | null {
   if (
     (filters.transmission && !transmissions.some((value) => value === filters.transmission)) ||
     (filters.fuel && !fuels.some((value) => value === filters.fuel)) ||
+    (filters.grade.trim() && parseGradeList(filters.grade) === null) ||
     (filters.branchId && !isUuid(filters.branchId)) ||
     !["published", "price", "year", "mileage"].includes(filters.sort) ||
     !["asc", "desc"].includes(filters.direction)

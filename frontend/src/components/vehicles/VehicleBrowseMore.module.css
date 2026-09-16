@@ -1,0 +1,39 @@
+.section {
+  display: grid;
+  gap: 16px;
+  padding-block: 48px 0;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.head h2 {
+  margin: 0;
+}
+
+.all {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--color-graphite);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.all span {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 6px;
+}
+
+.all:focus-visible {
+  outline: 3px solid var(--color-graphite);
+  outline-offset: 4px;
+}

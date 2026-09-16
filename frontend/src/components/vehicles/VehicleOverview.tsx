@@ -19,45 +19,30 @@ export function VehicleOverview({
   description: string;
   headingId?: string;
 }) {
+  const specifications = [
+    { label: "Make", value: vehicle.make },
+    { label: "Model", value: vehicle.model },
+    { label: "Variant", value: vehicle.trim },
+    { label: "Year", value: String(vehicle.manufactureYear) },
+    { label: "Mileage", value: `${vehicle.mileageKilometres.toLocaleString("en-MY")} km` },
+    { label: "Transmission", value: vehicle.transmission },
+    { label: "Fuel", value: vehicle.fuel },
+    { label: "Showroom", value: vehicle.branchName },
+  ];
+
   return (
     <section aria-labelledby={headingId}>
       <h2 id={headingId} className={layout.sectionHeading}>
-        About this vehicle
+        Overview
       </h2>
       <p className={styles.description}>{description}</p>
       <dl className={styles.specifications}>
-        <div>
-          <dt>Make</dt>
-          <dd>{vehicle.make}</dd>
-        </div>
-        <div>
-          <dt>Model</dt>
-          <dd>{vehicle.model}</dd>
-        </div>
-        <div>
-          <dt>Variant</dt>
-          <dd>{vehicle.trim}</dd>
-        </div>
-        <div>
-          <dt>Year</dt>
-          <dd>{vehicle.manufactureYear}</dd>
-        </div>
-        <div>
-          <dt>Mileage</dt>
-          <dd>{vehicle.mileageKilometres.toLocaleString("en-MY")} km</dd>
-        </div>
-        <div>
-          <dt>Transmission</dt>
-          <dd>{vehicle.transmission}</dd>
-        </div>
-        <div>
-          <dt>Fuel</dt>
-          <dd>{vehicle.fuel}</dd>
-        </div>
-        <div>
-          <dt>Showroom</dt>
-          <dd>{vehicle.branchName}</dd>
-        </div>
+        {specifications.map((row) => (
+          <div key={row.label}>
+            <dt>{row.label}</dt>
+            <dd>{row.value}</dd>
+          </div>
+        ))}
       </dl>
     </section>
   );

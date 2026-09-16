@@ -1,0 +1,9 @@
+.section {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+
+.section > h2 {
+  margin: 0;
+}

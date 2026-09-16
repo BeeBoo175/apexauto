@@ -1,7 +1,13 @@
 import { parseItems } from "@/lib/api";
 import { isNonNegativeInteger, isRecord, isUuid } from "@/lib/auth/contracts";
 import { isMyr } from "@/lib/currency-input";
-import { CATALOGUE_PAGE_SIZE, fuels, transmissions } from "./contracts";
+import {
+  CATALOGUE_LISTING_PAGE_SIZE,
+  CATALOGUE_PAGE_SIZE,
+  fuels,
+  transmissions,
+  vehicleGrades,
+} from "./contracts";
 import type { CataloguePage, PublicVehicle } from "./contracts";
 import { MINIMUM_MANUFACTURE_YEAR } from "@/lib/vehicles/listing-limits";
 
@@ -52,6 +58,8 @@ export function parsePublicVehicle(value: unknown): PublicVehicle | null {
     vehiclePrice: value.vehiclePrice,
     transmission,
     fuel,
+    // The grade arrives as its name or its number; a missing or unknown one shows no grade rather than failing the card.
+    grade: enumValue(vehicleGrades, value.grade),
     coverPhotoId: value.coverPhotoId,
     photoCount: value.photoCount,
     publishedAt: value.publishedAt,
@@ -64,18 +72,19 @@ export function parseCatalogue(value: unknown): CataloguePage | null {
     !isNonNegativeInteger(value.total) ||
     !isNonNegativeInteger(value.page) ||
     value.page < 1 ||
-    value.pageSize !== CATALOGUE_PAGE_SIZE
+    (value.pageSize !== CATALOGUE_PAGE_SIZE && value.pageSize !== CATALOGUE_LISTING_PAGE_SIZE)
   ) {
     return null;
   }
+  const pageSize = value.pageSize;
   const items = parseItems(value.items, parsePublicVehicle);
-  const remaining = Math.max(0, value.total - (value.page - 1) * CATALOGUE_PAGE_SIZE);
+  const remaining = Math.max(0, value.total - (value.page - 1) * pageSize);
   if (
     !items ||
-    items.length !== Math.min(CATALOGUE_PAGE_SIZE, remaining) ||
+    items.length !== Math.min(pageSize, remaining) ||
     new Set(items.map((item) => item.id)).size !== items.length
   ) {
     return null;
   }
-  return { items, total: value.total, page: value.page, pageSize: CATALOGUE_PAGE_SIZE };
+  return { items, total: value.total, page: value.page, pageSize };
 }

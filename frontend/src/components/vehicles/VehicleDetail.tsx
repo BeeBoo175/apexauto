@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { StatusPage } from "@/components/ui/StatusPage";
@@ -6,43 +6,57 @@ import { buttonClassName } from "@/components/ui/Button";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
-import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { useInitialToast } from "@/hooks/use-initial-toast";
 import { useVehiclePromo } from "@/hooks/use-vehicle-promo";
-import { useVehicleTradeIn } from "@/hooks/use-vehicle-trade-in";
 import { useVehicleDetailSections } from "@/hooks/use-vehicle-detail-sections";
 import type { ApiResult } from "@/lib/api";
-import { formatCurrency } from "@/lib/currency-format";
-import { fuelLabel } from "@/lib/vehicles/contracts";
+import { formatCurrency, formatWholeCurrency } from "@/lib/currency-format";
+import type { ShowroomBranchInfo } from "@/lib/guide/showrooms";
+import { fuelLabel, type PublicVehicle } from "@/lib/vehicles/contracts";
+import { calculateFinancing, defaultCashContribution } from "@/lib/vehicles/financing";
+import { catalogueDefaults, catalogueHref } from "@/lib/vehicles/query";
+import { RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import type { CustomerVehicleAccess } from "@/lib/vehicles/customer-access";
-import { TradeInValuation } from "@/components/sell/TradeInValuation";
 import { VehicleReservation } from "./VehicleReservation";
 import { VehicleTestDrive } from "./VehicleTestDrive";
-import { VehicleDetailView } from "./VehicleDetailView";
+import { VehicleDetailGallery } from "./VehicleDetailGallery";
 import { VehicleDetailSections } from "./VehicleDetailSections";
-import { VehiclePurchaseSummary } from "./VehiclePurchaseSummary";
+import { VehicleKeyFacts } from "./VehicleKeyFacts";
+import { VehiclePriceBox } from "./VehiclePriceBox";
+import { VehicleMobileBar } from "./VehicleMobileBar";
 import { VehicleOverview } from "./VehicleOverview";
 import { VehiclePromo } from "./VehiclePromo";
 import { VehicleFinancing } from "./VehicleFinancing";
 import { VehicleInspection } from "./VehicleInspection";
+import { VehicleShowroomSection } from "./VehicleShowroomSection";
+import { VehicleBrowseMore } from "./VehicleBrowseMore";
+import { VehicleGradeBadge } from "./VehicleGradeBadge";
 import styles from "./VehicleDetail.module.css";
 import layout from "./VehicleLayout.module.css";
+
+// The loan terms behind the monthly estimate match the calculator's defaults.
+const ESTIMATE_YEARS = 7;
 
 export function VehicleDetail({
   id,
   initial,
   reservationAccess,
+  showroom,
+  moreCars,
+  branchCars,
 }: {
   id: string;
   initial: ApiResult<PublicVehicleDetail>;
   reservationAccess: CustomerVehicleAccess;
+  showroom: ShowroomBranchInfo | null;
+  moreCars: PublicVehicle[];
+  branchCars: PublicVehicle[];
 }) {
   const snapshot = initial.data;
   const unavailable = initial.status === 404;
   useInitialToast(unavailable || snapshot ? null : initial.message);
   const promo = useVehiclePromo(snapshot);
-  const tradeIn = useVehicleTradeIn();
   const tabs = useVehicleDetailSections();
   const [reserved, setReserved] = useState(false);
   const price = promo.accepted?.price ?? snapshot?.price;
@@ -51,12 +65,12 @@ export function VehicleDetail({
     ? `${listing.manufactureYear} ${listing.make} ${listing.model} ${listing.trim}`
     : "Vehicle details";
 
+  const monthly = price
+    ? calculateFinancing(price.total, Number(defaultCashContribution(price.total)), ESTIMATE_YEARS)
+    : null;
+
   return (
     <section className={styles.page}>
-      <LoadingProgress
-        label="Loading trade-in options"
-        active={!tradeIn.taxonomy && tradeIn.busy}
-      />
       <div className={styles.topBar}>
         <div className={`${layout.content} ${styles.topBarInner}`}>
           <Link href="/vehicles" prefetch={false} className={styles.backLink}>
@@ -87,81 +101,112 @@ export function VehicleDetail({
             : "The service did not answer. Reload the page to try again."}
         </StatusPage>
       ) : (
-        <VehicleDetailView
-          vehicleId={id}
-          name={name}
-          branch={listing.branchName}
-          mileage={`${listing.mileageKilometres.toLocaleString("en-MY")} km`}
-          transmission={listing.transmission}
-          fuel={fuelLabel(listing.fuel)}
-          price={formatCurrency(price.vehiclePrice)}
-          heroClassName={`${layout.content} ${styles.heroBand}`}
-          photos={snapshot.photoIds.map((photoId) => ({
-            id: photoId,
-            url: `/api/vehicles/${id}/photos/${photoId}`,
-          }))}
-          summary={
-            <VehiclePurchaseSummary
-              promo={reserved ? undefined : <VehiclePromo promo={promo} />}
-              total={formatCurrency(price.total)}
-              totalNote={
-                promo.accepted
-                  ? `(incl. ${formatCurrency(price.processingFee + price.roadTax + price.serviceTax)} fees, −${formatCurrency(price.promoDiscount)} promo)`
-                  : `(incl. ${formatCurrency(price.processingFee + price.roadTax + price.serviceTax)} fees & road tax)`
-              }
-              breakdown={[
-                { label: "Processing fee", amount: formatCurrency(price.processingFee) },
-                { label: "Road tax", amount: formatCurrency(price.roadTax) },
-                {
-                  label: `SST on processing fee (${snapshot.sstRate * 100}%)`,
-                  amount: formatCurrency(price.serviceTax),
-                },
-                ...(promo.accepted
-                  ? [
-                      {
-                        label: `Promo discount (${promo.accepted.promoCode})`,
-                        amount: `−${formatCurrency(price.promoDiscount)}`,
-                      },
-                    ]
-                  : []),
-              ]}
-              financing={
-                <VehicleReservation
-                  detail={snapshot}
-                  access={reservationAccess}
-                  promo={promo.accepted}
-                  promoBusy={promo.busy}
-                  testDrive={<VehicleTestDrive detail={snapshot} access={reservationAccess} />}
-                  onReserved={() => setReserved(true)}
-                  financing={
-                    <Button variant="ghost" onClick={() => tabs.select("financing")}>
-                      Calculate financing
-                    </Button>
-                  }
-                />
-              }
+        <>
+          <div className={`${layout.content} ${styles.listing}`}>
+            <div className={styles.main}>
+              <VehicleDetailGallery
+                vehicleId={id}
+                name={name}
+                photos={snapshot.photoIds.map((photoId) => ({
+                  id: photoId,
+                  url: `/api/vehicles/${id}/photos/${photoId}`,
+                }))}
+                badge={
+                  snapshot.checklist.grade ? (
+                    <VehicleGradeBadge
+                      grade={snapshot.checklist.grade}
+                      onSelect={() => tabs.select("inspection")}
+                    />
+                  ) : null
+                }
+              />
+              <VehicleKeyFacts
+                year={listing.manufactureYear}
+                mileage={`${listing.mileageKilometres.toLocaleString("en-MY")} km`}
+                transmission={listing.transmission}
+                fuel={fuelLabel(listing.fuel)}
+              />
+              <VehicleDetailSections
+                section={tabs.section}
+                select={tabs.select}
+                overview={
+                  <VehicleOverview
+                    vehicle={{ ...listing, fuel: fuelLabel(listing.fuel) }}
+                    description={snapshot.description}
+                  />
+                }
+                inspection={<VehicleInspection checklist={snapshot.checklist} />}
+                financing={<VehicleFinancing total={price.total} />}
+                showroom={
+                  <VehicleShowroomSection showroom={showroom} branchName={listing.branchName} />
+                }
+              />
+            </div>
+            <aside className={styles.side} aria-label="Price and reservation">
+              <VehiclePriceBox
+                name={name}
+                showroom={listing.branchName}
+                price={formatCurrency(price.vehiclePrice)}
+                total={formatCurrency(price.total)}
+                totalNote={
+                  promo.accepted
+                    ? `Includes ${formatCurrency(price.processingFee + price.roadTax + price.serviceTax)} fees, less ${formatCurrency(price.promoDiscount)} promo`
+                    : `Includes ${formatCurrency(price.processingFee + price.roadTax + price.serviceTax)} fees and road tax`
+                }
+                monthly={
+                  monthly ? { amount: monthly.monthlyInstallment, years: ESTIMATE_YEARS } : null
+                }
+                breakdown={[
+                  { label: "Processing fee", amount: formatCurrency(price.processingFee) },
+                  { label: "Road tax", amount: formatCurrency(price.roadTax) },
+                  {
+                    label: `SST on processing fee (${snapshot.sstRate * 100}%)`,
+                    amount: formatCurrency(price.serviceTax),
+                  },
+                  ...(promo.accepted
+                    ? [
+                        {
+                          label: `Promo discount (${promo.accepted.promoCode})`,
+                          amount: `âˆ’${formatCurrency(price.promoDiscount)}`,
+                        },
+                      ]
+                    : []),
+                ]}
+                promo={reserved ? null : <VehiclePromo promo={promo} />}
+                actions={
+                  <VehicleReservation
+                    detail={snapshot}
+                    access={reservationAccess}
+                    promo={promo.accepted}
+                    promoBusy={promo.busy}
+                    testDrive={<VehicleTestDrive detail={snapshot} access={reservationAccess} />}
+                    onReserved={() => setReserved(true)}
+                    financing={
+                      <Button variant="ghost" onClick={() => tabs.select("financing")}>
+                        Calculate financing
+                      </Button>
+                    }
+                  />
+                }
+              />
+            </aside>
+          </div>
+          <div className={layout.content}>
+            <VehicleBrowseMore
+              vehicles={branchCars}
+              title={`More cars at ${showroom?.shortLabel ?? listing.branchName}`}
+              href={catalogueHref({ ...catalogueDefaults, branchId: listing.branchId })}
+              linkLabel="See the cars here"
             />
-          }
-        >
-          <VehicleDetailSections
-            section={tabs.section}
-            select={tabs.select}
-            overview={
-              <VehicleOverview
-                vehicle={{ ...listing, fuel: fuelLabel(listing.fuel) }}
-                description={snapshot.description}
-              />
-            }
-            inspection={<VehicleInspection checklist={snapshot.checklist} />}
-            financing={
-              <VehicleFinancing
-                total={price.total}
-                tradeInAllowance={tradeIn.accepted?.quote.minValuation ?? 0}
-              />
-            }
-            tradeIn={<TradeInValuation tradeIn={tradeIn} />}
-          />
-        </VehicleDetailView>
+            <VehicleBrowseMore vehicles={moreCars} />
+          </div>
+          {!reserved && (
+            <VehicleMobileBar
+              price={formatCurrency(price.vehiclePrice)}
+              reserveLabel={`Reserve for ${formatWholeCurrency(RESERVATION_DEPOSIT)}`}
+            />
+          )}
+        </>
       )}
     </section>
   );
