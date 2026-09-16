@@ -27,6 +27,12 @@
   flex-grow: 5;
 }
 
+/* A single open panel outside the accordion, such as a vehicle's own showroom. */
+.single {
+  flex: none;
+  height: clamp(280px, 32vw, 360px);
+}
+
 /* The photo keeps one fixed size and is only cropped by the panel, so it never re-scales while the panel animates. */
 .photo {
   position: absolute;
@@ -195,7 +201,8 @@
     height: 560px;
   }
 
-  .panel {
+  .single {
+    height: 320px;
   }
 
   .panel[data-active="true"] {

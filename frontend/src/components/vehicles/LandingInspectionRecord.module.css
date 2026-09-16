@@ -38,22 +38,29 @@
   font-weight: 700;
 }
 
+/* Stacked, the order is title and lead, photograph, then the record sheet. */
 @media (max-width: 920px) {
   .proof {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .media {
-    aspect-ratio: 16 / 10;
+    gap: 24px;
   }
 
   .copy {
-    margin: -48px 0 0;
+    display: contents;
   }
 
   .intro {
     order: 1;
     margin-left: 0;
+  }
+
+  .media {
+    order: 2;
+    aspect-ratio: 16 / 10;
+  }
+
+  .sheet {
+    order: 3;
   }
 }
 
@@ -222,14 +229,6 @@
 .cta:focus-visible {
   outline: 3px solid var(--color-graphite);
   outline-offset: 3px;
-}
-
-@media (max-width: 920px) {
-  .media {
-  }
-
-  .sheet {
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

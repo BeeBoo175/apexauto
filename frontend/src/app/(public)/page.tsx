@@ -16,7 +16,7 @@ const PROOF_CANDIDATE_COUNT = 3;
 
 export const metadata: Metadata = {
   title: "Buy Inspected Used Cars & Sell Online | ApexAuto Malaysia",
-  description: `Browse 210-point inspected used cars across ApexAuto Malaysian showrooms, estimate monthly repayments, value your trade-in and reserve online for ${RESERVATION_HOLD_HOURS} hours.`,
+  description: `Used cars checked on 210 points at ApexAuto showrooms in Malaysia. Fixed prices, a monthly payment estimate on every car, and a ${RESERVATION_HOLD_HOURS}-hour online hold.`,
 };
 
 export default async function Home() {

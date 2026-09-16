@@ -30,11 +30,11 @@ export function LandingHero({ taxonomy, branches, totalVehicles }: LandingHeroPr
       <div className={`${layout.content} ${styles.inner}`}>
         <div className={`${styles.copy} ${patterns.rise}`}>
           <h1 id="landing-hero-title" className={`${layout.heroHeading} ${styles.title}`}>
-            Buy inspected cars. Sell yours with clarity.
+            Find your next used car.
           </h1>
           <p className={styles.lead}>
-            A signed 210-point inspection, one fixed price and a {RESERVATION_HOLD_HOURS}-hour hold
-            on every car.
+            Every car is checked on 210 points and sold at a fixed price. Reserve online and
+            we&apos;ll hold it for {RESERVATION_HOLD_HOURS} hours.
           </p>
         </div>
         <div className={`${styles.finderRow} ${patterns.rise}`}>

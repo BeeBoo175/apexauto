@@ -11,20 +11,28 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgb(255 255 255 / 0.35);
   color: var(--color-paper);
   font-size: 0.875rem;
   font-weight: 700;
   text-decoration: none;
-  transition:
-    gap 250ms cubic-bezier(0.22, 0.8, 0.24, 1),
-    border-color 250ms ease;
+  transition: gap 250ms cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+
+/* Only the words are underlined; the arrow beside them is not. */
+.moreLabel {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-paper) 45%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 6px;
+  transition: text-decoration-color 250ms ease;
 }
 
 .more:hover {
   gap: 14px;
-  border-color: var(--color-paper);
+}
+
+.more:hover .moreLabel {
+  text-decoration-color: var(--color-paper);
 }
 
 .more:focus-visible {
@@ -90,7 +98,7 @@
   font-size: clamp(3rem, 5vw, 4.5rem);
   font-weight: 700;
   line-height: 1;
-  -webkit-text-stroke: 1.5px rgb(255 255 255 / 0.9);
+  -webkit-text-stroke: 1.5px color-mix(in srgb, var(--color-paper) 90%, transparent);
 }
 
 .caption {

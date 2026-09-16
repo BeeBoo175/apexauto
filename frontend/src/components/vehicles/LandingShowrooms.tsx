@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import type { Branch } from "@/lib/branches";
+import { showroomPhoto } from "@/lib/guide/showroom-photos";
 import { resolveShowrooms } from "@/lib/guide/showrooms";
 import type { PublicVehicle } from "@/lib/vehicles/contracts";
 import styles from "./LandingShowrooms.module.css";
@@ -14,31 +15,6 @@ interface LandingShowroomsProps {
   branches: Branch[] | null;
   vehicles: PublicVehicle[];
 }
-
-interface ShowroomPhoto {
-  src: string;
-  alt: string;
-}
-
-const SHOWROOM_PHOTOS: Record<string, ShowroomPhoto> = {
-  glenmarie: {
-    src: "/images/showroom-panorama.jpg",
-    alt: "ApexAuto Glenmarie experience gallery floor with vehicle lineup",
-  },
-  "petaling jaya": {
-    src: "/images/showroom-seasia-floor.jpg",
-    alt: "ApexAuto Petaling Jaya showroom and display bays",
-  },
-  "bayan lepas": {
-    src: "/images/showroom-architecture.jpg",
-    alt: "ApexAuto Bayan Lepas showroom floor",
-  },
-};
-
-const DEFAULT_PHOTO: ShowroomPhoto = {
-  src: "/images/showroom-panorama.jpg",
-  alt: "ApexAuto vehicle display floor",
-};
 
 function showroomNumber(index: number) {
   return String(index + 1).padStart(2, "0");
@@ -70,7 +46,7 @@ export function LandingShowrooms({ branches, vehicles }: LandingShowroomsProps) 
         <ul className={styles.accordion}>
           {showrooms.map((showroom, index) => {
             const active = showroom.id === activeId;
-            const photo = SHOWROOM_PHOTOS[showroom.shortLabel.toLowerCase()] ?? DEFAULT_PHOTO;
+            const photo = showroomPhoto(showroom.shortLabel);
             const stockCount = vehicles.filter(
               (vehicle) => vehicle.branchId === showroom.id,
             ).length;

@@ -79,10 +79,7 @@ function LeadCar({ vehicle }: { vehicle: PublicVehicle }) {
           className={styles.leadPhoto}
         />
       )}
-      <span className={styles.banner}>
-        <i className={styles.pulse} aria-hidden="true" />
-        Newest arrival
-      </span>
+      <span className={styles.banner}> Newest listing</span>
       <div className={styles.leadBody}>
         <span className={styles.leadPrice}>{formatCurrency(vehicle.vehiclePrice)}</span>
         <h3 className={styles.leadName}>{vehicleName(vehicle)}</h3>
@@ -111,11 +108,12 @@ export function LandingFeaturedVehicles({ initial }: { initial: ApiResult<Catalo
             <h2 id="featured-vehicles-heading" className={patterns.sectionTitle}>
               Latest cars
             </h2>
-            <p className={patterns.sectionSub}>Just listed, inspected and fixed-price.</p>
+            <p className={patterns.sectionSub}>The newest cars across our showrooms.</p>
           </div>
           {snapshot && (
             <Link href={catalogueHref(catalogueDefaults)} prefetch={false} className={styles.all}>
-              See all {snapshot.total} cars <Icon name="next" />
+              <span className={styles.allLabel}>See all {snapshot.total} cars</span>{" "}
+              <Icon name="next" />
             </Link>
           )}
         </div>
