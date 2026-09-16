@@ -26,6 +26,13 @@ export function isWarrantyPlanEligible(
   return gradeRank[vehicleGrade] <= gradeRank[minimumGrade];
 }
 
+// "ApexShield Silver (Powertrain)" splits into the tier name and what the plan covers.
+export function splitWarrantyName(name: string) {
+  const bare = name.replace(/^ApexShield\s+/, "");
+  const match = /^(.*?)\s*\((.*)\)$/.exec(bare);
+  return match ? { tier: match[1], detail: match[2] } : { tier: bare, detail: "" };
+}
+
 // The active plans a car of this grade can take, as one readable phrase such as "Silver or Gold".
 export function eligibleWarrantyLabel(
   warranties: readonly GuideWarranty[],

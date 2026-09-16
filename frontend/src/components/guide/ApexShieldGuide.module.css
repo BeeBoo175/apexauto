@@ -1,0 +1,53 @@
+/* A pricing page in the site's own colours: a centred title, three plan cards on the canvas, a comparison, questions. */
+.page {
+  background: var(--color-canvas);
+}
+
+.header {
+  padding-block: 72px 40px;
+  text-align: center;
+}
+
+.headerInner {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+}
+
+.headerInner h1 {
+  color: var(--color-graphite);
+}
+
+.lede {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+.plansBand {
+  padding-bottom: 80px;
+}
+
+.faqBand {
+  padding-block: 8px 72px;
+}
+
+.carsBand {
+  padding-block: 0 80px;
+}
+
+@media (max-width: 640px) {
+  .header {
+    padding-block: 44px 28px;
+  }
+
+  .plansBand {
+    padding-bottom: 56px;
+  }
+
+  .carsBand {
+    padding-bottom: 56px;
+  }
+}

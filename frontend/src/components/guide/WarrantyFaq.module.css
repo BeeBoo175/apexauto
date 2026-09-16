@@ -1,0 +1,100 @@
+.faq {
+  display: grid;
+  gap: 24px;
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--color-graphite);
+}
+
+.list {
+  border-top: 1px solid var(--color-line);
+}
+
+.item {
+  border-bottom: 1px solid var(--color-line);
+}
+
+.item summary {
+  position: relative;
+  padding: 20px 40px 20px 0;
+  color: var(--color-graphite);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.4;
+  list-style: none;
+  cursor: pointer;
+}
+
+.item summary::-webkit-details-marker {
+  display: none;
+}
+
+/* A plus that turns into a minus when the answer is open. */
+.item summary::before,
+.item summary::after {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 14px;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 1px;
+  background: var(--color-graphite);
+  content: "";
+  transition: transform 180ms ease;
+}
+
+.item summary::after {
+  transform: rotate(90deg);
+}
+
+.item[open] summary::after {
+  transform: rotate(0deg);
+}
+
+.item summary:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+.item p {
+  max-width: 62ch;
+  margin: 0;
+  padding: 0 40px 22px 0;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.itemLink,
+.allQuestions {
+  color: var(--color-graphite);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.itemLink {
+  display: inline-block;
+  margin: -8px 0 22px;
+}
+
+.allQuestions {
+  justify-self: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item summary::before,
+  .item summary::after {
+    transition: none;
+  }
+}

@@ -1,8 +1,12 @@
-import { formatCurrency } from "@/lib/currency-format";
+﻿import { formatCurrency } from "@/lib/currency-format";
 import type { InspectionGradingPolicy } from "./inspection-points";
 import { guideServiceTax, sstPercentLabel, type PurchaseGuide } from "./purchase-guide";
 import { eligibleWarrantyLabel } from "./warranty-plans";
-import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
+import {
+  PAYMENT_WINDOW_MINUTES,
+  RESERVATION_DEPOSIT,
+  RESERVATION_HOLD_HOURS,
+} from "@/lib/vehicles/deposit-terms";
 
 export type FaqCategory =
   | "All"
@@ -18,6 +22,8 @@ export interface FaqEntry {
   answer: string;
   href: string;
   linkLabel: string;
+  // Shown on the ApexShield warranty page too, so both pages give one answer.
+  onWarrantyPage?: boolean;
 }
 
 export const faqCategories: readonly FaqCategory[] = [
@@ -32,55 +38,98 @@ export function faqEntries(
   guide: PurchaseGuide,
   grading: InspectionGradingPolicy,
 ): readonly FaqEntry[] {
+  const shortestCover = Math.min(...guide.warranties.map((plan) => plan.durationMonths));
+  const longestCover = Math.max(...guide.warranties.map((plan) => plan.durationMonths));
+
   return [
     {
       id: "otr-breakdown",
       category: "Buying & warranty",
       question: "What is included in the on-the-road (OTR) total?",
       answer: `Vehicle price, ${formatCurrency(guide.processingFee, "RM")} processing fee, road tax, and ${sstPercentLabel(guide.sstRate)} SST on the fee (${formatCurrency(guideServiceTax(guide), "RM")}), minus one promo discount. Insurance and ApexShield stay separate.`,
-      href: "/buying-guide#pricing",
-      linkLabel: "Try OTR calculator",
+      href: "/buying-guide#choose",
+      linkLabel: "See a worked example",
+      onWarrantyPage: true,
+    },
+    {
+      id: "reserve-account",
+      category: "Buying & warranty",
+      question: "Do I need an account to reserve a car?",
+      answer:
+        "Yes. Create an account and verify your email, then reserve or book a test drive from the car's page.",
+      href: "/register",
+      linkLabel: "Create an account",
     },
     {
       id: "reservation-hold",
       category: "Buying & warranty",
       question: `How does the ${formatCurrency(RESERVATION_DEPOSIT, "RM")} reservation hold work?`,
-      answer: `It reserves the car for ${RESERVATION_HOLD_HOURS} hours and counts toward your cash down payment. Cancellations or expired holds trigger an immediate refund.`,
-      href: "/buying-guide#pricing",
-      linkLabel: "See hold rules",
+      answer: `Once you start a reservation the car is held for ${PAYMENT_WINDOW_MINUTES} minutes while you pay securely online. After your payment is confirmed the car is held for ${RESERVATION_HOLD_HOURS} hours, and the deposit counts toward your cash down payment. If you cancel or the hold lapses, the deposit is refunded.`,
+      href: "/buying-guide#reserve",
+      linkLabel: "See how reserving works",
     },
     {
-      id: "promo-stacking",
+      id: "payment-window",
       category: "Buying & warranty",
-      question: "Can I use more than one promo code?",
-      answer: "No. Only one active promo code applies per booking, capped at the vehicle price.",
-      href: "/buying-guide#pricing",
-      linkLabel: "Test promo discounts",
+      question: `What happens if I do not pay within ${PAYMENT_WINDOW_MINUTES} minutes?`,
+      answer: `The reservation is made only once payment is confirmed. If the ${PAYMENT_WINDOW_MINUTES}-minute payment window runs out, the car is released and nothing is charged. You can start again while the car is still listed.`,
+      href: "/vehicles",
+      linkLabel: "Browse cars",
+    },
+    {
+      id: "promo-codes",
+      category: "Buying & warranty",
+      question: "How do I use a promo code?",
+      answer:
+        "Open the car and choose Reserve, then open the promo code field, enter the code exactly as given (codes are case-sensitive) and press Apply. The saving appears as its own line before you pay. Only one code applies to a booking, it is capped at the vehicle price, and it does not reserve the car or lock its price.",
+      href: "/vehicles",
+      linkLabel: "Browse cars",
     },
     {
       id: "financing-rounding",
       category: "Buying & warranty",
-      question: "Why can the final monthly installment differ by a few sen?",
+      question: "How is the monthly installment estimated?",
       answer:
-        "Monthly estimates use a 3% flat annual rate over 1–9 years rounded to exact sen, with any remainder settled in the final month.",
-      href: "/buying-guide#financing",
-      linkLabel: "Run financing estimator",
+        "Each car's Financing tab uses a 3% flat annual rate over 1–9 years, rounded to exact sen with any remainder settled in the final month. It is a budgeting estimate, not a loan offer.",
+      href: "/buying-guide#settle",
+      linkLabel: "See a worked estimate",
+    },
+    {
+      id: "warranty-included",
+      category: "Buying & warranty",
+      question: "Is the warranty included in the car's price?",
+      answer:
+        "No. ApexShield is optional cover, billed separately from the on-the-road total, so you choose it only if you want it.",
+      href: "/warranty",
+      linkLabel: "Compare ApexShield plans",
+      onWarrantyPage: true,
     },
     {
       id: "warranty-eligibility",
       category: "Buying & warranty",
       question: "Which ApexShield warranty plan matches each grade?",
       answer: `Grade A qualifies for ${eligibleWarrantyLabel(guide.warranties, "A")}. Grade B qualifies for ${eligibleWarrantyLabel(guide.warranties, "B")}. Grade C qualifies for ${eligibleWarrantyLabel(guide.warranties, "C")}.`,
-      href: "/buying-guide#warranty",
+      href: "/warranty",
       linkLabel: "Compare ApexShield plans",
+      onWarrantyPage: true,
+    },
+    {
+      id: "warranty-duration",
+      category: "Buying & warranty",
+      question: "How long does ApexShield cover last?",
+      answer: `Between ${shortestCover} and ${longestCover} months, depending on the plan, up to the mileage limit shown for it.`,
+      href: "/warranty",
+      linkLabel: "See plan terms",
+      onWarrantyPage: true,
     },
     {
       id: "grades-meaning",
       category: "Inspection & grades",
       question: "How are Grade A, B, C, and Rejections decided?",
       answer: `Grades follow whichever limit is stricter: repair cost (< ${formatCurrency(grading.gradeBMinimumRepairCost, "RM")}, ${formatCurrency(grading.gradeBMinimumRepairCost, "RM")}–${formatCurrency(grading.gradeCMinimumRepairCost - 0.01, "RM")}, ${formatCurrency(grading.gradeCMinimumRepairCost, "RM")}–${formatCurrency(grading.maximumRepairCost, "RM")}) or worst issue found (Advisory, Minor, Major, Critical).`,
-      href: "/inspection#grading",
-      linkLabel: "Test grading rules",
+      href: "/inspection#grades",
+      linkLabel: "Try the grade ruler",
+      onWarrantyPage: true,
     },
     {
       id: "repairs-before-sale",
@@ -88,8 +137,8 @@ export function faqEntries(
       question: "Are defects repaired before the car is sold?",
       answer:
         "Yes. Every Minor defect, Major defect, and paid repair item finishes workshop rectification before listing.",
-      href: "/inspection#guarantees",
-      linkLabel: "Read inspection promise",
+      href: "/inspection#repairs",
+      linkLabel: "See repairs before listing",
     },
     {
       id: "puspakom-scope",
@@ -97,7 +146,7 @@ export function faqEntries(
       question: "Does ApexAuto's check replace a Puspakom or B5 inspection?",
       answer:
         "No. Our 210-point check covers dealership quality and stays separate from Malaysia's statutory Puspakom B5 transfer inspection.",
-      href: "/disclaimer",
+      href: "/faq#notices",
       linkLabel: "Read disclosures",
     },
     {
@@ -105,18 +154,18 @@ export function faqEntries(
       category: "Selling & trade-in",
       question: "What do I need before booking a sell or trade-in slot?",
       answer:
-        "Request an online valuation, upload four exterior angles, and pick a 90-minute branch bay at least two hours in advance.",
+        "Get an online price range, sign in, upload four exterior photos, then pick a 90-minute showroom bay at least two hours ahead and within the next 30 days.",
       href: "/sell",
-      linkLabel: "Book a seller slot",
+      linkLabel: "Start selling",
     },
     {
-      id: "trade-in-lower-bound",
+      id: "trade-in-offer",
       category: "Selling & trade-in",
-      question: "Why does the calculator apply the lower end of my trade-in quote?",
+      question: "Is the online price range an offer?",
       answer:
-        "Calculators preview the conservative lower bound until a 90-minute branch inspection confirms your final trade-in value.",
-      href: "/buying-guide#trade-in",
-      linkLabel: "Read trade-in steps",
+        "No. It is an indicative range from your make, model, year and mileage. The final offer is confirmed on site after the 90-minute bay inspection.",
+      href: "/selling-guide",
+      linkLabel: "See how selling works",
     },
     {
       id: "branch-hours",
@@ -132,7 +181,7 @@ export function faqEntries(
       category: "Branches & test drives",
       question: "Do test drives require a booking deposit?",
       answer:
-        "No. You can book a 30-minute showroom test drive on any published car without a deposit.",
+        "No. Verified customers can open any listed car and book a 30-minute slot. A test drive does not reserve the car, so no deposit is taken.",
       href: "/vehicles",
       linkLabel: "Browse cars",
     },
