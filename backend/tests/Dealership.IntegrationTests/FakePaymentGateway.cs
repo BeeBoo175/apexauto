@@ -42,16 +42,31 @@ internal sealed class FakePaymentGateway(string signatureKey, bool enabled = tru
 
         var paid = fields.TryGetValue("paid", out var state) && state == "yes";
         int? amount = fields.TryGetValue("amount", out var sum) && int.TryParse(sum, out var sen) ? sen : null;
-        return new PaymentNotice(billId, paid, amount, null);
+        // Kept exactly as the provider wrote it, offset included, so tests can prove the services normalise it.
+        DateTimeOffset? paidAt = fields.TryGetValue("paid_at", out var time) &&
+            DateTimeOffset.TryParse(time, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed)
+            ? parsed
+            : null;
+        return new PaymentNotice(billId, paid, amount, paidAt);
     }
 
     // What the customer's browser brings back from the payment page: no amount.
-    public Dictionary<string, string> Return(string billId, bool paid, bool signed = true) => new()
+    public Dictionary<string, string> Return(string billId, bool paid, bool signed = true,
+        DateTimeOffset? paidAt = null)
     {
-        ["bill"] = billId,
-        ["paid"] = paid ? "yes" : "no",
-        ["signature"] = signed ? signatureKey : "bad"
-    };
+        var fields = new Dictionary<string, string>
+        {
+            ["bill"] = billId,
+            ["paid"] = paid ? "yes" : "no",
+            ["signature"] = signed ? signatureKey : "bad"
+        };
+        if (paidAt is { } time)
+        {
+            fields["paid_at"] = time.ToString("O", CultureInfo.InvariantCulture);
+        }
+
+        return fields;
+    }
 
     public Dictionary<string, string> Callback(string billId, bool paid, int paidAmountSen, bool signed = true)
     {

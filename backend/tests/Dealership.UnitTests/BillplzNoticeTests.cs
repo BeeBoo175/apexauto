@@ -41,6 +41,47 @@ public sealed class BillplzNoticeTests
         Assert.Equal(new PaymentNotice("abc123", true, null, null), notice);
     }
 
+    // Billplz writes the payment time as "2015-03-09 16:23:59 +0800". The application stores and compares UTC only,
+    // so the reader must hand over the same instant with a zero offset, whatever offset the provider used.
+    [Theory]
+    [InlineData("2026-11-17 01:51:15 +0800", "2026-11-16T17:51:15Z")]
+    [InlineData("2026-11-16 12:51:15 -0500", "2026-11-16T17:51:15Z")]
+    [InlineData("2026-11-16 17:51:15 +0000", "2026-11-16T17:51:15Z")]
+    [InlineData("2026-11-16 17:51:15", "2026-11-16T17:51:15Z")]
+    public void APaymentTimeInAnyOffsetReadsAsTheSameInstantInUtc(string written, string expectedUtc)
+    {
+        var fields = new Dictionary<string, string>
+        {
+            ["billplz[id]"] = "abc123",
+            ["billplz[paid]"] = "true",
+            ["billplz[paid_at]"] = written
+        };
+        fields["billplz[x_signature]"] = BillplzSignature.Compute(fields, Key);
+
+        var notice = Payments.ReadNotice(fields);
+
+        Assert.NotNull(notice);
+        Assert.Equal(DateTimeOffset.Parse(expectedUtc, System.Globalization.CultureInfo.InvariantCulture), notice.PaidAt);
+        Assert.Equal(TimeSpan.Zero, notice.PaidAt!.Value.Offset);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not a time")]
+    [InlineData("2026-13-45 99:99:99 +0800")]
+    public void AnUnreadablePaymentTimeKeepsThePaymentAndDropsOnlyTheTime(string written)
+    {
+        var fields = new Dictionary<string, string>
+        {
+            ["billplz[id]"] = "abc123",
+            ["billplz[paid]"] = "true",
+            ["billplz[paid_at]"] = written
+        };
+        fields["billplz[x_signature]"] = BillplzSignature.Compute(fields, Key);
+
+        Assert.Equal(new PaymentNotice("abc123", true, null, null), Payments.ReadNotice(fields));
+    }
+
     [Fact]
     public void AnUnsignedOrTamperedPaymentMessageReadsAsNothing()
     {

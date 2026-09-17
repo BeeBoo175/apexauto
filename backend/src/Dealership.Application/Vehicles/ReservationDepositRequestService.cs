@@ -120,7 +120,7 @@ public sealed class ReservationDepositRequestService(IReservationStore reservati
         var request = requestId == Guid.Empty ? null : await requests.FindAsync(requestId, cancellationToken);
         return request is null
             ? new(ReservationStatus.Invalid)
-            : await ConfirmRequestAsync(request, paidAt, cancellationToken);
+            : await ConfirmRequestAsync(request, paidAt?.ToUniversalTime(), cancellationToken);
     }
 
     private async Task<ReservationResult> ConfirmRequestAsync(ReservationDepositRequest request,

@@ -77,10 +77,11 @@ public sealed class BillplzPaymentGateway(HttpClient client, IOptions<BillplzSet
         int? paidAmount = values.TryGetValue("paid_amount", out var amount) && int.TryParse(amount, out var sen)
             ? sen
             : null;
-        // Billplz writes the time as "2015-03-09 16:23:59 +0800".
+        // Billplz writes the time as "2015-03-09 16:23:59 +0800". PostgreSQL accepts only UTC offsets, so the
+        // instant is kept and its offset becomes zero before anything stores or compares it.
         DateTimeOffset? paidAt = values.TryGetValue("paid_at", out var time) && DateTimeOffset.TryParse(time,
             CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)
-            ? parsed
+            ? parsed.ToUniversalTime()
             : null;
         return new PaymentNotice(billId, paid, paidAmount, paidAt);
     }
