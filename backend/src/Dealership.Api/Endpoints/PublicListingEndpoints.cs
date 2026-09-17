@@ -15,14 +15,14 @@ public static class PublicListingEndpoints
 
     private static async Task<IResult> ReadAsync(int? page, int? pageSize, string? make, string? model, int? minimumYear,
         int? maximumYear, decimal? minimumPrice, decimal? maximumPrice, VehicleTransmission? transmission,
-        VehicleFuel? fuel, Guid? branchId, string? sort, string? direction, string? search, IPublicListingStore store,
+        VehicleFuel? fuel, Guid? branchId, string? sort, string? direction, string? search, string? grade, IPublicListingStore store,
         CancellationToken cancellationToken)
     {
         return await BoundedCommand.RunAsync(async deadline =>
         {
             var filter = new PublicListingFilter(page ?? 1, make, model, minimumYear, maximumYear,
                 minimumPrice, maximumPrice, transmission, fuel, branchId, sort ?? "published", direction ?? "desc",
-                pageSize ?? PublicListingFilter.PageSize, search);
+                pageSize ?? PublicListingFilter.PageSize, search, PublicListingFilter.ParseGrades(grade));
             var result = await store.ReadAsync(filter, deadline);
             return result.Status switch
             {

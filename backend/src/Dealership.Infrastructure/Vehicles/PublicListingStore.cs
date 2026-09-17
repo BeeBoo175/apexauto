@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Inspections;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -8,12 +9,20 @@ namespace Dealership.Infrastructure.Vehicles;
 
 public sealed class PublicListingStore(DealershipDbContext database) : IPublicListingStore
 {
+    // How the signed report stores each grade: the assessment object holds the InspectionGrade number.
+    private const string GradeAJson = "{\"assessment\":{\"grade\":0}}";
+    private const string GradeBJson = "{\"assessment\":{\"grade\":1}}";
+    private const string GradeCJson = "{\"assessment\":{\"grade\":2}}";
+
     private static readonly Expression<Func<PublicListingRow, PublicListingItem>> Item = row => new(
         row.Vehicle.Id, row.Vehicle.BranchId, row.BranchName, row.Vehicle.Make, row.Vehicle.Model,
         row.Vehicle.Trim, row.Vehicle.ManufactureYear, row.Vehicle.MileageKilometres,
         row.Revision.VehiclePrice, row.Revision.Transmission, row.Revision.Fuel,
         row.Revision.PhotoIds.Length == 0 ? null : row.Revision.PhotoIds[0], row.Revision.PhotoIds.Length,
-        row.Publication.RecordedAt);
+        row.Publication.RecordedAt,
+        EF.Functions.JsonContains(row.ReportJson, GradeAJson) ? (InspectionGrade?)InspectionGrade.A :
+        EF.Functions.JsonContains(row.ReportJson, GradeBJson) ? (InspectionGrade?)InspectionGrade.B :
+        EF.Functions.JsonContains(row.ReportJson, GradeCJson) ? (InspectionGrade?)InspectionGrade.C : null);
 
     public async Task<PublicListingPageResult> ReadAsync(PublicListingFilter filter, CancellationToken cancellationToken)
     {
@@ -99,6 +108,10 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
 
     private static IQueryable<PublicListingRow> Filter(IQueryable<PublicListingRow> rows, PublicListingFilter filter)
     {
+        var anyGrade = filter.Grades is null;
+        var wantsA = filter.Grades?.Contains(InspectionGrade.A) == true;
+        var wantsB = filter.Grades?.Contains(InspectionGrade.B) == true;
+        var wantsC = filter.Grades?.Contains(InspectionGrade.C) == true;
         var make = filter.Make?.Trim();
         var model = filter.Model?.Trim();
         rows = rows.Where(row =>
@@ -110,7 +123,11 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
             (filter.MinimumPrice == null || row.Revision.VehiclePrice >= filter.MinimumPrice) &&
             (filter.MaximumPrice == null || row.Revision.VehiclePrice <= filter.MaximumPrice) &&
             (filter.Transmission == null || row.Revision.Transmission == filter.Transmission) &&
-            (filter.Fuel == null || row.Revision.Fuel == filter.Fuel));
+            (filter.Fuel == null || row.Revision.Fuel == filter.Fuel) &&
+            (anyGrade ||
+                (wantsA && EF.Functions.JsonContains(row.ReportJson, GradeAJson)) ||
+                (wantsB && EF.Functions.JsonContains(row.ReportJson, GradeBJson)) ||
+                (wantsC && EF.Functions.JsonContains(row.ReportJson, GradeCJson))));
         return Search(rows, filter.Search);
     }
 

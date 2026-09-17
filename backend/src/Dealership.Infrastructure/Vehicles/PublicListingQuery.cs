@@ -10,6 +10,9 @@ internal sealed class PublicListingRow
     public required ListingRevision Revision { get; init; }
     public required ListingPublication Publication { get; init; }
     public required string BranchName { get; init; }
+
+    // The signed report's JSON; only grade tests ever read it, so it never leaves the database.
+    public required string ReportJson { get; init; }
 }
 
 internal static class PublicListingQuery
@@ -31,6 +34,7 @@ internal static class PublicListingQuery
                join revision in database.ListingRevisions.AsNoTracking() on publication.RevisionId equals revision.Id
                join vehicle in database.Vehicles.AsNoTracking() on publication.VehicleId equals vehicle.Id
                join branch in database.Branches.AsNoTracking() on vehicle.BranchId equals branch.Id
+               join signedRevision in database.InspectionSignedRevisions.AsNoTracking() on publication.SignedRevisionId equals signedRevision.Id
                where branch.IsActive && vehicle.Status == VehicleStatus.Available &&
                    !database.ListingWithdrawals.Any(item => item.PublicationId == publication.Id) &&
                    !database.ListingPublications.Any(later => later.VehicleId == vehicle.Id &&
@@ -43,7 +47,8 @@ internal static class PublicListingQuery
                    Vehicle = vehicle,
                    Revision = revision,
                    Publication = publication,
-                   BranchName = branch.Name
+                   BranchName = branch.Name,
+                   ReportJson = signedRevision.ReportJson
                };
     }
 }
