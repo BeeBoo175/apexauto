@@ -1,42 +1,37 @@
 .carousel {
-  display: grid;
-  gap: 16px;
+  composes: softControls from "../ui/ScrollStrip.module.css";
   min-width: 0;
+  /* The cars themselves fade at an edge with more to show, so no overlay colour is needed. */
+  --strip-fade: transparent;
+}
+
+.strip {
+  composes: edgeFade from "../ui/ScrollStrip.module.css";
+  scroll-padding-inline: 4px;
+  scroll-snap-type: x proximity;
 }
 
 .track {
-  display: grid;
-  grid-auto-columns: 320px;
-  grid-auto-flow: column;
+  display: flex;
   gap: 16px;
+  width: max-content;
   margin: 0;
   padding: 4px 4px 12px;
-  overflow-x: auto;
   list-style: none;
-  scroll-padding-inline: 4px;
-  scroll-snap-type: x proximity;
-  scrollbar-width: thin;
 }
 
 .slide {
+  flex: 0 0 320px;
   min-width: 0;
   scroll-snap-align: start;
 }
 
-.controls {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
 @media (max-width: 600px) {
   .track {
-    grid-auto-columns: 86%;
     gap: 12px;
   }
 
-  /* Phones swipe the row, so the step buttons are redundant. */
-  .controls {
-    display: none;
+  .slide {
+    flex-basis: min(86vw, 320px);
   }
 }

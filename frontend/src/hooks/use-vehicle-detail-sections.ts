@@ -9,6 +9,11 @@ import {
 } from "@/lib/vehicles/contracts";
 import { writeAddress } from "@/lib/browser-url";
 
+// Below this width the sections are tabs: only the chosen one is shown.
+function isTabbedLayout() {
+  return window.matchMedia("(max-width: 920px)").matches;
+}
+
 function updateSectionUrl(section: VehicleDetailSection | null) {
   const url = new URL(window.location.href);
   const hash = section ? `#${section}` : "";
@@ -34,8 +39,12 @@ export function useVehicleDetailSections() {
     destination.current = next;
     setSection(next);
     updateSectionUrl(next);
-    panel.focus({ preventScroll: true });
-    panel.scrollIntoView({
+    // Phones show one section at a time, so the tab bar, not the hidden panel, is the scroll target.
+    const target = isTabbedLayout() ? document.getElementById(`vehicle-tab-${next}`) : panel;
+    if (!isTabbedLayout()) {
+      panel.focus({ preventScroll: true });
+    }
+    target?.scrollIntoView({
       block: "start",
       behavior: prefersReducedMotion() ? "instant" : "smooth",
     });
@@ -64,7 +73,7 @@ export function useVehicleDetailSections() {
 
     function track() {
       const overview = document.getElementById("overview");
-      if (destination.current || !overview) {
+      if (destination.current || !overview || isTabbedLayout()) {
         return;
       }
 

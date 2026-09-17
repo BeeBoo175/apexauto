@@ -14,7 +14,6 @@ import { formatCurrency, formatWholeCurrency } from "@/lib/currency-format";
 import type { ShowroomBranchInfo } from "@/lib/guide/showrooms";
 import { fuelLabel, type PublicVehicle } from "@/lib/vehicles/contracts";
 import { calculateFinancing, defaultCashContribution } from "@/lib/vehicles/financing";
-import { catalogueDefaults, catalogueHref } from "@/lib/vehicles/query";
 import { RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import type { CustomerVehicleAccess } from "@/lib/vehicles/customer-access";
@@ -44,14 +43,12 @@ export function VehicleDetail({
   reservationAccess,
   showroom,
   moreCars,
-  branchCars,
 }: {
   id: string;
   initial: ApiResult<PublicVehicleDetail>;
   reservationAccess: CustomerVehicleAccess;
   showroom: ShowroomBranchInfo | null;
   moreCars: PublicVehicle[];
-  branchCars: PublicVehicle[];
 }) {
   const snapshot = initial.data;
   const unavailable = initial.status === 404;
@@ -192,12 +189,6 @@ export function VehicleDetail({
             </aside>
           </div>
           <div className={layout.content}>
-            <VehicleBrowseMore
-              vehicles={branchCars}
-              title={`More cars at ${showroom?.shortLabel ?? listing.branchName}`}
-              href={catalogueHref({ ...catalogueDefaults, branchId: listing.branchId })}
-              linkLabel="See the cars here"
-            />
             <VehicleBrowseMore vehicles={moreCars} />
           </div>
           {!reserved && (

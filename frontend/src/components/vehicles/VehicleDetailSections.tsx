@@ -1,5 +1,6 @@
 "use client";
 
+import { ScrollStrip } from "@/components/ui/ScrollStrip";
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { vehicleDetailSections, type VehicleDetailSection } from "@/lib/vehicles/contracts";
 import styles from "./VehicleDetailSections.module.css";
@@ -67,20 +68,29 @@ export function VehicleDetailSections({
     <div className={styles.sections}>
       <div ref={sentinel} className={styles.sentinel} aria-hidden="true" />
       <nav className={styles.tabs} data-stuck={stuck || undefined} aria-label="Vehicle information">
-        {vehicleDetailSections.map((id) => (
-          <a
-            key={id}
-            id={`vehicle-tab-${id}`}
-            href={`#${id}`}
-            aria-current={section === id ? "location" : undefined}
-            onClick={(event) => navigate(event, id)}
-          >
-            {sectionLabels[id]}
-          </a>
-        ))}
+        <ScrollStrip label="Vehicle sections" className={styles.tabStrip} dragScroll>
+          {vehicleDetailSections.map((id) => (
+            <a
+              key={id}
+              id={`vehicle-tab-${id}`}
+              href={`#${id}`}
+              aria-current={section === id ? "location" : undefined}
+              onClick={(event) => navigate(event, id)}
+            >
+              {sectionLabels[id]}
+            </a>
+          ))}
+        </ScrollStrip>
       </nav>
       {vehicleDetailSections.map((id) => (
-        <div key={id} id={id} tabIndex={-1} className={styles.panel} data-section={id}>
+        <div
+          key={id}
+          id={id}
+          tabIndex={-1}
+          className={styles.panel}
+          data-section={id}
+          data-active={section === id || undefined}
+        >
           {panels[id]}
         </div>
       ))}

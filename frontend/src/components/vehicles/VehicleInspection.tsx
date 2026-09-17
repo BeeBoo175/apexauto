@@ -46,109 +46,96 @@ export function VehicleInspection({ checklist }: { checklist: PublicVehicleDetai
         </div>
       </div>
       <p className={styles.explanation}>
-        Explore by area or search for a part. Results reflect the signed inspection record.
+        Open an area to read its checkpoints, or search for a part. Results reflect the signed
+        inspection record.
       </p>
-      <div className={styles.explorer}>
-        <nav className={styles.categories} aria-label="Inspection categories">
-          <Button
-            type="button"
-            variant="choice"
-            size="tile"
-            aria-pressed={explorer.category === "all"}
-            onClick={() => explorer.setCategory("all")}
-          >
-            <Icon name="inspection" />
-            <span>
-              All areas<small>{checklist.points.length} checkpoints</small>
-            </span>
-          </Button>
-          {explorer.categories.map((category) => {
-            const points = checklist.points.filter((point) => point.category === category);
-            const count = points.filter((point) => point.kind === "Finding").length;
-            return (
-              <Button
-                key={category}
-                type="button"
-                variant="choice"
-                size="tile"
-                aria-pressed={explorer.category === category}
-                onClick={() => explorer.setCategory(category)}
-              >
-                <Icon name={inspectionCategoryIcons[category] ?? "inspection"} />
-                <span>
-                  {label(category)}
-                  <small>
-                    {points.length} checkpoints · {count} findings
-                  </small>
-                </span>
-              </Button>
-            );
-          })}
-        </nav>
-        <div className={styles.content}>
-          <div className={`${styles.controls} ${layout.calmFields}`}>
-            <Input
-              label="Search inspection"
-              id="inspection-search"
-              type="search"
-              placeholder="Try tyres, brakes or paint"
-              value={explorer.search}
-              onChange={(event) => explorer.setSearch(event.target.value)}
-            />
-            <Button
-              type="button"
-              variant="warning"
-              size="filter"
-              aria-pressed={explorer.findingsOnly}
-              onClick={() => explorer.setFindingsOnly(!explorer.findingsOnly)}
-            >
-              Findings only ({explorer.findings.length})
+
+      <div className={`${styles.controls} ${layout.calmFields}`}>
+        <Input
+          label="Search inspection"
+          id="inspection-search"
+          type="search"
+          placeholder="Try tyres, brakes or paint"
+          value={explorer.search}
+          onChange={(event) => explorer.setSearch(event.target.value)}
+        />
+        <Button
+          type="button"
+          variant="warning"
+          size="filter"
+          aria-pressed={explorer.findingsOnly}
+          onClick={() => explorer.setFindingsOnly(!explorer.findingsOnly)}
+        >
+          Findings only ({explorer.findings.length})
+        </Button>
+      </div>
+
+      <div className={styles.areas}>
+        {explorer.areas.map((area) => {
+          const panelId = `inspection-area-${area.category}`;
+          return (
+            <section key={area.category} className={styles.area} data-open={area.open || undefined}>
+              <h3 className={styles.areaHeading}>
+                <button
+                  type="button"
+                  className={styles.areaToggle}
+                  aria-expanded={area.open}
+                  aria-controls={panelId}
+                  onClick={() => explorer.toggleArea(area.category)}
+                >
+                  <span className={styles.areaIcon}>
+                    <Icon name={inspectionCategoryIcons[area.category] ?? "inspection"} />
+                  </span>
+                  <span className={styles.areaName}>
+                    {label(area.category)}
+                    <small>
+                      {area.total} checkpoints ·{" "}
+                      <span data-tone={area.findingCount > 0 ? "finding" : undefined}>
+                        {area.findingCount} {area.findingCount === 1 ? "finding" : "findings"}
+                      </span>
+                    </small>
+                  </span>
+                  <span className={styles.areaCaret}>
+                    <Icon name="down" />
+                  </span>
+                </button>
+              </h3>
+              {area.open && (
+                <ul id={panelId} className={styles.points}>
+                  {area.points.map((point) => (
+                    <li
+                      key={point.code}
+                      data-tone={point.kind === "Finding" ? "finding" : "neutral"}
+                      data-severity={point.severity ?? undefined}
+                      data-kind={point.kind ?? "unrecorded"}
+                    >
+                      <span className={styles.pointCode}>{point.code}</span>
+                      <span className={styles.pointText}>
+                        <strong>{point.description}</strong>
+                        <span className={styles.condition}>
+                          {point.kind === null ? "No finding recorded" : label(point.kind)}
+                          {point.severity && ` · ${label(point.severity)}`}
+                          {point.estimatedRepairCost > 0 &&
+                            ` · Estimated repair ${formatCurrency(point.estimatedRepairCost)}`}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          );
+        })}
+
+        {explorer.areas.length === 0 && (
+          <div className={styles.empty}>
+            <h3>No matching checkpoints</h3>
+            <p>Try a different part or search across all areas.</p>
+            <Button variant="secondary" onClick={explorer.reset}>
+              Clear inspection filters
             </Button>
           </div>
-          <p className={styles.resultCount} role="status">
-            {explorer.visible.size} matching checkpoints
-          </p>
-          <div
-            className={styles.results}
-            tabIndex={0}
-            role="region"
-            aria-label="Inspection checkpoints"
-          >
-            <ul>
-              {checklist.points.map((point) => (
-                <li
-                  key={point.code}
-                  hidden={!explorer.visible.has(point.code)}
-                  data-tone={point.kind === "Finding" ? "finding" : "neutral"}
-                  data-severity={point.severity ?? undefined}
-                  data-kind={point.kind ?? "unrecorded"}
-                >
-                  <div className={styles.pointMeta}>
-                    <span>{point.code}</span>
-                    <span>{label(point.category)}</span>
-                  </div>
-                  <h3>{point.description}</h3>
-                  <p className={styles.condition}>
-                    {point.kind === null ? "No finding recorded" : label(point.kind)}
-                    {point.severity && ` · ${label(point.severity)}`}
-                  </p>
-                  {point.estimatedRepairCost > 0 && (
-                    <p>Estimated repair: {formatCurrency(point.estimatedRepairCost)}</p>
-                  )}
-                </li>
-              ))}
-            </ul>
-            {explorer.visible.size === 0 && (
-              <div className={styles.empty}>
-                <h3>No matching checkpoints</h3>
-                <p>Try a different part or search across all areas.</p>
-                <Button variant="secondary" onClick={explorer.reset}>
-                  Clear inspection filters
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </section>
   );

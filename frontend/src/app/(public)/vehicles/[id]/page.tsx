@@ -69,12 +69,13 @@ export default async function VehiclePage({ params }: Props) {
   const showroom =
     resolveShowrooms(branches?.data?.items ?? []).find((item) => item.id === listing?.branchId) ??
     null;
-  const otherCars = (catalogue?.data?.items ?? [])
-    .filter((vehicle) => vehicle.id !== id)
-    .slice(0, MORE_CAR_COUNT);
-  const branchCars = (branchCatalogue?.data?.items ?? [])
-    .filter((vehicle) => vehicle.id !== id)
-    .slice(0, MORE_CAR_COUNT);
+  // One carousel: cars at this showroom first, then the rest of the catalogue, never this car twice.
+  const branchCars = (branchCatalogue?.data?.items ?? []).filter((vehicle) => vehicle.id !== id);
+  const branchCarIds = new Set(branchCars.map((vehicle) => vehicle.id));
+  const otherCars = (catalogue?.data?.items ?? []).filter(
+    (vehicle) => vehicle.id !== id && !branchCarIds.has(vehicle.id),
+  );
+  const moreCars = [...branchCars, ...otherCars].slice(0, MORE_CAR_COUNT);
 
   return (
     <VehicleDetail
@@ -83,8 +84,7 @@ export default async function VehiclePage({ params }: Props) {
       initial={initial}
       reservationAccess={reservationAccess}
       showroom={showroom}
-      moreCars={otherCars}
-      branchCars={branchCars}
+      moreCars={moreCars}
     />
   );
 }
