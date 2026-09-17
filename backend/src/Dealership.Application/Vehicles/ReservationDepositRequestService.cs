@@ -54,6 +54,14 @@ public sealed class ReservationDepositRequestService(IReservationStore reservati
             return await CompleteAsync(transaction, ReservationStatus.Conflict, null, cancellationToken);
         }
 
+        // A customer who comes back to a car whose payment window is still open (the payment page was not opened, or they
+        // pressed Back from it) picks that payment up again instead of being refused for holding their own request.
+        if (assistedBy is null && context.OwnPendingRequest is { } pending &&
+            pending.PublicationId == request.PublicationId && pending.PromoId == request.PromoId)
+        {
+            return await CompleteAsync(transaction, ReservationStatus.Succeeded, pending, cancellationToken);
+        }
+
         if (context.CustomerHasHold)
         {
             return await CompleteAsync(transaction, ReservationStatus.CustomerHasReservation, null, cancellationToken);
@@ -118,6 +126,7 @@ public sealed class ReservationDepositRequestService(IReservationStore reservati
         CancellationToken cancellationToken)
     {
         var request = requestId == Guid.Empty ? null : await requests.FindAsync(requestId, cancellationToken);
+        // A provider may state the payment time in its own offset; only UTC can be stored or compared.
         return request is null
             ? new(ReservationStatus.Invalid)
             : await ConfirmRequestAsync(request, paidAt?.ToUniversalTime(), cancellationToken);
@@ -165,6 +174,26 @@ public sealed class ReservationDepositRequestService(IReservationStore reservati
         }
 
         // Repeating a cancellation is harmless; a confirmed or lapsed request has nothing left to release.
+        if (request.CancelledAt is not null)
+        {
+            return ReservationStatus.Succeeded;
+        }
+
+        return await requests.CancelAsync(requestId, clock.GetUtcNow(), cancellationToken)
+            ? ReservationStatus.Succeeded
+            : ReservationStatus.DepositRequestLapsed;
+    }
+
+    // A customer gives up a payment they opened themselves; a request staff made for them is not theirs to cancel.
+    public async Task<ReservationStatus> CancelOwnAsync(Guid customerId, Guid requestId,
+        CancellationToken cancellationToken)
+    {
+        var request = requestId == Guid.Empty ? null : await requests.FindAsync(requestId, cancellationToken);
+        if (request is null || request.CustomerId != customerId || request.BookedByStaffId is not null)
+        {
+            return ReservationStatus.NotFound;
+        }
+
         if (request.CancelledAt is not null)
         {
             return ReservationStatus.Succeeded;

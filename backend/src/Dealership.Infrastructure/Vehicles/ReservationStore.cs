@@ -71,8 +71,13 @@ public sealed class ReservationStore(DealershipDbContext database, MailDeliveryS
                 await otherRequests.AnyAsync(item => item.VehicleId == vehicleId, cancellationToken);
             var existingRequest = await database.ReservationDepositRequests.AsNoTracking()
                 .SingleOrDefaultAsync(item => item.Id == request.OperationId, cancellationToken);
+            var ownPendingRequest = await database.ReservationDepositRequests.AsNoTracking()
+                .Where(ReservationDepositRequest.PendingAt(now))
+                .Where(item => item.CustomerId == customerId && item.VehicleId == vehicleId && item.Id != request.OperationId)
+                .OrderBy(item => item.CreatedAt).FirstOrDefaultAsync(cancellationToken);
             return new ReservationTransaction(database, transaction, mail, expiry, new(customer, profile, listing?.Publication,
-                listing?.Revision, settings, promo, customerHasHold, vehicleHasHold, now, existing, isRelease, existingRequest));
+                listing?.Revision, settings, promo, customerHasHold, vehicleHasHold, now, existing, isRelease, existingRequest,
+                ownPendingRequest));
         }
         catch
         {

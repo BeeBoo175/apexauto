@@ -29,7 +29,9 @@ public sealed record ReservationCustomer(bool IsActive, bool EmailConfirmed, str
 public sealed record ReservationContext(ReservationCustomer? Customer, CustomerProfile? Profile,
     ListingPublication? Publication, ListingRevision? Listing, PurchaseSettings? Settings, PromoCode? Promo,
     bool CustomerHasHold, bool VehicleHasHold, DateTimeOffset Now, Reservation? Existing, bool IsReleaseOperation,
-    ReservationDepositRequest? ExistingRequest = null);
+    ReservationDepositRequest? ExistingRequest = null,
+    // The customer's own request for this car that is still waiting for its payment, under a different operation.
+    ReservationDepositRequest? OwnPendingRequest = null);
 
 public interface IReservationTransaction : IAsyncDisposable
 {

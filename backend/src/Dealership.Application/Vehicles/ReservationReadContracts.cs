@@ -21,8 +21,12 @@ public static class ReservationHistory
     public const int PageSize = Pagination.AccountPageSize;
 }
 
+// A car the customer is paying the deposit for: held for them, but not reserved until the payment is confirmed.
+public sealed record PendingPaymentItem(Guid RequestId, Guid VehicleId, string BranchName, string Make, string Model,
+    string Trim, int ManufactureYear, DateTimeOffset ExpiresAt);
+
 public sealed record ReservationHistoryPage(CurrentActor Actor, IReadOnlyList<ReservationHistoryItem> Items,
-    int Total, int Page, int PageSize, ReservationHistoryItem? Active);
+    int Total, int Page, int PageSize, ReservationHistoryItem? Active, PendingPaymentItem? PendingPayment = null);
 
 public sealed record ReservationHistoryResult(ReservationStatus Status, ReservationHistoryPage? History = null);
 

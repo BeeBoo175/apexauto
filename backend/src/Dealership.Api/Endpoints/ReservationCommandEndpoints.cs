@@ -14,6 +14,7 @@ public static class ReservationCommandEndpoints
         routes.MapPost("/vehicles/{vehicleId:guid}/reservation-requests", RequestDepositAsync);
         routes.MapPost("/reservations/{reservationId:guid}/cancellations", CancelAsync);
         routes.MapPost("/reservation-requests/{requestId:guid}/cancellations", CancelDepositRequestAsync);
+        routes.MapPost("/account/pending-payments/{requestId:guid}/cancellations", CancelOwnPaymentAsync);
         // The customer follows the link in the deposit request mail, so confirming needs no sign-in.
         app.MapPost("/api/reservation-deposits/confirmations", ConfirmDepositAsync)
             .RequireRateLimiting(ApiRateLimiting.VerificationPolicy).NoStore();
@@ -75,6 +76,26 @@ public static class ReservationCommandEndpoints
                 ReservationStatus.Forbidden => Results.Forbid(),
                 ReservationStatus.NotFound => Results.NotFound(),
                 _ => Results.Problem(statusCode: 409, title: "The deposit request is no longer pending.")
+            };
+        }, Unconfirmed, cancellationToken);
+    }
+
+    private static async Task<IResult> CancelOwnPaymentAsync(Guid requestId, HttpContext context,
+        ReservationDepositRequestService deposits, ReservationPaymentService payments, CancellationToken cancellationToken)
+    {
+        return await BoundedCommand.RunAsync(async deadline =>
+        {
+            var cancelled = await deposits.CancelOwnAsync(ActorId(context), requestId, deadline);
+            if (cancelled == ReservationStatus.Succeeded)
+            {
+                await payments.ReleaseBillAsync(requestId, deadline);
+            }
+
+            return cancelled switch
+            {
+                ReservationStatus.Succeeded => Results.Ok(new ReservationDepositRequestCancellationReceipt(requestId)),
+                ReservationStatus.NotFound => Results.NotFound(),
+                _ => Results.Problem(statusCode: 409, title: "The payment is no longer pending.")
             };
         }, Unconfirmed, cancellationToken);
     }

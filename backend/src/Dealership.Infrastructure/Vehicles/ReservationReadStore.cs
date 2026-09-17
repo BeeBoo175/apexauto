@@ -1,13 +1,16 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Common;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Vehicles;
 
-public sealed class ReservationReadStore(DealershipDbContext database) : IReservationReadStore
+public sealed class ReservationReadStore(DealershipDbContext database, TimeProvider? clock = null) : IReservationReadStore
 {
+    private readonly TimeProvider clock = clock ?? TimeProvider.System;
+
     public async Task<ReservationHistoryResult> AccountAsync(Guid customerId, int page, CancellationToken cancellationToken,
         ListDateRange? dates = null, string? search = null)
     {
@@ -59,7 +62,23 @@ public sealed class ReservationReadStore(DealershipDbContext database) : IReserv
             .ToArrayAsync(cancellationToken)).Select(ReservationReadRows.ToItem).ToArray();
         var activeRow = await allRows.Where(row => row.Reservation.IsActive).SingleOrDefaultAsync(cancellationToken);
         var active = activeRow is null ? null : ReservationReadRows.ToItem(activeRow);
+        var pending = await PendingPaymentAsync(customerId, cancellationToken);
         return new(ReservationStatus.Succeeded,
-            new(actor, Array.AsReadOnly(items), total, page, ReservationHistory.PageSize, active));
+            new(actor, Array.AsReadOnly(items), total, page, ReservationHistory.PageSize, active, pending));
+    }
+
+    // Only a bill the customer opened themselves: a request staff made is paid from the mailed link instead.
+    private async Task<PendingPaymentItem?> PendingPaymentAsync(Guid customerId, CancellationToken cancellationToken)
+    {
+        var now = clock.GetUtcNow();
+        return await (from request in database.ReservationDepositRequests.AsNoTracking()
+                          .Where(ReservationDepositRequest.PendingAt(now))
+                          .Where(item => item.CustomerId == customerId && item.BookedByStaffId == null)
+                      join branch in database.Branches on request.BranchId equals branch.Id
+                      join vehicle in database.Vehicles on request.VehicleId equals vehicle.Id
+                      orderby request.CreatedAt
+                      select new PendingPaymentItem(request.Id, request.VehicleId, branch.Name, vehicle.Make, vehicle.Model,
+                          vehicle.Trim, vehicle.ManufactureYear, request.ExpiresAt))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }
