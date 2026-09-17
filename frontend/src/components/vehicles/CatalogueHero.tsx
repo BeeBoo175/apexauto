@@ -1,3 +1,4 @@
+import patterns from "@/components/layout/PublicPatterns.module.css";
 import { Button } from "@/components/ui/Button";
 import { ScrollStrip } from "@/components/ui/ScrollStrip";
 import { showroomName, type Branch } from "@/lib/branches";
@@ -20,7 +21,7 @@ export function CatalogueHero({ active, showrooms, busy, onShowroom }: Catalogue
 
   return (
     <header className={styles.hero}>
-      <div className={`${layout.content} ${styles.inner}`}>
+      <div className={`${layout.content} ${styles.inner} ${patterns.rise}`}>
         <h1 className={`${layout.heroHeading} ${styles.heading}`}>Used cars for sale</h1>
         <p className={styles.lede}>
           Signed 210-point inspection, upfront pricing, and a 48-hour hold on every car.

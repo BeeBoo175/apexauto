@@ -3,42 +3,41 @@
   min-width: 0;
 }
 
-/* photoField lets the staff drawer use the same upload tiles outside the customer form panel. */
-.formPanel .dropZone,
-.photoField .dropZone {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  aspect-ratio: 16 / 10;
-  padding: 20px;
-  border: 1.5px dashed var(--color-line);
-  border-radius: 10px;
-  background: var(--color-canvas);
-  text-align: center;
-  cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    background-color 160ms ease;
-}
-
-.formPanel .dropZone:hover,
-.photoField .dropZone:hover {
-  border-color: var(--color-graphite-soft);
-  background: var(--color-paper);
-}
-
-.formPanel .dropZone:active:not([aria-disabled="true"]),
-.photoField .dropZone:active:not([aria-disabled="true"]) {
-  border-color: var(--color-graphite);
-  background: var(--color-line-soft);
-}
-
-.formPanel .dropZone:has(input:focus-visible),
-.photoField .dropZone:has(input:focus-visible) {
+.dropZone:has(input:focus-visible) {
   outline: 2px solid var(--color-signal);
   outline-offset: 2px;
+}
+
+/* From tablet up each empty slot is a dashed tile with the same 16:10 shape as its finished preview, so the grid
+   does not change size when a photo arrives. Phones keep the compact stacked slot. */
+@media (min-width: 541px) {
+  .dropZone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    aspect-ratio: 16 / 10;
+    padding: 20px;
+    border: 1.5px dashed var(--color-line);
+    border-radius: 10px;
+    background: var(--color-canvas);
+    text-align: center;
+    cursor: pointer;
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease;
+  }
+
+  .dropZone:hover {
+    border-color: var(--color-graphite-soft);
+    background: var(--color-paper);
+  }
+
+  .dropZone:active:not([aria-disabled="true"]) {
+    border-color: var(--color-graphite);
+    background: var(--color-line-soft);
+  }
 }
 
 .dropZone[aria-disabled="true"] {
@@ -130,7 +129,7 @@
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 700;
-  background: rgb(255 255 255 / 94%);
+  background: color-mix(in srgb, var(--color-paper) 94%, transparent);
   color: var(--color-graphite);
 }
 
@@ -170,35 +169,35 @@
   font-weight: 500;
 }
 
-.formPanel .replaceAction,
-.photoField .replaceAction {
+/* A light, filled button reads clearly over any photograph, where the old dark outline looked like an empty box. */
+.replaceAction {
   display: inline-flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  padding: 5px 12px;
-  border: 1px solid rgb(255 255 255 / 35%);
-  border-radius: 6px;
-  background: rgb(14 27 42 / 75%);
-  color: var(--color-paper);
-  font-size: 0.75rem;
-  font-weight: 600;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-paper) 94%, transparent);
+  box-shadow: 0 2px 8px rgb(14 27 42 / 30%);
+  color: var(--color-graphite);
+  font-size: 0.8125rem;
+  font-weight: 700;
   cursor: pointer;
+  transition: background-color 160ms ease;
 }
 
-.formPanel .replaceAction:hover,
-.photoField .replaceAction:hover {
-  background: rgb(14 27 42 / 95%);
+.replaceAction:hover {
+  background: var(--color-paper);
 }
 
-.formPanel .replaceAction:active:not([aria-disabled="true"]),
-.photoField .replaceAction:active:not([aria-disabled="true"]) {
-  background: rgb(14 27 42);
+.replaceAction:active:not([aria-disabled="true"]) {
+  background: var(--color-line-soft);
 }
 
-.formPanel .replaceAction:has(input:focus-visible),
-.photoField .replaceAction:has(input:focus-visible) {
+.replaceAction:has(input:focus-visible) {
   outline: 2px solid var(--color-paper);
   outline-offset: 2px;
 }
