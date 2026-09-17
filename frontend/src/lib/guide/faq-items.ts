@@ -146,7 +146,7 @@ export function faqEntries(
       question: "Does ApexAuto's check replace a Puspakom or B5 inspection?",
       answer:
         "No. Our 210-point check covers dealership quality and stays separate from Malaysia's statutory Puspakom B5 transfer inspection.",
-      href: "/faq#notices",
+      href: "/disclaimer",
       linkLabel: "Read disclosures",
     },
     {

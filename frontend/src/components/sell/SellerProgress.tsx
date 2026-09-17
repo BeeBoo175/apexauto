@@ -14,6 +14,12 @@ export function SellerProgress({ step }: { step: number }) {
   return (
     <div className={styles.progressBand}>
       <div className={styles.progressWrap}>
+        <p className={styles.progressSummary}>
+          <strong>
+            Step {step + 1} of {SELLER_STEPS.length}
+          </strong>
+          <span>{SELLER_STEPS[step]}</span>
+        </p>
         <ol className={styles.progress}>
           {SELLER_STEPS.map((label, index) => {
             const done = index < step;

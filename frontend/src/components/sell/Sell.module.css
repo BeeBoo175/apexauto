@@ -16,6 +16,11 @@
   padding: 24px 32px;
 }
 
+/* Phones read the progress as one line of text over four segments, not a four-row list. */
+.progressSummary {
+  display: none;
+}
+
 .progress {
   display: flex;
   align-items: center;
@@ -516,16 +521,63 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .progress {
-    grid-template-columns: minmax(0, 1fr);
+  .progressWrap {
+    display: grid;
+    gap: 10px;
+    padding-block: 12px;
+  }
+
+  .progressSummary {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
     gap: 12px;
+    margin: 0;
+    font-size: 0.875rem;
+  }
+
+  .progressSummary strong {
+    color: var(--color-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .progressSummary span {
+    color: var(--color-graphite);
+    font-weight: 700;
+  }
+
+  .progress {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .progress li {
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: start;
-    gap: 12px;
-    padding-right: 0;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--color-line);
+  }
+
+  .progress li[data-done="true"] {
+    background: var(--color-trust);
+  }
+
+  .progress li[aria-current="step"] {
+    background: var(--color-signal);
+  }
+
+  .stepMarker,
+  .stepText {
+    display: none;
+  }
+
+  /* The page's own steps stay in view under the site header while the form scrolls. */
+  .page:not([data-embedded="true"]) .progressBand {
+    position: sticky;
+    top: var(--site-header-height);
+    z-index: 5;
   }
 
   .formPanel h1 {
