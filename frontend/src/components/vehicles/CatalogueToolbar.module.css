@@ -1,32 +1,8 @@
 .controlsBar {
+  composes: softControls from "../ui/ScrollStrip.module.css";
   display: grid;
-  gap: 12px;
-}
-
-.quickChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.quickChip {
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: normal;
-  text-transform: none;
-}
-
-@media (hover: hover) {
-  .quickChip:hover:not(:disabled) {
-    border-color: var(--color-graphite);
-  }
-}
-
-.quickChip[aria-pressed="true"] {
-  border-color: var(--color-graphite);
-  background: var(--color-graphite);
-  color: var(--color-paper);
+  gap: 16px;
+  --strip-fade: transparent;
 }
 
 .resultsToolbar {
@@ -35,9 +11,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px 20px;
-  padding: 12px 16px;
+  padding: 14px 20px;
   border: 1px solid var(--color-line);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--color-paper);
   box-shadow: 0 2px 8px rgb(14 27 42 / 4%);
 }
@@ -54,34 +30,28 @@
   font-weight: 700;
 }
 
-.sortField {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.sortLabel {
-  white-space: nowrap;
-}
-
-.sortSelect {
-  min-width: 196px;
-}
-
+/* One row that scrolls sideways, so a long set of filters never grows the toolbar. */
 .appliedBar {
+  composes: edgeFade from "../ui/ScrollStrip.module.css";
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
+  padding-block: 2px;
+}
+
+.appliedBar > * {
+  flex-shrink: 0;
 }
 
 .appliedPill {
-  gap: 6px;
+  gap: 8px;
+  padding-inline: 12px;
   max-width: 100%;
   border-color: var(--color-line);
   background: var(--color-paper);
   color: var(--color-graphite);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: normal;
   text-transform: none;
 }
@@ -112,18 +82,4 @@
 
 .clearAllButton {
   color: var(--color-signal-dark);
-}
-
-@media (max-width: 640px) {
-  .resultsToolbar {
-    align-items: stretch;
-  }
-  .sortField {
-    justify-content: space-between;
-    width: 100%;
-  }
-  .sortSelect {
-    flex: 1;
-    min-width: 0;
-  }
 }

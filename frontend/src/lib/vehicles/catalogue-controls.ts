@@ -1,7 +1,7 @@
 import { formatCurrency } from "@/lib/currency-format";
 import { showroomName, type Branch } from "@/lib/branches";
 import type { Page } from "@/lib/api";
-import { fuelLabel, type CatalogueFilters } from "./contracts";
+import { fuelLabel, parseGradeList, type CatalogueFilters } from "./contracts";
 
 export interface CatalogueSortOption {
   value: string;
@@ -37,6 +37,14 @@ export function sortOptionValue(filters: Pick<CatalogueFilters, "sort" | "direct
   return CATALOGUE_SORT_OPTIONS.some((option) => option.value === key) ? key : "published:desc";
 }
 
+// Showroom tabs only replace the rail's showroom picker when every branch fits on the loaded page.
+export function showroomTabBranches(branches: Page<Branch> | null): Branch[] | null {
+  if (!branches || branches.items.length !== branches.total) {
+    return null;
+  }
+  return branches.items;
+}
+
 export function countActiveCatalogueFilters(filters: CatalogueFilters) {
   return [
     filters.make,
@@ -45,6 +53,7 @@ export function countActiveCatalogueFilters(filters: CatalogueFilters) {
     filters.minimumPrice.trim() || filters.maximumPrice.trim(),
     filters.transmission,
     filters.fuel,
+    filters.grade,
     filters.branchId,
   ].filter((value) => value.trim().length > 0).length;
 }
@@ -126,6 +135,15 @@ export function buildAppliedCataloguePills(
       key: "fuel",
       label: fuelLabel(filters.fuel.trim()),
       without: { ...filters, fuel: "" },
+    });
+  }
+
+  const grades = parseGradeList(filters.grade);
+  if (grades && grades.length > 0) {
+    pills.push({
+      key: "grade",
+      label: `Grade ${grades.join(", ")}`,
+      without: { ...filters, grade: "" },
     });
   }
 

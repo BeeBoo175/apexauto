@@ -529,6 +529,29 @@ test("listing addresses put the listing and history record in the path and omit 
   }
 });
 
+test("catalogue grade filter round-trips as a grade list, rejects unknown grades and shows a pill", () => {
+  const filters = { ...catalogueDefaults, grade: "A,B" };
+  expect(Object.fromEntries(new URLSearchParams(catalogueQuery(filters, 1)))).toMatchObject({
+    grade: "A,B",
+  });
+  expect(catalogueParams({ grade: "A,B" }).filters.grade).toBe("A,B");
+  expect(catalogueFilterError(filters)).toBeNull();
+  for (const invalid of ["D", "A,A", "AB", "A,,B"]) {
+    expect(catalogueFilterError({ ...catalogueDefaults, grade: invalid })).not.toBeNull();
+  }
+  expect(buildAppliedCataloguePills(filters, null).map((pill) => pill.label)).toEqual([
+    "Grade A, B",
+  ]);
+  expect(
+    parseCatalogue({ items: [{ ...vehicle, grade: "B" }], total: 1, page: 1, pageSize: 12 })
+      ?.items[0].grade,
+  ).toBe("B");
+  expect(
+    parseCatalogue({ items: [{ ...vehicle, grade: 0 }], total: 1, page: 1, pageSize: 12 })?.items[0]
+      .grade,
+  ).toBe("A");
+});
+
 test("catalogue pills and pagination slots summarize active criteria and bounded pages", () => {
   const pills = buildAppliedCataloguePills(
     {

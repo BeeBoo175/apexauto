@@ -1,12 +1,12 @@
+/* One centred cluster at the control height: a previous arrow, the page numbers, a next arrow. The current page is the filled
+   graphite the selected filter chips use, so red stays for the page's one primary action. */
 .paging {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px 16px;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid var(--color-line);
+  justify-content: center;
+  gap: 12px;
+  margin-top: 32px;
 }
 
 .paging svg {
@@ -14,40 +14,45 @@
   height: 16px;
 }
 
+.step {
+  min-width: 36px;
+  padding-inline: 0;
+}
+
 .pageNumbers {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 6px;
 }
 
 .pageButton {
   min-width: 36px;
+  padding-inline: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
   font-variant-numeric: tabular-nums;
 }
 
+.pageButton[aria-current="page"] {
+  border-color: var(--color-graphite);
+  background: var(--color-graphite);
+  color: var(--color-canvas);
+  font-weight: 700;
+}
+
 .ellipsis {
-  padding-inline: 6px;
+  min-width: 24px;
   color: var(--color-muted);
   font-size: 0.875rem;
+  text-align: center;
 }
 
 @media (max-width: 820px) {
   .pageButton {
     min-width: 44px;
-  }
-}
-
-@media (max-width: 640px) {
-  .paging {
-    justify-content: space-between;
-  }
-  .pageNumbers {
-    order: -1;
-    width: 100%;
-    justify-content: center;
-  }
-  .paging > button {
-    flex: 1;
   }
 }

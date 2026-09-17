@@ -29,19 +29,19 @@
   top: 0;
   bottom: 0;
   z-index: 1;
-  width: 80px;
+  width: var(--strip-fade-width, 80px);
   pointer-events: none;
   transition: opacity 200ms ease;
 }
 
 .fadeStart {
   left: 0;
-  background: linear-gradient(to left, transparent, var(--color-paper) 55%);
+  background: linear-gradient(to left, transparent, var(--strip-fade, var(--color-paper)) 55%);
 }
 
 .fadeEnd {
   right: 0;
-  background: linear-gradient(to right, transparent, var(--color-paper) 55%);
+  background: linear-gradient(to right, transparent, var(--strip-fade, var(--color-paper)) 55%);
 }
 
 .scrollControl {
@@ -102,4 +102,81 @@
   .scrollControl {
     transition: none;
   }
+}
+
+/* An edge fade for strips over photographs or tinted bands: the content itself fades out at an edge that
+   still has more to show, driven by the scroll position, so there is no overlay colour to match. */
+@property --strip-edge-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --strip-edge-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@supports (animation-timeline: scroll()) {
+  .edgeFade {
+    animation:
+      strip-edge-start linear both,
+      strip-edge-end linear both;
+    animation-timeline: scroll(self inline), scroll(self inline);
+    animation-range:
+      0 36px,
+      calc(100% - 36px) 100%;
+    mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 var(--strip-edge-start),
+      #000 calc(100% - var(--strip-edge-end)),
+      transparent 100%
+    );
+  }
+}
+
+@keyframes strip-edge-start {
+  from {
+    --strip-edge-start: 0px;
+  }
+
+  to {
+    --strip-edge-start: 36px;
+  }
+}
+
+@keyframes strip-edge-end {
+  from {
+    --strip-edge-end: 36px;
+  }
+
+  to {
+    --strip-edge-end: 0px;
+  }
+}
+
+/* Step buttons for those strips: a light, softly shadowed disc instead of a bordered white circle. */
+.softControls .scrollControl {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--color-paper) 88%, transparent);
+  box-shadow: 0 2px 10px rgb(14 27 42 / 18%);
+  backdrop-filter: blur(6px);
+}
+
+/* A strip a mouse can drag: a grab cursor, and no snapping or text selection while the row follows the pointer. */
+.draggable {
+  cursor: grab;
+}
+
+.draggable[data-dragging] {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  user-select: none;
+}
+
+.draggable img {
+  -webkit-user-drag: none;
+  user-select: none;
 }

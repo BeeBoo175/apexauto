@@ -1,25 +1,39 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
 import { prefersReducedMotion } from "@/lib/motion";
 import { Button } from "./Button";
 import { Icon } from "./Icon";
 import styles from "./ScrollStrip.module.css";
 
+const DRAG_THRESHOLD = 6;
+
 export function ScrollStrip({
   label,
   className = "",
   role = "group",
+  dragScroll = false,
   children,
 }: {
   label: string;
   className?: string;
   role?: "group" | "tablist";
+  // Lets a mouse drag the row sideways; touch and trackpads already scroll it natively.
+  dragScroll?: boolean;
   children: ReactNode;
 }) {
   const frame = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ overflow: false, start: true, end: true });
+  const drag = useRef<{ x: number; left: number; moved: boolean; id: number } | null>(null);
+  const suppressClick = useRef(false);
   const measure = useCallback(() => {
     const strip = viewport.current;
     const host = frame.current;
@@ -56,6 +70,47 @@ export function ScrollStrip({
     return () => observer.disconnect();
   }, [children, measure]);
 
+  function startDrag(event: PointerEvent<HTMLDivElement>) {
+    const strip = viewport.current;
+    if (!dragScroll || !strip || event.pointerType !== "mouse" || event.button !== 0) {
+      return;
+    }
+    drag.current = { x: event.clientX, left: strip.scrollLeft, moved: false, id: event.pointerId };
+  }
+
+  function moveDrag(event: PointerEvent<HTMLDivElement>) {
+    const strip = viewport.current;
+    const current = drag.current;
+    if (!strip || !current) {
+      return;
+    }
+    const distance = event.clientX - current.x;
+    if (!current.moved) {
+      if (Math.abs(distance) < DRAG_THRESHOLD) {
+        return;
+      }
+      current.moved = true;
+      strip.setPointerCapture(current.id);
+      strip.setAttribute("data-dragging", "");
+    }
+    strip.scrollLeft = current.left - distance;
+  }
+
+  function endDrag() {
+    const strip = viewport.current;
+    const current = drag.current;
+    drag.current = null;
+    if (!strip || !current?.moved) {
+      return;
+    }
+    strip.removeAttribute("data-dragging");
+    // The release of a drag must not also click whatever is under the pointer.
+    suppressClick.current = true;
+    setTimeout(() => {
+      suppressClick.current = false;
+    }, 0);
+  }
+
   function scroll(direction: number) {
     const strip = viewport.current;
     if (!strip) {
@@ -75,8 +130,19 @@ export function ScrollStrip({
         role={role}
         aria-label={label}
         tabIndex={0}
-        className={`${styles.viewport} ${className}`.trim()}
+        className={`${styles.viewport} ${dragScroll ? styles.draggable : ""} ${className}`.trim()}
         onScroll={measure}
+        onPointerDown={startDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onDragStart={dragScroll ? (event) => event.preventDefault() : undefined}
+        onClickCapture={(event) => {
+          if (suppressClick.current) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+        }}
       >
         {children}
       </div>

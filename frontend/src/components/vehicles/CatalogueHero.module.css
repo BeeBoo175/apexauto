@@ -1,0 +1,92 @@
+/* A showroom floor behind a navy scrim: the copy stays legible on the left while the red cars show through on the right. */
+.hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--hero-min-height, 260px);
+  background:
+    linear-gradient(
+      90deg,
+      rgb(14 27 42 / 96%) 0%,
+      rgb(14 27 42 / 82%) 38%,
+      rgb(14 27 42 / 38%) 100%
+    ),
+    url("/images/showroom-panorama.jpg") center 62% / cover no-repeat,
+    var(--color-graphite);
+  color: var(--color-canvas);
+}
+
+.inner {
+  padding-block: 32px;
+}
+
+.heading {
+  color: var(--color-canvas);
+}
+
+.lede {
+  max-width: 52ch;
+  margin: 8px 0 0;
+  color: color-mix(in srgb, var(--color-canvas) 82%, transparent);
+  font-size: 1.0625rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.toolbar {
+  composes: softControls from "../ui/ScrollStrip.module.css";
+  margin-top: 20px;
+  /* The tabs fade at an edge with more to show, so no overlay colour is needed over the photograph. */
+  --strip-fade: transparent;
+}
+
+.tabs {
+  composes: edgeFade from "../ui/ScrollStrip.module.css";
+  display: flex;
+  gap: 8px;
+}
+
+.tabs .tab {
+  flex-shrink: 0;
+  border-color: color-mix(in srgb, var(--color-canvas) 30%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-canvas) 10%, transparent);
+  color: color-mix(in srgb, var(--color-canvas) 90%, transparent);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+@media (hover: hover) {
+  .tabs .tab:hover:not(:disabled) {
+    border-color: var(--color-canvas);
+    background: color-mix(in srgb, var(--color-canvas) 18%, transparent);
+  }
+}
+
+.tabs .tab[aria-pressed="true"] {
+  border-color: var(--color-canvas);
+  background: var(--color-canvas);
+  color: var(--color-graphite);
+  font-weight: 600;
+}
+
+@media (max-width: 960px) {
+  .hero {
+    background:
+      linear-gradient(180deg, rgb(14 27 42 / 90%) 0%, rgb(14 27 42 / 72%) 100%),
+      url("/images/showroom-panorama.jpg") center / cover no-repeat,
+      var(--color-graphite);
+  }
+}
+
+@media (max-width: 640px) {
+  .inner {
+    padding-block: 24px;
+  }
+
+  .toolbar {
+    margin-top: 16px;
+  }
+}

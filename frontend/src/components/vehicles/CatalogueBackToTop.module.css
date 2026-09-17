@@ -1,0 +1,54 @@
+.button {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-signal);
+  color: var(--color-canvas);
+  box-shadow: 0 6px 20px rgb(217 37 24 / 35%);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease,
+    background-color 160ms ease;
+  cursor: pointer;
+}
+
+.button[data-visible] {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+@media (hover: hover) {
+  .button:hover {
+    background: var(--color-signal-dark);
+  }
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+/* The shared down arrow, turned to point up. */
+.arrow {
+  display: inline-flex;
+  rotate: 180deg;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+    transform: none;
+  }
+}

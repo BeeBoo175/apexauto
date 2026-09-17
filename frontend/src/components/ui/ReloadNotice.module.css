@@ -1,0 +1,17 @@
+.compact {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-signal) 6%, var(--color-paper));
+  color: var(--color-signal-dark);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.compact svg {
+  flex-shrink: 0;
+}

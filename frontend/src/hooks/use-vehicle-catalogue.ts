@@ -12,7 +12,11 @@ import {
   catalogueQuery,
   trimCatalogueFilters,
 } from "@/lib/vehicles/query";
-import type { CatalogueFilters, CataloguePage } from "@/lib/vehicles/contracts";
+import {
+  CATALOGUE_LISTING_PAGE_SIZE,
+  type CatalogueFilters,
+  type CataloguePage,
+} from "@/lib/vehicles/contracts";
 import { useInitialToast } from "./use-initial-toast";
 import { useBranchChoices } from "./use-branch-choices";
 import { writeAddress } from "@/lib/browser-url";
@@ -65,9 +69,13 @@ export function useVehicleCatalogue(
     setBusy(true);
     try {
       const query = catalogueQuery(normalized, nextPage);
-      const result = await apiFetch(`/api/vehicles?${query}`, parseCatalogue, {
-        signal: attempt.signal,
-      });
+      const result = await apiFetch(
+        `/api/vehicles?${query}&pageSize=${CATALOGUE_LISTING_PAGE_SIZE}`,
+        parseCatalogue,
+        {
+          signal: attempt.signal,
+        },
+      );
       if (attempt.signal.aborted) {
         return false;
       }

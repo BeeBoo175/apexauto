@@ -1,20 +1,28 @@
 "use client";
 
 import { prefersReducedMotion } from "@/lib/motion";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import Link from "next/link";
-import { GuideHubBanner } from "@/components/guide/GuidePageShell";
 import { Button, buttonClassName } from "@/components/ui/Button";
 import { LoadingProgress } from "@/components/ui/LoadingProgress";
 import { type CatalogueDraftSync, useVehicleCatalogue } from "@/hooks/use-vehicle-catalogue";
 import type { ApiResult, Page } from "@/lib/api";
 import type { Branch } from "@/lib/branches";
+import type { GuideWarranty } from "@/lib/guide/purchase-guide";
 import type { Taxonomy } from "@/lib/intake/contracts";
-import { countActiveCatalogueFilters } from "@/lib/vehicles/catalogue-controls";
+import {
+  countActiveCatalogueFilters,
+  showroomTabBranches,
+} from "@/lib/vehicles/catalogue-controls";
 import type { CatalogueFilters as Filters, CataloguePage } from "@/lib/vehicles/contracts";
 import { catalogueDefaults } from "@/lib/vehicles/query";
+import { CatalogueBackToTop } from "./CatalogueBackToTop";
 import { CatalogueFilters } from "./CatalogueFilters";
+import { CatalogueHero } from "./CatalogueHero";
+import { CatalogueControlBar } from "./CatalogueControlBar";
+import { CatalogueSort } from "./CatalogueSort";
+import { CatalogueWarrantyBand } from "./CatalogueWarrantyBand";
 import { CataloguePagination } from "./CataloguePagination";
 import { CatalogueToolbar } from "./CatalogueToolbar";
 import { VehicleCard } from "./VehicleCard";
@@ -27,7 +35,11 @@ interface VehicleCatalogueProps {
   page: number;
   branches: Page<Branch> | null;
   taxonomy: Taxonomy | null;
+  warranties: readonly GuideWarranty[] | null;
 }
+
+// The warranty band breaks the grid after two full rows of three.
+const WARRANTY_BAND_AFTER = 6;
 
 export function VehicleCatalogue({
   initial,
@@ -35,17 +47,17 @@ export function VehicleCatalogue({
   page,
   branches,
   taxonomy,
+  warranties,
 }: VehicleCatalogueProps) {
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const catalogue = useVehicleCatalogue(initial, filters, page, branches);
   const { snapshot, active, busy } = catalogue;
-  const hasActiveFilters = countActiveCatalogueFilters(active.filters) > 0;
+  const activeFilterCount = countActiveCatalogueFilters(active.filters);
+  const hasActiveFilters = activeFilterCount > 0;
+  const showrooms = showroomTabBranches(catalogue.branches);
 
   async function applyFilters(nextFilters: Filters, syncDraft: CatalogueDraftSync = "all") {
-    const succeeded = await catalogue.load(nextFilters, 1, { syncDraft });
-    if (succeeded) {
-      setMobileFiltersOpen(false);
-    }
+    await catalogue.load(nextFilters, 1, { syncDraft });
   }
 
   async function changePage(nextPage: number) {
@@ -62,14 +74,25 @@ export function VehicleCatalogue({
     <section className={styles.page}>
       <LoadingProgress label="Loading vehicles" active={busy} />
       <LoadingProgress label="Loading showroom branches" active={catalogue.branchBusy} />
+      <CatalogueBackToTop />
 
-      <GuideHubBanner
-        title="Used cars for sale"
-        description="Signed 210-point inspection, upfront pricing, and a 48-hour hold on every car."
-        actions={[
-          { href: "/buying-guide", label: "Buying guide", variant: "shell", prefetch: true },
-          { href: "/sell", label: "Sell or trade in", variant: "secondary" },
-        ]}
+      <CatalogueHero
+        active={active.filters}
+        showrooms={showrooms}
+        busy={busy}
+        onShowroom={(branchId) => void applyFilters({ ...active.filters, branchId }, "all")}
+      />
+
+      <CatalogueControlBar
+        active={active.filters}
+        activeFilterCount={activeFilterCount}
+        busy={busy}
+        filtersOpen={filtersOpen}
+        onSearch={(search) => void applyFilters({ ...active.filters, search }, "none")}
+        onSort={(sort, direction) =>
+          void applyFilters({ ...active.filters, sort, direction }, "sort")
+        }
+        onOpenFilters={() => setFiltersOpen(true)}
       />
 
       <div className={`${layout.content} ${styles.workspace}`}>
@@ -78,13 +101,28 @@ export function VehicleCatalogue({
           draft={catalogue.draft}
           setDraft={catalogue.setDraft}
           busy={busy}
-          apply={(next) => void applyFilters({ ...next, search: active.filters.search }, "all")}
+          apply={(next) =>
+            void catalogue.load({ ...next, search: active.filters.search }, 1, {
+              syncDraft: "all",
+            })
+          }
           branches={catalogue.branches}
           branchBusy={catalogue.branchBusy}
           loadBranches={(next) => void catalogue.loadBranches(next)}
           taxonomy={taxonomy}
-          mobileOpen={mobileFiltersOpen}
-          onToggleMobile={() => setMobileFiltersOpen((current) => !current)}
+          open={filtersOpen}
+          onClose={() => setFiltersOpen(false)}
+          showroomInTabs={showrooms !== null}
+          mobileSort={
+            <CatalogueSort
+              id="catalogue-sort-mobile"
+              active={active.filters}
+              busy={busy}
+              onSort={(sort, direction) =>
+                void applyFilters({ ...active.filters, sort, direction }, "sort")
+              }
+            />
+          }
         />
 
         <div className={styles.resultsColumn}>
@@ -95,22 +133,23 @@ export function VehicleCatalogue({
             branches={catalogue.branches}
             busy={busy}
             onApply={(next) => void applyFilters(next, "all")}
-            onSearch={(search) => void applyFilters({ ...active.filters, search }, "none")}
-            onSort={(sort, direction) =>
-              void applyFilters({ ...active.filters, sort, direction }, "sort")
-            }
           />
 
           <div aria-busy={busy}>
             {snapshot && snapshot.items.length > 0 && (
               <div className={styles.vehicles}>
                 {snapshot.items.map((vehicle, index) => (
-                  <VehicleCard
-                    key={vehicle.id}
-                    vehicle={vehicle}
-                    first={index === 0}
-                    photoVersion={catalogue.photoVersion}
-                  />
+                  <Fragment key={vehicle.id}>
+                    <VehicleCard
+                      vehicle={vehicle}
+                      first={index === 0}
+                      photoVersion={catalogue.photoVersion}
+                    />
+                    {index === WARRANTY_BAND_AFTER - 1 &&
+                      snapshot.items.length > WARRANTY_BAND_AFTER &&
+                      warranties &&
+                      warranties.length > 0 && <CatalogueWarrantyBand warranties={warranties} />}
+                  </Fragment>
                 ))}
               </div>
             )}
@@ -143,7 +182,7 @@ export function VehicleCatalogue({
                 </h2>
                 <p>
                   {hasActiveFilters
-                    ? "Try a wider RM price or year range, switch showrooms, or reset filters to see all available cars."
+                    ? "Remove a filter above to see more cars, or clear them all."
                     : "Showroom listings appear here after inspection and management approval. Value or sell your own car in the meantime."}
                 </p>
                 <div className={styles.emptyActions}>
@@ -154,7 +193,7 @@ export function VehicleCatalogue({
                       disabled={busy}
                       onClick={() => void applyFilters({ ...catalogueDefaults }, "all")}
                     >
-                      Reset all filters
+                      Clear all
                     </Button>
                   )}
                   <Link

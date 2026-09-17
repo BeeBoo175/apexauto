@@ -25,11 +25,13 @@ export function CataloguePagination({
       <Button
         type="button"
         variant="secondary"
-        size="md"
+        size="sm"
+        className={styles.step}
+        aria-label="Previous page"
         disabled={busy || page <= 1}
         onClick={() => onPageChange(page - 1)}
       >
-        <Icon name="previous" /> Previous
+        <Icon name="previous" />
       </Button>
 
       <div className={styles.pageNumbers}>
@@ -46,8 +48,8 @@ export function CataloguePagination({
             <Button
               key={slot}
               type="button"
-              variant={isCurrent ? "primary" : "secondary"}
-              size="compact"
+              variant="secondary"
+              size="sm"
               className={styles.pageButton}
               disabled={busy}
               aria-label={`Page ${slot}`}
@@ -67,11 +69,13 @@ export function CataloguePagination({
       <Button
         type="button"
         variant="secondary"
-        size="md"
+        size="sm"
+        className={styles.step}
+        aria-label="Next page"
         disabled={busy || page >= totalPages}
         onClick={() => onPageChange(page + 1)}
       >
-        Next <Icon name="next" />
+        <Icon name="next" />
       </Button>
     </nav>
   );

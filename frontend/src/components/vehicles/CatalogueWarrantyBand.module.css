@@ -1,0 +1,197 @@
+/* A slim, image-led break between catalogue rows. The strip, not the viewport, decides its inner layout (the
+   catalogue column changes width with the filter rail), so container queries keep every width in a deliberate
+   composition. Light-on-dark uses the canvas tint, never pure white. */
+.band {
+  --ink: var(--color-canvas);
+  --ink-soft: #a5b4c3;
+  --ink-hairline: color-mix(in srgb, var(--color-canvas) 18%, transparent);
+
+  grid-column: 1 / -1;
+  position: relative;
+  container-type: inline-size;
+  min-width: 0;
+  border-radius: 12px;
+  background: var(--color-graphite-soft);
+  color: var(--ink);
+}
+
+.inner {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px 24px;
+  padding: 26px 28px 26px 20px;
+}
+
+/* A transparent cutout, so the navy strip is its backdrop; the shadow grounds it. */
+.car {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 10px 8px rgb(14 27 42 / 60%));
+}
+
+/* A slanted hairline between the car and the offer: a vertical rule skewed to lean with the sedan. */
+.copy {
+  position: relative;
+  min-width: 0;
+  padding-left: 28px;
+}
+
+.copy::before {
+  position: absolute;
+  top: -20px;
+  bottom: -20px;
+  left: 0;
+  border-left: 1px solid var(--ink-hairline);
+  content: "";
+  transform: skewX(-16deg);
+}
+
+.label {
+  margin: 0 0 6px;
+  color: var(--ink-soft);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.line {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.tiers {
+  display: grid;
+  gap: 10px;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tier {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 72px;
+  padding: 8px 12px;
+  border: 1px solid var(--ink-hairline);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-canvas) 6%, transparent);
+}
+
+.tier[data-longest] {
+  border-color: var(--color-signal);
+  background: color-mix(in srgb, var(--color-signal) 14%, transparent);
+}
+
+.tierTag {
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: var(--color-signal);
+  color: var(--ink);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.tierName {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.tierTerm {
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px 0 20px;
+  border-radius: 8px;
+  background: var(--color-signal);
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgb(217 37 24 / 35%);
+  transition: background-color 150ms ease;
+}
+
+.action:hover {
+  background: var(--color-signal-dark);
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Medium: the plan boxes drop out; car, offer and action remain. */
+@container (max-width: 940px) {
+  .inner {
+    grid-template-columns: 170px minmax(0, 1fr) auto;
+  }
+
+  .title {
+    white-space: normal;
+    text-wrap: balance;
+  }
+
+  .tiers {
+    display: none;
+  }
+}
+
+/* Narrow: the car beside the offer, the action across the full width beneath. */
+@container (max-width: 560px) {
+  .inner {
+    grid-template-columns: 110px minmax(0, 1fr);
+    padding: 16px;
+  }
+
+  .copy {
+    padding-left: 0;
+  }
+
+  .copy::before {
+    display: none;
+  }
+
+  .title {
+    font-size: 1.25rem;
+  }
+
+  .action {
+    grid-column: 1 / -1;
+  }
+}
