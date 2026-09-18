@@ -24,6 +24,9 @@ export interface FaqEntry {
   linkLabel: string;
   // Shown on the ApexShield warranty page too, so both pages give one answer.
   onWarrantyPage?: boolean;
+  // Shown on the buying and selling guides too.
+  onBuyingPage?: boolean;
+  onSellingPage?: boolean;
 }
 
 export const faqCategories: readonly FaqCategory[] = [
@@ -33,6 +36,83 @@ export const faqCategories: readonly FaqCategory[] = [
   "Selling & trade-in",
   "Branches & test drives",
 ];
+
+// Entries that need no live figures, so the two guides can show them on pages generated ahead of time.
+const buyingEntries: FaqEntry[] = [
+  {
+    id: "reserve-account",
+    onBuyingPage: true,
+    category: "Buying & warranty",
+    question: "Do I need an account to reserve a car?",
+    answer:
+      "Yes. Create an account and verify your email, then reserve or book a test drive from the car's page.",
+    href: "/register",
+    linkLabel: "Create an account",
+  },
+  {
+    id: "reservation-hold",
+    onBuyingPage: true,
+    category: "Buying & warranty",
+    question: `How does the ${formatCurrency(RESERVATION_DEPOSIT, "RM")} reservation hold work?`,
+    answer: `Once you start a reservation the car is held for ${PAYMENT_WINDOW_MINUTES} minutes while you pay securely online. After your payment is confirmed the car is held for ${RESERVATION_HOLD_HOURS} hours, and the deposit counts toward your cash down payment. If you cancel or the hold lapses, the deposit is refunded.`,
+    href: "/buying-guide#reserve",
+    linkLabel: "See how reserving works",
+  },
+  {
+    id: "payment-window",
+    onBuyingPage: true,
+    category: "Buying & warranty",
+    question: `What happens if I do not pay within ${PAYMENT_WINDOW_MINUTES} minutes?`,
+    answer: `The reservation is made only once payment is confirmed. If the ${PAYMENT_WINDOW_MINUTES}-minute payment window runs out, the car is released and nothing is charged. You can start again while the car is still listed.`,
+    href: "/vehicles",
+    linkLabel: "Browse cars",
+  },
+  {
+    id: "promo-codes",
+    category: "Buying & warranty",
+    question: "How do I use a promo code?",
+    answer:
+      "Open the car and choose Reserve, then open the promo code field, enter the code exactly as given (codes are case-sensitive) and press Apply. The saving appears as its own line before you pay. Only one code applies to a booking, it is capped at the vehicle price, and it does not reserve the car or lock its price.",
+    href: "/vehicles",
+    linkLabel: "Browse cars",
+  },
+  {
+    id: "financing-rounding",
+    onBuyingPage: true,
+    category: "Buying & warranty",
+    question: "How is the monthly installment estimated?",
+    answer:
+      "Each car's Financing tab uses a 3% flat annual rate over 1–9 years, rounded to exact sen with any remainder settled in the final month. It is a budgeting estimate, not a loan offer.",
+    href: "/buying-guide#settle",
+    linkLabel: "See a worked estimate",
+  },
+];
+
+const sellingEntries: FaqEntry[] = [
+  {
+    id: "sell-requirements",
+    onSellingPage: true,
+    category: "Selling & trade-in",
+    question: "What do I need before booking a sell or trade-in slot?",
+    answer:
+      "Get an online price range, sign in, upload four exterior photos, then pick a 90-minute showroom bay at least two hours ahead and within the next 30 days.",
+    href: "/sell",
+    linkLabel: "Start selling",
+  },
+  {
+    id: "trade-in-offer",
+    onSellingPage: true,
+    category: "Selling & trade-in",
+    question: "Is the online price range an offer?",
+    answer:
+      "No. It is an indicative range from your make, model, year and mileage. The final offer is confirmed on site after the 90-minute bay inspection.",
+    href: "/selling-guide",
+    linkLabel: "See how selling works",
+  },
+];
+
+export const buyingPageFaq = buyingEntries.filter((entry) => entry.onBuyingPage);
+export const sellingPageFaq = sellingEntries.filter((entry) => entry.onSellingPage);
 
 export function faqEntries(
   guide: PurchaseGuide,
@@ -51,49 +131,7 @@ export function faqEntries(
       linkLabel: "See a worked example",
       onWarrantyPage: true,
     },
-    {
-      id: "reserve-account",
-      category: "Buying & warranty",
-      question: "Do I need an account to reserve a car?",
-      answer:
-        "Yes. Create an account and verify your email, then reserve or book a test drive from the car's page.",
-      href: "/register",
-      linkLabel: "Create an account",
-    },
-    {
-      id: "reservation-hold",
-      category: "Buying & warranty",
-      question: `How does the ${formatCurrency(RESERVATION_DEPOSIT, "RM")} reservation hold work?`,
-      answer: `Once you start a reservation the car is held for ${PAYMENT_WINDOW_MINUTES} minutes while you pay securely online. After your payment is confirmed the car is held for ${RESERVATION_HOLD_HOURS} hours, and the deposit counts toward your cash down payment. If you cancel or the hold lapses, the deposit is refunded.`,
-      href: "/buying-guide#reserve",
-      linkLabel: "See how reserving works",
-    },
-    {
-      id: "payment-window",
-      category: "Buying & warranty",
-      question: `What happens if I do not pay within ${PAYMENT_WINDOW_MINUTES} minutes?`,
-      answer: `The reservation is made only once payment is confirmed. If the ${PAYMENT_WINDOW_MINUTES}-minute payment window runs out, the car is released and nothing is charged. You can start again while the car is still listed.`,
-      href: "/vehicles",
-      linkLabel: "Browse cars",
-    },
-    {
-      id: "promo-codes",
-      category: "Buying & warranty",
-      question: "How do I use a promo code?",
-      answer:
-        "Open the car and choose Reserve, then open the promo code field, enter the code exactly as given (codes are case-sensitive) and press Apply. The saving appears as its own line before you pay. Only one code applies to a booking, it is capped at the vehicle price, and it does not reserve the car or lock its price.",
-      href: "/vehicles",
-      linkLabel: "Browse cars",
-    },
-    {
-      id: "financing-rounding",
-      category: "Buying & warranty",
-      question: "How is the monthly installment estimated?",
-      answer:
-        "Each car's Financing tab uses a 3% flat annual rate over 1–9 years, rounded to exact sen with any remainder settled in the final month. It is a budgeting estimate, not a loan offer.",
-      href: "/buying-guide#settle",
-      linkLabel: "See a worked estimate",
-    },
+    ...buyingEntries,
     {
       id: "warranty-included",
       category: "Buying & warranty",
@@ -149,24 +187,7 @@ export function faqEntries(
       href: "/disclaimer",
       linkLabel: "Read disclosures",
     },
-    {
-      id: "sell-requirements",
-      category: "Selling & trade-in",
-      question: "What do I need before booking a sell or trade-in slot?",
-      answer:
-        "Get an online price range, sign in, upload four exterior photos, then pick a 90-minute showroom bay at least two hours ahead and within the next 30 days.",
-      href: "/sell",
-      linkLabel: "Start selling",
-    },
-    {
-      id: "trade-in-offer",
-      category: "Selling & trade-in",
-      question: "Is the online price range an offer?",
-      answer:
-        "No. It is an indicative range from your make, model, year and mileage. The final offer is confirmed on site after the 90-minute bay inspection.",
-      href: "/selling-guide",
-      linkLabel: "See how selling works",
-    },
+    ...sellingEntries,
     {
       id: "branch-hours",
       category: "Branches & test drives",

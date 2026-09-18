@@ -54,7 +54,7 @@ function fixedPriceGuarantees(guide: PurchaseGuide) {
   ];
 }
 
-const handoverDocuments = [
+export const handoverDocuments = [
   {
     icon: "user" as IconName,
     title: "Original MyKad / NRIC",

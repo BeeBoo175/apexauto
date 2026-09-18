@@ -1,0 +1,243 @@
+.steps {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 40px;
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 4px 12px;
+  border: 0;
+  border-bottom: 3px solid var(--color-line);
+  background: transparent;
+  color: var(--color-muted);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 200ms ease,
+    color 200ms ease;
+}
+
+.tab span {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid currentcolor;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease;
+}
+
+.tab:hover {
+  border-color: var(--color-subtle);
+  color: var(--color-graphite);
+}
+
+.tab:active {
+  border-color: var(--color-graphite);
+}
+
+.tab[aria-selected="true"] {
+  border-color: var(--color-signal);
+  color: var(--color-graphite);
+}
+
+.tab[aria-selected="true"] span {
+  border-color: var(--color-signal);
+  background: var(--color-signal);
+  color: var(--color-paper);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+/* Every panel sits in the same grid cell, so the stage is always as tall as the tallest step and
+   switching tabs never moves what is below it. */
+.panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.panel {
+  display: grid;
+  grid-area: 1 / 1;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 56px;
+  align-items: stretch;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 280ms ease,
+    transform 280ms ease,
+    visibility 0s linear 280ms;
+}
+
+.panel[data-active] {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  transition-delay: 0s;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+  min-width: 0;
+}
+
+.copy :global(p) {
+  margin: 0;
+}
+
+.copy > :global(div),
+.copy > :global(ol),
+.copy > :global(ul) {
+  align-self: stretch;
+}
+
+/* The main block of each step grows to the height of the photograph beside it, and its rows share that height. */
+.copy > [data-fill] {
+  flex: 1 1 auto;
+}
+
+.copy > div[data-fill] {
+  display: flex;
+  flex-direction: column;
+}
+
+.copy > div[data-fill] > ul {
+  display: grid;
+  flex: 1 1 auto;
+  grid-auto-rows: 1fr;
+}
+
+.copy > ol[data-fill] {
+  display: grid;
+  grid-auto-rows: 1fr;
+}
+
+.badge {
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-signal);
+  color: var(--color-paper);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.title {
+  margin: 0;
+}
+
+/* The photograph fills the height of the copy beside it, so the two columns end together. */
+.media {
+  position: relative;
+  min-height: 320px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--color-canvas);
+  box-shadow: var(--shadow-surface);
+}
+
+.image {
+  object-fit: cover;
+  transform: scale(1.04);
+  transition: transform 600ms ease-out;
+}
+
+.panel[data-active] .image {
+  transform: none;
+}
+
+.next {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-signal);
+  color: var(--color-paper);
+  box-shadow: var(--shadow-surface);
+  cursor: pointer;
+  transition:
+    background-color 200ms ease,
+    transform 200ms ease;
+}
+
+.next:hover {
+  background: color-mix(in srgb, var(--color-signal) 88%, var(--color-graphite));
+  transform: translate(2px, -50%);
+}
+
+.next:active {
+  background: color-mix(in srgb, var(--color-signal) 76%, var(--color-graphite));
+}
+
+.next:focus-visible {
+  outline: 2px solid var(--color-paper);
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .panel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+
+  .media {
+    order: -1;
+    width: 100%;
+    min-height: 0;
+    aspect-ratio: 16 / 10;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .tab span,
+  .panel,
+  .image,
+  .next {
+    transition: none;
+  }
+
+  .panel,
+  .image {
+    transform: none;
+  }
+}

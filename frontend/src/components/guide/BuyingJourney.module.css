@@ -1,0 +1,295 @@
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--hero-min-height, 260px);
+  padding-block: 36px;
+  background: var(--color-graphite);
+  color: var(--color-paper);
+}
+
+.heroPhoto {
+  object-fit: cover;
+  opacity: 0.45;
+}
+
+.heroScrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    95deg,
+    rgb(14 27 42 / 94%) 0%,
+    rgb(14 27 42 / 76%) 55%,
+    rgb(14 27 42 / 40%) 100%
+  );
+}
+
+.heroInner {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+.heroInner h1 {
+  color: var(--color-paper);
+}
+
+.lede {
+  max-width: 62ch;
+  margin: 0 0 8px;
+  color: var(--color-line-soft);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+/* The two cards fade in and lift as they scroll into view; they are visible without scroll-driven animation. */
+@supports (animation-timeline: view()) {
+  .payCard,
+  .holdCard {
+    animation: cardRise linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 35%;
+  }
+}
+
+@keyframes cardRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+.canvasBand {
+  border-block: 1px solid var(--color-line);
+  background: color-mix(in srgb, var(--color-graphite) 7%, var(--color-canvas));
+  color: var(--color-graphite);
+}
+
+.cards {
+  display: grid;
+  gap: 24px;
+}
+
+.payCard,
+.holdCard {
+  display: grid;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  box-shadow: var(--shadow-surface);
+}
+
+.payCard {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 40px;
+  align-items: stretch;
+  padding: 32px;
+}
+
+.payIntro {
+  display: grid;
+  align-content: center;
+  gap: 12px;
+}
+
+.payIntro h2,
+.payIntro p,
+.holdCopy h2,
+.holdCopy p {
+  margin: 0;
+}
+
+.routes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.routes li {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-canvas);
+  transition:
+    border-color 200ms ease,
+    transform 200ms ease;
+}
+
+.routes li:hover {
+  border-color: var(--color-subtle);
+  transform: translateY(-2px);
+}
+
+.routes li > :global(span:first-child) {
+  color: var(--color-signal);
+}
+
+.routes strong {
+  color: var(--color-graphite);
+  font-size: 1rem;
+}
+
+.routes span:last-child {
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.holdCard {
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  overflow: hidden;
+}
+
+.holdPhoto {
+  position: relative;
+  min-height: 280px;
+}
+
+.holdImage {
+  object-fit: cover;
+  object-position: 50% 35%;
+}
+
+.holdCopy {
+  display: grid;
+  justify-items: start;
+  align-content: center;
+  gap: 16px;
+  padding: 40px;
+}
+
+/* The sheets are label and value, so the sheet's code column is dropped and the value sits at the right. */
+ul.figureList > li {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+ul.figureList > li > :last-child {
+  font-weight: 600;
+  text-align: right;
+}
+
+.figureNote {
+  color: var(--color-muted);
+  font-weight: 400;
+  text-align: right;
+}
+
+.fallback {
+  color: var(--color-muted);
+}
+
+.timeline {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline li {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 0 0 32px 32px;
+  border-left: 2px solid var(--color-line);
+  margin-left: 8px;
+}
+
+.timeline li:last-child {
+  padding-bottom: 0;
+}
+
+.timeline li::before {
+  position: absolute;
+  top: 4px;
+  left: -9px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-graphite);
+  border-radius: 50%;
+  background: var(--color-paper);
+  content: "";
+}
+
+.timeline span {
+  color: var(--color-muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .payCard,
+  .holdCard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .payCard {
+    gap: 24px;
+    padding: 24px;
+  }
+
+  .holdCopy {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .routes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .canvasBand {
+    padding-block: 40px;
+  }
+
+  .routes li {
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 12px;
+    row-gap: 2px;
+    align-items: center;
+  }
+
+  .routes li > :global(span:first-child) {
+    grid-row: span 2;
+  }
+
+  .hero {
+    padding-block: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payCard,
+  .holdCard {
+    animation: none;
+  }
+
+  .routes li {
+    transition: none;
+  }
+}
+
+.carouselBand {
+  padding-block: 24px 96px;
+  background: var(--color-paper);
+  color: var(--color-graphite);
+}
+
+@media (max-width: 640px) {
+  .carouselBand {
+    padding-block: 8px 48px;
+  }
+}
