@@ -62,6 +62,7 @@ export function LandingBuyingSteps() {
                   src={step.image}
                   alt={step.alt}
                   fill
+                  quality={85}
                   sizes="(max-width: 920px) 100vw, 640px"
                   style={{ objectPosition: step.focus }}
                 />

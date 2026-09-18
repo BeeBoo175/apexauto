@@ -285,11 +285,12 @@
     flex-wrap: wrap;
     margin-top: 24px;
     padding: 6px;
-    border-radius: var(--radius-surface);
+    border-radius: 14px;
   }
 
   .selectCell {
     flex: 1 1 40%;
+    border-radius: 8px;
   }
 
   .capsuleDivider {
@@ -299,14 +300,14 @@
   .capsuleButton {
     flex: 1 1 100%;
     min-height: 46px;
-    border-radius: 16px;
+    border-radius: 8px;
   }
 
   .bottomBar {
     gap: 8px;
     margin: 0 8px 8px;
     padding: 12px;
-    border-radius: 12px;
+    border-radius: 6px;
   }
 
   .bottomStep,

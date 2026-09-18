@@ -181,12 +181,18 @@
 }
 
 .railName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.9375rem;
   font-weight: 700;
   line-height: 1.3;
 }
 
 .railMeta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--color-muted);
   font-size: 0.8125rem;
 }
@@ -256,7 +262,7 @@
 
 @media (max-width: 640px) {
   .section {
-    padding-top: 120px;
+    padding-top: 229px;
   }
 }
 
@@ -272,5 +278,89 @@
   .railCar:hover,
   .railCar:hover .railArrow {
     transform: none;
+  }
+}
+
+/* A failed read holds the height of the lot, so the sections below do not move. */
+.failed {
+  display: grid;
+  align-content: center;
+  min-height: 560px;
+}
+
+/* Loading silhouette: the real cards with their text drawn as placeholder blocks that carry the shared shimmer. */
+.leadCar[data-shell],
+.railCar[data-shell],
+.all[data-shell] {
+  pointer-events: none;
+}
+
+/* The banner stays positioned where it is; only its fill changes. */
+.leadCar[data-shell] .banner {
+  overflow: hidden;
+  background: var(--shell-fill);
+  color: transparent;
+}
+
+.leadCar[data-shell] :is(.leadPrice, .leadName, .leadBody > span),
+.railCar[data-shell] :is(.railName, .railMeta, .railPrice),
+.all[data-shell] .allLabel {
+  position: relative;
+  overflow: hidden;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 2px;
+  background: var(--shell-fill, var(--color-line-soft));
+  color: transparent;
+  text-decoration: none;
+}
+
+.leadCar[data-shell] {
+  --shell-fill: color-mix(in srgb, var(--color-paper) 22%, transparent);
+}
+
+.leadCar[data-shell] :is(.banner, .leadPrice, .leadName, .leadBody > span)::after,
+.railCar[data-shell] :is(.railName, .railMeta, .railPrice)::after,
+.all[data-shell] .allLabel::after,
+.railCar[data-shell] .railPhoto::after,
+.leadCar[data-shell]::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-paper) 55%, transparent),
+    transparent
+  );
+  content: "";
+  transform: translateX(-100%);
+  animation: featuredShellShimmer 2.4s linear infinite;
+}
+
+.leadCar[data-shell]::before {
+  z-index: -1;
+}
+
+.railCar[data-shell] .railPhoto {
+  overflow: hidden;
+}
+
+.railCar[data-shell] svg {
+  opacity: 0.25;
+}
+
+@keyframes featuredShellShimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leadCar[data-shell] :is(.banner, .leadPrice, .leadName, .leadBody > span)::after,
+  .railCar[data-shell] :is(.railName, .railMeta, .railPrice)::after,
+  .all[data-shell] .allLabel::after,
+  .railCar[data-shell] .railPhoto::after,
+  .leadCar[data-shell]::before {
+    animation: none;
   }
 }

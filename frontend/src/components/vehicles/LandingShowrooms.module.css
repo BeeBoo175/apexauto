@@ -247,3 +247,57 @@
     transition: none;
   }
 }
+
+/* Loading silhouette: the accordion with placeholder blocks where the photograph and text will be. */
+section[data-shell] .photo {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-line-soft);
+}
+
+section[data-shell] .scrim {
+  display: none;
+}
+
+section[data-shell] .panel {
+  background: var(--color-line-soft);
+}
+
+section[data-shell] :is(.photo, .collapsedName, .name, .address, .visit)::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-paper) 55%, transparent),
+    transparent
+  );
+  content: "";
+  transform: translateX(-100%);
+  animation: showroomShellShimmer 2.4s linear infinite;
+}
+
+section[data-shell] :is(.collapsedName, .name, .address, .visit) {
+  position: relative;
+  overflow: hidden;
+  width: fit-content;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-graphite) 12%, transparent);
+  color: transparent;
+}
+
+section[data-shell] .name span {
+  color: transparent;
+}
+
+@keyframes showroomShellShimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  section[data-shell] :is(.photo, .collapsedName, .name, .address, .visit)::after {
+    animation: none;
+  }
+}

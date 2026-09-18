@@ -22,6 +22,7 @@ export function LandingHero({ taxonomy, branches, totalVehicles }: LandingHeroPr
           alt=""
           fill
           priority
+          quality={85}
           sizes="100vw"
           className={styles.mediaImage}
         />

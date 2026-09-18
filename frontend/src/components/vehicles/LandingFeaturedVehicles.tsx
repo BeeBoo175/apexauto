@@ -13,6 +13,25 @@ import layout from "./VehicleLayout.module.css";
 
 const SECONDARY_CARD_COUNT = 4;
 
+// Stand-in cars for the loading silhouette: the real cards laid out with placeholder text, so each has its final height.
+const SHELL_VEHICLE: PublicVehicle = {
+  id: "shell",
+  branchId: "shell",
+  branchName: "ApexAuto Petaling Jaya",
+  make: "Make name",
+  model: "Model name",
+  trim: "Trim level",
+  manufactureYear: 2024,
+  mileageKilometres: 50000,
+  vehiclePrice: 50000,
+  transmission: "Automatic",
+  fuel: "Petrol",
+  grade: "A",
+  coverPhotoId: null,
+  photoCount: 0,
+  publishedAt: "2024-01-01T00:00:00Z",
+};
+
 function vehicleName(vehicle: PublicVehicle) {
   return `${vehicle.manufactureYear} ${vehicle.make} ${vehicle.model} ${vehicle.trim}`;
 }
@@ -21,7 +40,7 @@ function coverUrl(vehicle: PublicVehicle) {
   return vehicle.coverPhotoId ? `/api/vehicles/${vehicle.id}/photos/${vehicle.coverPhotoId}` : null;
 }
 
-function RailCar({ vehicle }: { vehicle: PublicVehicle }) {
+function RailCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: boolean }) {
   const photoUrl = coverUrl(vehicle);
 
   return (
@@ -29,7 +48,10 @@ function RailCar({ vehicle }: { vehicle: PublicVehicle }) {
       href={`/vehicles/${vehicle.id}`}
       prefetch={false}
       className={styles.railCar}
-      aria-label={`View details for ${vehicleName(vehicle)}`}
+      data-shell={shell || undefined}
+      tabIndex={shell ? -1 : undefined}
+      aria-hidden={shell || undefined}
+      aria-label={shell ? undefined : `View details for ${vehicleName(vehicle)}`}
     >
       <span className={styles.railPhoto}>
         {photoUrl && (
@@ -57,7 +79,7 @@ function RailCar({ vehicle }: { vehicle: PublicVehicle }) {
   );
 }
 
-function LeadCar({ vehicle }: { vehicle: PublicVehicle }) {
+function LeadCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: boolean }) {
   const photoUrl = coverUrl(vehicle);
   const fuel = vehicle.fuel === "PlugInHybrid" ? "Plug-in hybrid" : vehicle.fuel;
 
@@ -66,7 +88,10 @@ function LeadCar({ vehicle }: { vehicle: PublicVehicle }) {
       href={`/vehicles/${vehicle.id}`}
       prefetch={false}
       className={styles.leadCar}
-      aria-label={`View details for ${vehicleName(vehicle)}`}
+      data-shell={shell || undefined}
+      tabIndex={shell ? -1 : undefined}
+      aria-hidden={shell || undefined}
+      aria-label={shell ? undefined : `View details for ${vehicleName(vehicle)}`}
     >
       {photoUrl && (
         <Image
@@ -92,10 +117,17 @@ function LeadCar({ vehicle }: { vehicle: PublicVehicle }) {
   );
 }
 
-export function LandingFeaturedVehicles({ initial }: { initial: ApiResult<CataloguePage> }) {
-  const snapshot = initial.data;
-  const lead = snapshot?.items[0] ?? null;
-  const followers = snapshot?.items.slice(1, 1 + SECONDARY_CARD_COUNT) ?? [];
+export function LandingFeaturedVehicles({ result }: { result: ApiResult<CataloguePage> | null }) {
+  // Null while the cars load: the same cards show with placeholder text.
+  const loading = result === null;
+  const snapshot = result?.data ?? null;
+  const lead = loading ? SHELL_VEHICLE : (snapshot?.items[0] ?? null);
+  const followers = loading
+    ? Array.from({ length: SECONDARY_CARD_COUNT }, (_, index) => ({
+        ...SHELL_VEHICLE,
+        id: `shell-${index}`,
+      }))
+    : (snapshot?.items.slice(1, 1 + SECONDARY_CARD_COUNT) ?? []);
 
   return (
     <section
@@ -110,9 +142,14 @@ export function LandingFeaturedVehicles({ initial }: { initial: ApiResult<Catalo
             </h2>
             <p className={patterns.sectionSub}>The newest cars across our showrooms.</p>
           </div>
-          {snapshot && (
-            <Link href={catalogueHref(catalogueDefaults)} prefetch={false} className={styles.all}>
-              <span className={styles.allLabel}>See all {snapshot.total} cars</span>{" "}
+          {(snapshot || loading) && (
+            <Link
+              href={catalogueHref(catalogueDefaults)}
+              prefetch={false}
+              className={styles.all}
+              data-shell={loading || undefined}
+            >
+              <span className={styles.allLabel}>See all {snapshot?.total ?? 100} cars</span>{" "}
               <Icon name="next" />
             </Link>
           )}
@@ -120,11 +157,11 @@ export function LandingFeaturedVehicles({ initial }: { initial: ApiResult<Catalo
 
         {lead && (
           <div className={styles.lot}>
-            <LeadCar vehicle={lead} />
+            <LeadCar vehicle={lead} shell={loading} />
             <ul className={styles.rail}>
               {followers.map((vehicle) => (
                 <li key={vehicle.id}>
-                  <RailCar vehicle={vehicle} />
+                  <RailCar vehicle={vehicle} shell={loading} />
                 </li>
               ))}
             </ul>
@@ -138,24 +175,27 @@ export function LandingFeaturedVehicles({ initial }: { initial: ApiResult<Catalo
           </div>
         )}
 
-        {!snapshot && (
-          <StatusPage
-            tone="alert"
-            code="503"
-            icon="alert-triangle"
-            title="Latest cars could not be loaded"
-            actions={
-              <Link
-                href="/vehicles"
-                prefetch={false}
-                className={buttonClassName("secondary", "md")}
-              >
-                Open vehicle catalogue
-              </Link>
-            }
-          >
-            Reload the page to try again, or continue to the vehicle catalogue.
-          </StatusPage>
+        {!loading && !snapshot && (
+          <div className={styles.failed}>
+            <StatusPage
+              compact
+              tone="alert"
+              code="503"
+              icon="alert-triangle"
+              title="Latest cars could not be loaded"
+              actions={
+                <Link
+                  href="/vehicles"
+                  prefetch={false}
+                  className={buttonClassName("secondary", "md")}
+                >
+                  Open vehicle catalogue
+                </Link>
+              }
+            >
+              Reload the page to try again, or continue to the vehicle catalogue.
+            </StatusPage>
+          </div>
         )}
       </div>
     </section>

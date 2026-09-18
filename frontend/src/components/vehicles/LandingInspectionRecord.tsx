@@ -57,26 +57,43 @@ function exceptionNote(area: AreaSummary) {
   return notes.join(", ");
 }
 
+// Stand-in areas for the loading silhouette; the real record has the same five rows.
+const SHELL_AREAS: AreaSummary[] = Object.values(inspectionCategoryTitles).map((label, index) => ({
+  code: `0${index + 1}`,
+  label,
+  total: 40,
+  passed: 40,
+  notFitted: 0,
+}));
+
 export function LandingInspectionRecord({
   detail,
   isLeadCar,
+  loading = false,
 }: {
   detail: PublicVehicleDetail | null;
   isLeadCar: boolean;
+  // Shows the section with placeholder text until the record has loaded.
+  loading?: boolean;
 }) {
-  if (!detail) {
+  if (!detail && !loading) {
     return null;
   }
 
-  const { listing, checklist } = detail;
-  const name = `${listing.manufactureYear} ${listing.make} ${listing.model} ${listing.trim}`;
-  const areas = summariseAreas(checklist.points);
-  const signed = formatMalaysianDate(checklist.signedAt);
+  const listing = detail?.listing ?? null;
+  const checklist = detail?.checklist ?? null;
+  const name = listing
+    ? `${listing.manufactureYear} ${listing.make} ${listing.model} ${listing.trim}`
+    : "0000 Make Model Trim";
+  const areas = checklist ? summariseAreas(checklist.points) : SHELL_AREAS;
+  const signed = checklist ? formatMalaysianDate(checklist.signedAt) : "00 Month 0000";
+  const grade = checklist ? checklist.grade : "A";
 
   return (
     <section
       className={`${patterns.band} ${patterns.bandPaper}`}
       aria-labelledby="inspection-record-heading"
+      data-shell={loading || undefined}
     >
       <div className={`${layout.content} ${styles.proof}`}>
         <div className={`${patterns.photo} ${styles.media}`}>
@@ -103,16 +120,16 @@ export function LandingInspectionRecord({
                 <span className={styles.headLabel}>Inspection record</span>
                 <span className={styles.carName}>{name}</span>
               </div>
-              {checklist.grade && (
+              {grade && (
                 <span className={styles.grade}>
                   <span className={styles.gradeLabel}>Grade</span>
-                  <span className={styles.gradeMark}>{checklist.grade}</span>
+                  <span className={styles.gradeMark}>{grade}</span>
                 </span>
               )}
             </div>
             <ul className={patterns.sheetRows}>
               {areas.map((area) => (
-                <li key={area.label} className={styles.row}>
+                <li key={`${area.code}-${area.label}`} className={styles.row}>
                   <span className={patterns.sheetCode}>{area.code}</span>
                   <span className={styles.areaName}>
                     {area.label}
@@ -134,9 +151,12 @@ export function LandingInspectionRecord({
               ))}
             </ul>
             <div className={patterns.sheetSign}>
-              <span>Signed by the workshop technician, {signed}</span>
+              <span>
+                Signed by the workshop technician, <span className={styles.signed}>{signed}</span>
+              </span>
               <Link
-                href={`/vehicles/${listing.id}#inspection`}
+                href={listing ? `/vehicles/${listing.id}#inspection` : "/vehicles"}
+                tabIndex={loading ? -1 : undefined}
                 prefetch={false}
                 className={styles.cta}
               >

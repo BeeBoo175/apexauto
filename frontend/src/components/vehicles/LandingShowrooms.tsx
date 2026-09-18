@@ -6,7 +6,7 @@ import Link from "next/link";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import type { Branch } from "@/lib/branches";
 import { showroomPhoto } from "@/lib/guide/showroom-photos";
-import { resolveShowrooms } from "@/lib/guide/showrooms";
+import { resolveShowrooms, type ShowroomBranchInfo } from "@/lib/guide/showrooms";
 import type { PublicVehicle } from "@/lib/vehicles/contracts";
 import styles from "./LandingShowrooms.module.css";
 import layout from "./VehicleLayout.module.css";
@@ -14,15 +14,34 @@ import layout from "./VehicleLayout.module.css";
 interface LandingShowroomsProps {
   branches: Branch[] | null;
   vehicles: PublicVehicle[];
+  // Shows the accordion with placeholder text until the showrooms have loaded.
+  loading?: boolean;
 }
+
+// The directory always lists the same three showrooms, so the silhouette has their count.
+const SHELL_SHOWROOMS: ShowroomBranchInfo[] = [0, 1, 2].map((index) => ({
+  id: `shell-${index}`,
+  name: "Showroom name",
+  shortLabel: "Showroom",
+  address: "00 Street address line",
+  city: "City",
+  state: "Selangor",
+  hours: "Mon – Sat, 09:00 – 18:00 MYT",
+  lat: 0,
+  lng: 0,
+}));
 
 function showroomNumber(index: number) {
   return String(index + 1).padStart(2, "0");
 }
 
-export function LandingShowrooms({ branches, vehicles }: LandingShowroomsProps) {
-  const showrooms = resolveShowrooms(branches ?? []);
-  const [activeId, setActiveId] = useState(showrooms[0]?.id ?? "");
+export function LandingShowrooms({ branches, vehicles, loading = false }: LandingShowroomsProps) {
+  const showrooms = loading ? SHELL_SHOWROOMS : resolveShowrooms(branches ?? []);
+  const [chosenId, setChosenId] = useState("");
+  // The first showroom is open until one is chosen, including when the list arrives after the first render.
+  const activeId = showrooms.some((showroom) => showroom.id === chosenId)
+    ? chosenId
+    : (showrooms[0]?.id ?? "");
 
   if (showrooms.length === 0) {
     return null;
@@ -32,6 +51,7 @@ export function LandingShowrooms({ branches, vehicles }: LandingShowroomsProps) 
     <section
       className={`${patterns.band} ${patterns.bandCanvas}`}
       aria-labelledby="landing-showrooms-heading"
+      data-shell={loading || undefined}
     >
       <div className={layout.content}>
         <div className={styles.heading}>
@@ -53,14 +73,16 @@ export function LandingShowrooms({ branches, vehicles }: LandingShowroomsProps) 
             return (
               <li key={showroom.id} className={styles.panel} data-active={active}>
                 <div className={styles.photo}>
-                  <Image
-                    src={photo.src}
-                    alt={active ? photo.alt : ""}
-                    fill
-                    unoptimized
-                    sizes="900px"
-                    className={styles.image}
-                  />
+                  {!loading && (
+                    <Image
+                      src={photo.src}
+                      alt={active ? photo.alt : ""}
+                      fill
+                      unoptimized
+                      sizes="900px"
+                      className={styles.image}
+                    />
+                  )}
                 </div>
                 <div className={styles.scrim} aria-hidden="true" />
                 <button
@@ -68,7 +90,8 @@ export function LandingShowrooms({ branches, vehicles }: LandingShowroomsProps) 
                   className={styles.trigger}
                   aria-expanded={active}
                   aria-label={`${showroomNumber(index)} ${showroom.shortLabel} showroom`}
-                  onClick={() => setActiveId(showroom.id)}
+                  disabled={loading}
+                  onClick={() => setChosenId(showroom.id)}
                 >
                   <span className={styles.collapsedName} aria-hidden="true">
                     {showroomNumber(index)} {showroom.shortLabel}
@@ -86,7 +109,7 @@ export function LandingShowrooms({ branches, vehicles }: LandingShowroomsProps) 
                   </div>
                   <Link
                     href={`/branches?branch=${showroom.id}`}
-                    tabIndex={active ? undefined : -1}
+                    tabIndex={active && !loading ? undefined : -1}
                     className={styles.visit}
                   >
                     Plan a visit
