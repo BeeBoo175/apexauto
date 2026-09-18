@@ -1,9 +1,8 @@
 import patterns from "@/components/layout/PublicPatterns.module.css";
-import { VehicleBrowseMore } from "@/components/vehicles/VehicleBrowseMore";
+import { LiveVehicles } from "@/components/vehicles/LiveVehicles";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import type { FaqEntry } from "@/lib/guide/faq-items";
 import type { GuideWarranty } from "@/lib/guide/purchase-guide";
-import type { PublicVehicle } from "@/lib/vehicles/contracts";
 import { WarrantyFaq } from "./WarrantyFaq";
 import { WarrantyPlans } from "./WarrantyPlans";
 import styles from "./ApexShieldGuide.module.css";
@@ -11,11 +10,9 @@ import styles from "./ApexShieldGuide.module.css";
 export function ApexShieldGuide({
   warranties,
   faq,
-  vehicles,
 }: {
   warranties: readonly GuideWarranty[];
   faq: readonly FaqEntry[];
-  vehicles: readonly PublicVehicle[];
 }) {
   return (
     <div className={styles.page}>
@@ -43,13 +40,11 @@ export function ApexShieldGuide({
         </div>
       </section>
 
-      {vehicles.length > 0 && (
-        <section className={styles.carsBand} aria-label="Cars for sale">
-          <div className={layout.content}>
-            <VehicleBrowseMore vehicles={vehicles} title="Cars you can cover" />
-          </div>
-        </section>
-      )}
+      <section className={styles.carsBand} aria-label="Cars for sale">
+        <div className={layout.content}>
+          <LiveVehicles title="Cars you can cover" />
+        </div>
+      </section>
     </div>
   );
 }
