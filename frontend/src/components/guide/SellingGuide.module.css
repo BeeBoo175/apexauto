@@ -1,0 +1,201 @@
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--hero-min-height, 260px);
+  padding-block: 36px;
+  background: var(--color-graphite);
+  color: var(--color-paper);
+}
+
+.heroPhoto {
+  object-fit: cover;
+  object-position: 50% 60%;
+  opacity: 0.5;
+}
+
+.heroScrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    95deg,
+    rgb(14 27 42 / 94%) 0%,
+    rgb(14 27 42 / 78%) 50%,
+    rgb(14 27 42 / 40%) 100%
+  );
+}
+
+.heroInner {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+.heroInner h1 {
+  color: var(--color-paper);
+}
+
+.lede {
+  max-width: 62ch;
+  margin: 0 0 4px;
+  color: var(--color-line-soft);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+/* A band of its own tone with one card in it: the photograph runs edge to edge on one side, the visit on the other. */
+.visitBand {
+  border-block: 1px solid var(--color-line);
+  background: color-mix(in srgb, var(--color-graphite) 7%, var(--color-canvas));
+  color: var(--color-graphite);
+}
+
+.visit {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  box-shadow: var(--shadow-surface);
+}
+
+.visitPhoto {
+  position: relative;
+  min-height: 360px;
+}
+
+.visitImage {
+  object-fit: cover;
+}
+
+.visitCopy {
+  display: grid;
+  justify-items: start;
+  align-content: center;
+  gap: 20px;
+  padding: 40px;
+}
+
+.visitCopy h2,
+.visitCopy p {
+  margin: 0;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  justify-self: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.facts li {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-canvas);
+  transition:
+    border-color 200ms ease,
+    transform 200ms ease;
+}
+
+.facts li:hover {
+  border-color: var(--color-subtle);
+  transform: translateY(-2px);
+}
+
+.facts strong {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.facts span {
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+/* The card fades in and lifts as it scrolls into view; it is visible without scroll-driven animation. */
+@supports (animation-timeline: view()) {
+  .visit {
+    animation: visitRise linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 35%;
+  }
+}
+
+@keyframes visitRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .visit {
+    animation: none;
+  }
+
+  .facts li {
+    transition: none;
+  }
+}
+
+@media (max-width: 920px) {
+  .visit {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .visitPhoto {
+    min-height: 0;
+    aspect-ratio: 16 / 10;
+  }
+}
+
+@media (max-width: 640px) {
+  .visitCopy {
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .visitPhoto {
+    aspect-ratio: 16 / 9;
+  }
+
+  /* Two tiles to a row keeps the four figures to two short rows instead of a tall stack. */
+  .facts {
+    gap: 8px;
+  }
+
+  .facts li {
+    padding: 12px;
+  }
+
+  .facts strong {
+    font-size: 1.125rem;
+  }
+
+  .facts span {
+    font-size: 0.8125rem;
+  }
+
+  .visitCopy > a {
+    justify-self: stretch;
+    justify-content: center;
+  }
+
+  .hero {
+    padding-block: 28px;
+  }
+}

@@ -1,4 +1,4 @@
-import { formatCurrency } from "@/lib/currency-format";
+﻿import { formatCurrency } from "@/lib/currency-format";
 import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
 
 import type { IconName } from "@/lib/icons";
@@ -30,7 +30,7 @@ export const disclaimerNotices: readonly DisclaimerNotice[] = [
     title: `${formatCurrency(RESERVATION_DEPOSIT, "RM")} holds and refunds are simulated`,
     summary: `Reservations record a ${RESERVATION_HOLD_HOURS}-hour hold inside the demo without charging a card or bank account.`,
     detail: "Cancelled or expired holds return an instant simulated refund.",
-    href: "/buying-guide#pricing",
+    href: "/buying-guide#reserve",
     linkLabel: "Hold deposit rules",
   },
   {
@@ -39,9 +39,9 @@ export const disclaimerNotices: readonly DisclaimerNotice[] = [
     title: "Financing and trade-in values are estimates",
     summary:
       "Repayment plans model a flat 3% annual rate over 1–9 years for budgeting, not a loan offer.",
-    detail: "Trade-in credit uses your range lower bound until branch inspection.",
-    href: "/buying-guide#financing",
-    linkLabel: "Financing calculator",
+    detail: "A trade-in price range is indicative until the branch inspection confirms the offer.",
+    href: "/buying-guide#settle",
+    linkLabel: "See a worked estimate",
   },
   {
     id: "inspection-scope",
@@ -118,10 +118,85 @@ export const assetAttributions: readonly AssetAttributionItem[] = [
     label: "Key handover",
     author: "Ivan Kazlouskij",
     sourceTitle: "Unsplash photograph",
-    sourceUrl: "https://unsplash.com/photos/a-person-holding-a-car-key-in-their-hand-V1P1J5G_xK8",
+    sourceUrl: "https://unsplash.com/photos/a-person-holding-a-car-key-in-their-hand-RL5ThSy5LR0",
     license: "Unsplash License",
     licenseUrl: "https://unsplash.com/license",
     changes: "Cropped",
+  },
+  {
+    label: "Home hero showroom",
+    author: "Erik Mclean",
+    sourceTitle: "Pexels photograph",
+    sourceUrl: "https://www.pexels.com/photo/modern-black-automobiles-in-car-showroom-7629179/",
+    license: "Pexels License",
+    licenseUrl: "https://www.pexels.com/license/",
+    changes: "Dimmed behind copy",
+  },
+  {
+    label: "Buying steps (home)",
+    author: "Maria Sime and Antoni Shkraba",
+    sourceTitle: "Unsplash and Pexels photographs",
+    sourceUrl: "https://www.pexels.com/photo/man-and-woman-looking-at-a-car-4895448/",
+    license: "Unsplash License and Pexels License",
+    licenseUrl: "https://www.pexels.com/license/",
+    changes: "Cropped",
+  },
+  {
+    label: "How buying works",
+    author: "silverkblack, Antoni Shkraba and Negative Space",
+    sourceTitle: "Pexels photographs",
+    sourceUrl:
+      "https://www.pexels.com/photo/happy-couple-shopping-for-a-new-car-at-dealership-36729871/",
+    license: "Pexels License",
+    licenseUrl: "https://www.pexels.com/license/",
+    changes: "Resized and cropped",
+  },
+  {
+    label: "How selling works",
+    author: "Gustavo Fring, WAVYVISUALS, Mario Amé and Antoni Shkraba",
+    sourceTitle: "Pexels photographs",
+    sourceUrl: "https://www.pexels.com/photo/man-checking-car-engine-4895455/",
+    license: "Pexels License",
+    licenseUrl: "https://www.pexels.com/license/",
+    changes: "Resized and cropped",
+  },
+  {
+    label: "Car photo placeholder",
+    author: "Bulat843",
+    sourceTitle: "Pexels photograph",
+    sourceUrl:
+      "https://www.pexels.com/photo/sleek-silver-sedan-parked-near-modern-building-34404246/",
+    license: "Pexels License",
+    licenseUrl: "https://www.pexels.com/license/",
+    changes: "Cropped and resized",
+  },
+  {
+    label: "Showroom floors and sell-panel car",
+    author: "ApexAuto",
+    sourceTitle: "ApexAuto illustrations",
+    sourceUrl: "/disclaimer",
+    license: "Original ApexAuto assets",
+    licenseUrl: "/disclaimer",
+    changes: "Cropped and resized",
+  },
+  {
+    label: "Warranty strip car",
+    author: "ApexAuto",
+    sourceTitle: "ApexAuto illustration",
+    sourceUrl: "/disclaimer",
+    license: "Original ApexAuto asset",
+    licenseUrl: "/disclaimer",
+    changes: "Trimmed to its edges and converted to WebP",
+  },
+  {
+    label: "Demo car listing photographs",
+    author:
+      "Bindydad123, Automachi, Ethan Llamas, Alexander-93, Stephanemartin, Collard, Jakub Hałun, Andreas Eichler and Jacek Halicki",
+    sourceTitle: "Wikimedia Commons files, one record each",
+    sourceUrl: "https://commons.wikimedia.org/wiki/Category:Perodua_Myvi",
+    license: "CC BY-SA 4.0, CC BY 3.0 or CC BY-SA 3.0",
+    licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/",
+    changes: "Wikimedia-generated 960px thumbnails, no local edits",
   },
   {
     label: "UI outline icons",
