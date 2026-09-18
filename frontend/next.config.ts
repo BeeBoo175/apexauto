@@ -73,6 +73,8 @@ const nextConfig: NextConfig = {
   },
 
   images: {
+    // 75 is the default; large editorial photographs ask for 85 so skin tones and gradients keep their detail.
+    qualities: [75, 85],
     // Add a separate exact delivery origin when the storage workflow is implemented.
     remotePatterns: [
       {

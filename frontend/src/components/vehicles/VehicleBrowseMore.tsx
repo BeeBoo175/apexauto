@@ -13,13 +13,16 @@ export function VehicleBrowseMore({
   title = "Browse more",
   href = catalogueHref(catalogueDefaults),
   linkLabel = "See all cars",
+  loading = false,
 }: {
   vehicles: readonly PublicVehicle[];
   title?: string;
   href?: string;
   linkLabel?: string;
+  // The heading and link are final; the row shows card silhouettes until the cars arrive.
+  loading?: boolean;
 }) {
-  if (vehicles.length === 0) {
+  if (vehicles.length === 0 && !loading) {
     return null;
   }
 
@@ -36,7 +39,7 @@ export function VehicleBrowseMore({
           <Icon name="next" />
         </Link>
       </div>
-      <VehicleCarousel vehicles={vehicles} label={title} />
+      <VehicleCarousel vehicles={vehicles} label={title} loading={loading} />
     </section>
   );
 }

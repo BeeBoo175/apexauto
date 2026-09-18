@@ -14,6 +14,7 @@ export function StatusPage({
   children,
   actions,
   tone = "info",
+  compact = false,
 }: {
   code: string;
   icon: IconName;
@@ -21,10 +22,16 @@ export function StatusPage({
   children?: ReactNode;
   actions?: ReactNode;
   tone?: "info" | "alert";
+  // A smaller panel for a failed read inside a page section rather than a whole screen.
+  compact?: boolean;
 }) {
   const headingId = useId();
   return (
-    <section className={styles.page} aria-labelledby={headingId}>
+    <section
+      className={styles.page}
+      data-compact={compact || undefined}
+      aria-labelledby={headingId}
+    >
       <div className={styles.panel} data-tone={tone}>
         <p className={styles.code} aria-hidden="true">
           {code}

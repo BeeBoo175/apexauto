@@ -1,0 +1,7 @@
+/* A failed read holds the height of the loaded carousel, so the page below does not move when it resolves. */
+.frame {
+  display: grid;
+  align-content: center;
+  min-height: 616px;
+  padding-block: 48px 0;
+}

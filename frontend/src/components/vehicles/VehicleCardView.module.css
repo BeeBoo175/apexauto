@@ -22,13 +22,11 @@
   background: var(--color-canvas);
 }
 
-/* The shared placeholder token, scaled up and blurred. */
+/* The shared placeholder token: a small, sharp photograph of a car under a light wash (see public/images/README.md). */
 .photoPlaceholder {
   position: absolute;
   inset: 0;
   background: var(--vehicle-photo-placeholder);
-  filter: blur(3px);
-  transform: scale(1.08);
 }
 
 .photo img {
@@ -311,4 +309,94 @@
 
 .progressSegment[data-active] {
   background: var(--color-canvas);
+}
+
+/* Loading silhouette: the text keeps its size and takes the shared placeholder fill with the same shimmer. */
+.vehicle[data-shell] {
+  pointer-events: none;
+}
+
+.vehicle[data-shell]
+  :is(.eyebrow, .grade, .title, .price, .monthly, .specStrip dt, .specStrip dd, .branchLine span) {
+  position: relative;
+  overflow: hidden;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 2px;
+  background: var(--color-line-soft);
+  color: transparent;
+}
+
+.vehicle[data-shell]
+  :is(
+    .eyebrow,
+    .grade,
+    .title,
+    .price,
+    .monthly,
+    .specStrip dt,
+    .specStrip dd,
+    .branchLine span
+  )::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-paper) 65%, transparent),
+    transparent
+  );
+  content: "";
+  transform: translateX(-100%);
+  animation: vehicleShellShimmer 2.4s linear infinite;
+}
+
+.vehicle[data-shell] .photo::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-paper) 65%, transparent),
+    transparent
+  );
+  content: "";
+  transform: translateX(-100%);
+  animation: vehicleShellShimmer 2.4s linear infinite;
+}
+
+.vehicle[data-shell] .monthly strong {
+  color: transparent;
+}
+
+.vehicle[data-shell] .branchLine svg {
+  opacity: 0.25;
+}
+
+@keyframes vehicleShellShimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vehicle[data-shell]
+    :is(
+      .eyebrow,
+      .grade,
+      .title,
+      .price,
+      .monthly,
+      .specStrip dt,
+      .specStrip dd,
+      .branchLine span
+    )::after {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vehicle[data-shell] .photo::after {
+    animation: none;
+  }
 }

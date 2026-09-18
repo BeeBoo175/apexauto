@@ -24,6 +24,7 @@ export function VehicleCardView({
   first,
   photoVersion,
   photoPending = false,
+  shell = false,
 }: {
   vehicle: CardVehicle;
   price: string;
@@ -33,6 +34,8 @@ export function VehicleCardView({
   first: boolean;
   photoVersion: number;
   photoPending?: boolean;
+  // A loading silhouette: the real card laid out with stand-in text, so it has its final height.
+  shell?: boolean;
 }) {
   const [failedAt, setFailedAt] = useState<number | null>(null);
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
@@ -41,7 +44,11 @@ export function VehicleCardView({
   const imageKey = `${photoUrl}:${photoKey}`;
 
   return (
-    <article className={styles.vehicle}>
+    <article
+      className={styles.vehicle}
+      data-shell={shell || undefined}
+      aria-hidden={shell || undefined}
+    >
       <div className={styles.photo}>
         {/* The blurred placeholder stays visible while the photo loads and when it cannot load. */}
         <span className={styles.photoPlaceholder} aria-hidden="true" />

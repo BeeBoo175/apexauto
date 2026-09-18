@@ -8,11 +8,29 @@
   padding: 32px 20px;
   background:
     radial-gradient(
-      ellipse 70% 50% at 50% 0%,
-      color-mix(in srgb, var(--color-signal) 7%, transparent),
-      transparent 70%
+      ellipse 60% 70% at 50% 50%,
+      color-mix(in srgb, var(--color-signal) 6%, transparent),
+      transparent 75%
     ),
     var(--color-canvas);
+}
+
+.page[data-compact] {
+  min-height: 0;
+  padding: 24px 16px;
+  border-radius: var(--radius-sm);
+}
+
+.page[data-compact] .code {
+  font-size: clamp(56px, 8vw, 88px);
+}
+
+.page[data-compact] .title {
+  font-size: 22px;
+}
+
+.page[data-compact] .actions {
+  margin-top: 8px;
 }
 
 .panel {

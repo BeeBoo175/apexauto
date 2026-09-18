@@ -7,8 +7,12 @@
   --color-paper: #fbfcfd;
   --shadow-surface-dark: 0 24px 48px -24px rgb(14 27 42 / 0.65);
   /* A 96px soft-focus studio shot, inline so it needs no request: what every vehicle photo shows until its own image loads. */
-  --vehicle-photo-placeholder: url("data:image/webp;base64,UklGRhoBAABXRUJQVlA4IA4BAADQCgCdASpgADwAPsFUoEynpLEiLBOcyiAYCWkGcA2LhZq7G17mL7FYlFltSUeAUGf+B5kPJ7hU8FGAsPozoatmUg8WATkzHtyLgfAPLYCgNjP8qa5ylvq9d7Fm8FZD8AD+yvR+iC4ikAZMEU7BRhiSSCqADPnFKZTFRVerwnVA6Rwj3ID5NbpQBcOQMzzuiCo35hCLlo3gYi2v9MoxbrkA25zKjOLq4V91CDExrfUk7vj2r998JY1CrCXaQ1UN19Sa6RXUq60i70ouhibz4TcwZjvw9P3EuCnvSqZV0EK5961MNm89rQHv6uUCSgrRuvcMuf9otwht4RwDAH30FfLFeLAGQSmbOx6m1TcAAAA=")
-    center / cover no-repeat;
+  --vehicle-photo-placeholder:
+    linear-gradient(
+      color-mix(in srgb, var(--color-canvas) 45%, transparent),
+      color-mix(in srgb, var(--color-canvas) 45%, transparent)
+    ),
+    url("/images/car-placeholder.webp") center / cover no-repeat;
 }
 
 /* Customer search fields are roomier than the dashboard's 36px: taller, with full-size text. Below 820px the
