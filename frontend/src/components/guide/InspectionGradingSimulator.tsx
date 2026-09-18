@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -247,7 +247,7 @@ export function InspectionGradingSimulator({
               </dl>
 
               <div>
-                <Link href="/buying-guide#warranty" className={buttonClassName("secondary", "md")}>
+                <Link href="/warranty" className={buttonClassName("secondary", "md")}>
                   Compare warranty plans
                 </Link>
               </div>

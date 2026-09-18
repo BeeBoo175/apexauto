@@ -1,0 +1,427 @@
+.grader {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 56px;
+  align-items: start;
+}
+
+.controls {
+  display: grid;
+  gap: 40px;
+}
+
+.control {
+  display: grid;
+  gap: 16px;
+}
+
+.readout {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.readout label,
+.controlLabel {
+  font-weight: 700;
+}
+
+.readout output {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The cost track is the four grade bands side by side; the thumb rides over them. */
+.track {
+  position: relative;
+}
+
+.bands {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.bands > div {
+  display: grid;
+  gap: 2px;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  transition: color 250ms ease;
+}
+
+.bands i {
+  display: block;
+  height: 10px;
+  margin-bottom: 12px;
+  border-radius: 5px;
+  background: var(--band);
+  opacity: 0.3;
+  transition: opacity 250ms ease;
+}
+
+.bands b {
+  color: var(--color-graphite);
+  font-size: 1.125rem;
+}
+
+.bands [data-zone="A"] {
+  --band: var(--color-trust);
+}
+
+.bands [data-zone="B"] {
+  --band: var(--color-warning);
+}
+
+.bands [data-zone="C"] {
+  --band: var(--color-signal-dark);
+}
+
+.bands [data-zone="X"] {
+  --band: var(--color-muted);
+}
+
+.bands [data-active="true"] i {
+  opacity: 1;
+}
+
+.bands [data-active="true"] {
+  color: var(--color-graphite);
+}
+
+.range {
+  display: none;
+}
+
+.slider {
+  position: absolute;
+  top: -7px;
+  left: 0;
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+}
+
+.slider::-webkit-slider-runnable-track {
+  height: 24px;
+  background: transparent;
+}
+
+.slider::-moz-range-track {
+  height: 24px;
+  background: transparent;
+}
+
+.slider::-webkit-slider-thumb {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--color-paper);
+  border-radius: 50%;
+  background: var(--color-graphite);
+  box-shadow: 0 2px 6px rgb(14 27 42 / 35%);
+  appearance: none;
+}
+
+.slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--color-paper);
+  border-radius: 50%;
+  background: var(--color-graphite);
+  box-shadow: 0 2px 6px rgb(14 27 42 / 35%);
+}
+
+.slider:focus-visible {
+  outline: none;
+}
+
+.slider:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+.slider:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.segmented button {
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  color: var(--color-graphite);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+.segmented button:hover:not([aria-pressed="true"]) {
+  border-color: var(--color-subtle);
+}
+
+.segmented button[aria-pressed="true"] {
+  border-color: var(--color-graphite);
+  background: var(--color-graphite);
+  color: var(--color-paper);
+}
+
+.segmented button:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+/* The grade they give: a large letter in its band's colour, and what it means. */
+.result {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 20px 24px;
+  align-items: center;
+}
+
+.letter {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-sm);
+  background: var(--color-graphite);
+  color: var(--color-paper);
+  font-family: var(--font-display);
+  font-size: 3.75rem;
+  font-weight: 700;
+  line-height: 1;
+  animation: letterIn 320ms cubic-bezier(0.22, 0.8, 0.24, 1);
+  transition: background-color 300ms ease;
+}
+
+@keyframes letterIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.94);
+  }
+}
+
+.result[data-grade="A"] .letter {
+  background: var(--color-trust);
+}
+
+.result[data-grade="B"] .letter {
+  background: var(--color-warning);
+}
+
+.result[data-grade="C"] .letter {
+  background: var(--color-signal-dark);
+}
+
+.result[data-grade="X"] .letter {
+  background: var(--color-muted);
+}
+
+.resultCopy {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.resultCopy h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.resultCopy p {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.cover {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-line);
+}
+
+.cover p {
+  margin: 0;
+}
+
+.coverTitle {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.cover ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cover li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-subtle);
+  transition: color 250ms ease;
+}
+
+.cover li[data-eligible] {
+  color: var(--color-graphite);
+}
+
+.cover strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.cover small {
+  display: block;
+  color: inherit;
+  font-size: 0.8125rem;
+  opacity: 0.85;
+}
+
+/* A ring for a plan this grade cannot take, a filled tick for one it can. */
+.mark {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-line);
+  border-radius: 50%;
+  transition:
+    background-color 250ms ease,
+    border-color 250ms ease;
+}
+
+.cover li[data-eligible] .mark {
+  border-color: var(--color-trust);
+  background: var(--color-trust);
+}
+
+.cover li[data-eligible] .mark::after {
+  position: absolute;
+  top: 3px;
+  left: 6px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--color-paper);
+  border-width: 0 2px 2px 0;
+  content: "";
+  transform: rotate(45deg);
+}
+
+.cover a {
+  justify-self: start;
+  margin-top: 4px;
+}
+
+@media (max-width: 960px) {
+  .grader {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+  }
+}
+
+@media (max-width: 640px) {
+  .bands {
+    gap: 2px;
+  }
+
+  .bands > div {
+    font-size: 0.75rem;
+  }
+
+  .bands span {
+    display: none;
+  }
+
+  .bands i {
+    margin-bottom: 8px;
+  }
+
+  /* The chosen band's range, once, under the track, in place of four cramped ranges. */
+  .range {
+    display: block;
+    margin: 12px 0 0;
+    color: var(--color-muted);
+    font-size: 0.875rem;
+  }
+
+  .readout output {
+    font-size: 1.5rem;
+  }
+
+  .letter {
+    width: 72px;
+    height: 72px;
+    font-size: 2.75rem;
+  }
+
+  .result {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .segmented {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  /* On the narrowest phones the figure goes under its label so neither wraps. */
+  .readout {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .readout output {
+    white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .letter {
+    animation: none;
+  }
+
+  .bands i,
+  .bands > div,
+  .letter,
+  .mark,
+  .cover li,
+  .segmented button {
+    transition: none;
+  }
+}

@@ -42,7 +42,7 @@ const categoryPresentation: readonly Omit<InspectionCategorySummary, "count">[] 
     key: "ExteriorPaint",
     title: "Exterior & Paint",
     icon: inspectionCategoryIcons.ExteriorPaint,
-    focus: "Panel gaps, paint-depth consistency, weather seals, glass, and lamps.",
+    focus: "Panel gaps, paint-thickness consistency, weather seals, glass, and lamps.",
   },
   {
     key: "InteriorElectrical",

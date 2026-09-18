@@ -1,0 +1,11 @@
+.carsBand {
+  padding-block: 24px;
+  background: var(--color-paper);
+  color: var(--color-graphite);
+}
+
+@media (max-width: 640px) {
+  .carsBand {
+    padding-block: 8px;
+  }
+}

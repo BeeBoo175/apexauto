@@ -1,0 +1,424 @@
+.areas {
+  display: grid;
+  gap: 32px;
+}
+
+.areas h2 {
+  margin: 0;
+}
+
+.console {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 48px;
+  align-items: stretch;
+}
+
+/* The car, with one numbered pin per area. The pin of the chosen area is the signal colour. */
+/* The picture column is as tall as the panel beside it with twelve rows showing. The picture keeps that height and
+   rides along as the list is opened, so it never stretches. */
+.stageColumn {
+  align-self: stretch;
+  min-width: 0;
+}
+
+.stage {
+  position: sticky;
+  top: calc(var(--site-header-height) + 24px);
+  height: 698px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  /* The colour of the picture's own background, so its edges disappear into the frame. */
+  background: #111d2b;
+  box-shadow: var(--shadow-surface);
+}
+
+/* The picture carries its own margin around the car, so the box is simply the picture: centred in the frame, with
+   its pins in percentages of it. */
+.figure {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  aspect-ratio: 1 / 1;
+  transform: translateY(-50%);
+}
+
+.photo {
+  object-fit: cover;
+}
+
+.pin {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--color-paper);
+  border-radius: 50%;
+  background: var(--color-graphite);
+  color: var(--color-paper);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 200ms ease,
+    transform 200ms ease;
+}
+
+.pin:hover {
+  transform: translate(-50%, -50%) scale(1.12);
+}
+
+.pin[aria-pressed="true"] {
+  background: var(--color-signal);
+  transform: translate(-50%, -50%) scale(1.18);
+}
+
+.pin:focus-visible {
+  outline: 3px solid var(--color-paper);
+  outline-offset: 3px;
+}
+
+.detail {
+  display: grid;
+  align-content: start;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* The five areas as a row of icons with their short names; the chosen one gets a rule beneath it. On a narrow screen the
+   row scrolls, with the shared fade and arrow showing which side has more. */
+.tabsFrame {
+  composes: softControls from "../ui/ScrollStrip.module.css";
+  min-width: 0;
+  --strip-fade: var(--color-paper);
+}
+
+.tabsFrame [class*="scrollControl"] {
+  box-shadow:
+    0 6px 16px rgb(14 27 42 / 38%),
+    0 1px 3px rgb(14 27 42 / 30%);
+}
+
+.tabs {
+  composes: edgeFade from "../ui/ScrollStrip.module.css";
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  box-shadow: inset 0 -1px var(--color-line);
+}
+
+.tab {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 4px 4px 14px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 200ms ease,
+    color 200ms ease;
+}
+
+.tab:hover {
+  color: var(--color-graphite);
+}
+
+.tab[aria-selected="true"] {
+  border-bottom-color: var(--color-signal);
+  color: var(--color-graphite);
+}
+
+.tab[aria-selected="true"] .icon {
+  background: var(--color-signal);
+  color: var(--color-paper);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: -2px;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-line-soft);
+  color: var(--color-graphite);
+  line-height: 0;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+.icon > :global(span) {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+}
+
+.tabName {
+  white-space: nowrap;
+}
+
+/* One panel for every area, as tall as its twelve rows and no more, so switching area moves nothing below it. */
+.panel {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+
+.panelHead h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.total {
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.focus {
+  /* Room for two lines in every area, so a short summary does not make its panel shorter. */
+  min-height: 3em;
+  margin: -8px 0 0;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.points {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 32px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.points li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  /* A fixed height, not a minimum: a two-line checkpoint must not make its row, or the panel, taller. */
+  box-sizing: border-box;
+  height: 57px;
+  padding-block: 8px;
+  border-bottom: 1px solid var(--color-line);
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+
+.tick {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--color-trust);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.code {
+  color: var(--color-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.fail {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-signal) 12%, var(--color-paper));
+  color: var(--color-signal-dark);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.points .empty {
+  display: block;
+  grid-column: 1 / -1;
+  color: var(--color-muted);
+}
+
+.panelFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.more {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--color-graphite);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.more:disabled {
+  visibility: hidden;
+}
+
+.more:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+@media (max-width: 960px) {
+  .stage {
+    position: relative;
+    top: auto;
+    height: auto;
+    max-width: 380px;
+    margin-inline: auto;
+  }
+
+  .figure {
+    position: relative;
+    top: auto;
+    transform: none;
+  }
+
+  .pin {
+    width: 32px;
+    height: 32px;
+    font-size: 0.875rem;
+  }
+
+  .console {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .points {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .icon > :global(span) {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+@media (max-width: 560px) {
+  /* Five equal columns get too narrow for the names, so the row scrolls instead. */
+  .tabs {
+    display: flex;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+    min-width: 84px;
+    padding-inline: 12px;
+  }
+
+  .tabName {
+    font-size: 0.875rem;
+  }
+
+  .panelHead h3 {
+    font-size: 1.25rem;
+  }
+
+  .panelFoot {
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin,
+  .tab,
+  .icon {
+    transition: none;
+  }
+
+  .panel[data-loading] :is(.ghostTick, .ghostText, .ghostCode)::after {
+    animation: none;
+  }
+}
+
+/* The area's heading, summary and list fade in when the area changes; nothing moves the layout. */
+.panelHead,
+.focus,
+.points {
+  animation: areaIn 280ms cubic-bezier(0.22, 0.8, 0.24, 1) both;
+}
+
+@keyframes areaIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* The console fades in and lifts as it scrolls into view, as the cards on the guide pages do; it is visible without
+   scroll-driven animation. */
+@supports (animation-timeline: view()) {
+  .console {
+    animation: consoleRise linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 30%;
+  }
+}
+
+@keyframes consoleRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panelHead,
+  .focus,
+  .points,
+  .console {
+    animation: none;
+  }
+}
