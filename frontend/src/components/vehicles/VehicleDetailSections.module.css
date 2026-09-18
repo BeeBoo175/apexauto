@@ -59,6 +59,43 @@
   color: var(--color-graphite);
 }
 
+/* Before hydration the page cannot know the chosen section from state, so the address fragment marks the tab. */
+.sections:not([data-hydrated]):has(:global(#inspection:target)) .tabs a[aria-current="location"] {
+  box-shadow: none;
+  color: var(--color-muted);
+}
+
+.sections:not([data-hydrated]):has(:global(#inspection:target))
+  .tabs
+  a:global(#vehicle-tab-inspection) {
+  box-shadow: inset 0 -3px var(--color-signal);
+  color: var(--color-graphite);
+}
+
+.sections:not([data-hydrated]):has(:global(#financing:target)) .tabs a[aria-current="location"] {
+  box-shadow: none;
+  color: var(--color-muted);
+}
+
+.sections:not([data-hydrated]):has(:global(#financing:target))
+  .tabs
+  a:global(#vehicle-tab-financing) {
+  box-shadow: inset 0 -3px var(--color-signal);
+  color: var(--color-graphite);
+}
+
+.sections:not([data-hydrated]):has(:global(#showroom:target)) .tabs a[aria-current="location"] {
+  box-shadow: none;
+  color: var(--color-muted);
+}
+
+.sections:not([data-hydrated]):has(:global(#showroom:target))
+  .tabs
+  a:global(#vehicle-tab-showroom) {
+  box-shadow: inset 0 -3px var(--color-signal);
+  color: var(--color-graphite);
+}
+
 .tabs a:hover:not([aria-current]) {
   background: var(--color-canvas);
   color: var(--color-graphite);
@@ -91,6 +128,15 @@
 /* Phones read one section at a time, like tabs, instead of one long page. */
 @media (max-width: 920px) {
   .panel:not([data-active]) {
+    display: none;
+  }
+
+  /* Before hydration the addressed section is shown instead of the default one. */
+  .sections:not([data-hydrated]) .panel:target {
+    display: block;
+  }
+
+  .sections:not([data-hydrated]):has(.panel:target) .panel[data-active]:not(:target) {
     display: none;
   }
 

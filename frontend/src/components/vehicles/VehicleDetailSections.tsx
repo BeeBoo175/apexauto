@@ -1,7 +1,14 @@
 "use client";
 
 import { ScrollStrip } from "@/components/ui/ScrollStrip";
-import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import { vehicleDetailSections, type VehicleDetailSection } from "@/lib/vehicles/contracts";
 import styles from "./VehicleDetailSections.module.css";
 
@@ -11,6 +18,10 @@ const sectionLabels: Record<VehicleDetailSection, string> = {
   financing: "Financing",
   showroom: "Showroom",
 };
+
+function subscribeNever() {
+  return () => {};
+}
 
 export function VehicleDetailSections({
   section,
@@ -37,6 +48,12 @@ export function VehicleDetailSections({
     select(next);
   }
 
+  // False in the server HTML and until hydration: the address fragment alone picks the section then (see the stylesheet).
+  const hydrated = useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false,
+  );
   const sentinel = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
 
@@ -65,7 +82,7 @@ export function VehicleDetailSections({
   }, []);
 
   return (
-    <div className={styles.sections}>
+    <div className={styles.sections} data-hydrated={hydrated || undefined}>
       <div ref={sentinel} className={styles.sentinel} aria-hidden="true" />
       <nav className={styles.tabs} data-stuck={stuck || undefined} aria-label="Vehicle information">
         <ScrollStrip label="Vehicle sections" className={styles.tabStrip} dragScroll>

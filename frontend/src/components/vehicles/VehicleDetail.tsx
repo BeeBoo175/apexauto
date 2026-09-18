@@ -12,7 +12,7 @@ import { useVehicleDetailSections } from "@/hooks/use-vehicle-detail-sections";
 import type { ApiResult } from "@/lib/api";
 import { formatCurrency, formatWholeCurrency } from "@/lib/currency-format";
 import type { ShowroomBranchInfo } from "@/lib/guide/showrooms";
-import { fuelLabel, type PublicVehicle } from "@/lib/vehicles/contracts";
+import { fuelLabel } from "@/lib/vehicles/contracts";
 import { calculateFinancing, defaultCashContribution } from "@/lib/vehicles/financing";
 import { RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
@@ -29,7 +29,7 @@ import { VehiclePromo } from "./VehiclePromo";
 import { VehicleFinancing } from "./VehicleFinancing";
 import { VehicleInspection } from "./VehicleInspection";
 import { VehicleShowroomSection } from "./VehicleShowroomSection";
-import { VehicleBrowseMore } from "./VehicleBrowseMore";
+import { LiveVehicles } from "./LiveVehicles";
 import { VehicleGradeBadge } from "./VehicleGradeBadge";
 import styles from "./VehicleDetail.module.css";
 import layout from "./VehicleLayout.module.css";
@@ -42,13 +42,11 @@ export function VehicleDetail({
   initial,
   reservationAccess,
   showroom,
-  moreCars,
 }: {
   id: string;
   initial: ApiResult<PublicVehicleDetail>;
   reservationAccess: CustomerVehicleAccess;
   showroom: ShowroomBranchInfo | null;
-  moreCars: PublicVehicle[];
 }) {
   const snapshot = initial.data;
   const unavailable = initial.status === 404;
@@ -189,7 +187,13 @@ export function VehicleDetail({
             </aside>
           </div>
           <div className={layout.content}>
-            <VehicleBrowseMore vehicles={moreCars} />
+            {snapshot && (
+              <LiveVehicles
+                title="Browse more"
+                branchId={snapshot.listing.branchId}
+                excludeId={id}
+              />
+            )}
           </div>
           {!reserved && (
             <VehicleMobileBar
