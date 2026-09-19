@@ -16,9 +16,9 @@ public static class CustomerAccountDirectoryEndpoints
     private static async Task<IResult> ListAsync(HttpContext context, ICustomerAccountDirectory directory,
         CancellationToken cancellationToken, string? view = null, string? search = null, int page = 1,
         int pageSize = Pagination.DefaultPageSize, string? name = null, string? email = null,
-        string? mobile = null)
+        string? mobile = null, string? sort = null, string? direction = null)
     {
-        var query = CustomerDirectoryQuery.Parse(view, search, page, pageSize, name, email, mobile);
+        var query = CustomerDirectoryQuery.Parse(view, search, page, pageSize, name, email, mobile, sort, direction);
         if (query is null)
         {
             return Results.Problem(statusCode: 400, title: "Provide a valid customer account view, search and paging.");

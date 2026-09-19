@@ -31,7 +31,7 @@ public sealed class CustomerAccountDirectory(DealershipDbContext database) : ICu
             CustomerAccountTabs.Suspended => counts.Suspended,
             _ => counts.All
         };
-        var rows = await Narrow(customers, query, query.Tab).OrderBy(row => row.Name).ThenBy(row => row.Id)
+        var rows = await Order(Narrow(customers, query, query.Tab), query)
             .ReadPageAsync(query.Page, query.PageSize, total, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         var items = rows.Select(row => new CustomerAccountRow(row.Id, row.Name,
@@ -95,6 +95,24 @@ public sealed class CustomerAccountDirectory(DealershipDbContext database) : ICu
                    Suspended = user.SuspendedAt != null,
                    Closed = user.ClosedAt != null
                };
+    }
+
+    // The chosen column orders the complete filtered list before paging; name then id keep equal values stable.
+    // Status follows the label order the list shows: Active, Closed, Suspended, Unverified.
+    private static IOrderedQueryable<CustomerRow> Order(IQueryable<CustomerRow> rows, CustomerDirectoryQuery query)
+    {
+        var descending = query.Descending;
+        var ordered = query.Sort switch
+        {
+            "email" => descending ? rows.OrderByDescending(row => row.Email) : rows.OrderBy(row => row.Email),
+            "mobile" => descending ? rows.OrderByDescending(row => row.Mobile) : rows.OrderBy(row => row.Mobile),
+            "status" => descending
+                ? rows.OrderByDescending(row => row.Closed ? 1 : row.Suspended ? 2 : row.Verified ? 0 : 3)
+                : rows.OrderBy(row => row.Closed ? 1 : row.Suspended ? 2 : row.Verified ? 0 : 3),
+            "name" when descending => rows.OrderByDescending(row => row.Name),
+            _ => rows.OrderBy(row => row.Name)
+        };
+        return ordered.ThenBy(row => row.Name).ThenBy(row => row.Id);
     }
 
     // Search matches the full values even though the list shows them masked, so an Administrator can find a person

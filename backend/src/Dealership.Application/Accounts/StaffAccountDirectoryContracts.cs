@@ -35,6 +35,13 @@ public sealed record StaffAccountQuery(string Tab, string Search, string? Role, 
 
     public string Mobile { get; init; } = string.Empty;
 
+    // Empty keeps the canonical name order; otherwise the named column orders the whole filtered list.
+    public string Sort { get; init; } = string.Empty;
+
+    public bool Descending { get; init; }
+
+    private static readonly string[] SortColumns = ["name", "email", "mobile", "role", "branchName", "status"];
+
     // The query names a role in camelCase; the account keeps its role code.
     private static readonly Dictionary<string, string> StaffRoles = new()
     {
@@ -46,7 +53,8 @@ public sealed record StaffAccountQuery(string Tab, string Search, string? Role, 
     };
 
     public static StaffAccountQuery? Parse(string? view, string? search, string? role, Guid? branchId, int page,
-        int pageSize, string? name = null, string? email = null, string? mobile = null)
+        int pageSize, string? name = null, string? email = null, string? mobile = null, string? sort = null,
+        string? direction = null)
     {
         var text = search?.Trim() ?? string.Empty;
         var nameText = name?.Trim() ?? string.Empty;
@@ -54,7 +62,9 @@ public sealed record StaffAccountQuery(string Tab, string Search, string? Role, 
         var mobileText = mobile?.Trim() ?? string.Empty;
         if (!ListSearch.IsValid(nameText) || !ListSearch.IsValid(emailText) || !ListSearch.IsValid(mobileText) ||
             !StaffAccountTabs.IsValid(view) || !ListSearch.IsValid(text) || !Pagination.IsValid(page, pageSize) ||
-            branchId == Guid.Empty || (!string.IsNullOrEmpty(role) && !StaffRoles.ContainsKey(role)))
+            branchId == Guid.Empty || (!string.IsNullOrEmpty(role) && !StaffRoles.ContainsKey(role)) ||
+            (!string.IsNullOrEmpty(sort) && !SortColumns.Contains(sort)) ||
+            direction is not (null or "" or "asc" or "desc"))
         {
             return null;
         }
@@ -63,7 +73,9 @@ public sealed record StaffAccountQuery(string Tab, string Search, string? Role, 
         {
             Name = nameText,
             Email = emailText,
-            Mobile = mobileText
+            Mobile = mobileText,
+            Sort = sort ?? string.Empty,
+            Descending = direction == "desc"
         };
     }
 }

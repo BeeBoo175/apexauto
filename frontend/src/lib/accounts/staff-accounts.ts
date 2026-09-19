@@ -77,8 +77,12 @@ export interface StaffAccountFilters {
   name: string;
   email: string;
   mobile: string;
+  sort: string;
+  direction: "asc" | "desc";
   pageSize: number;
 }
+
+const sortKeys = ["name", "email", "mobile", "role", "branchName", "status"];
 
 function parseRow(value: unknown): StaffAccountRow | null {
   if (
@@ -151,6 +155,8 @@ export function staffAccountParams(parameters: SearchParams) {
       name: cleanText(text("name")),
       email: cleanText(text("email")),
       mobile: cleanText(text("mobile")),
+      sort: sortKeys.includes(text("sort")) ? text("sort") : "",
+      direction: text("direction") === "desc" ? ("desc" as const) : ("asc" as const),
       pageSize: isPageSize(pageSize) ? pageSize : DEFAULT_PAGE_SIZE,
     } satisfies StaffAccountFilters,
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
@@ -160,7 +166,13 @@ export function staffAccountParams(parameters: SearchParams) {
 function filterEntries(filters: StaffAccountFilters) {
   const entries: [string, string][] = [];
   for (const [key, value] of Object.entries(filters)) {
-    if (key === "pageSize" || value === "" || (key === "view" && value === "all")) {
+    // Ascending is the default order, so only a descending direction is carried.
+    if (
+      key === "pageSize" ||
+      value === "" ||
+      (key === "view" && value === "all") ||
+      (key === "direction" && (value === "asc" || !filters.sort))
+    ) {
       continue;
     }
     entries.push([key, key === "role" ? staffRoleToken(String(value)) : String(value)]);

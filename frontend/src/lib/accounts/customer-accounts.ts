@@ -56,8 +56,12 @@ export interface CustomerAccountFilters {
   name: string;
   email: string;
   mobile: string;
+  sort: string;
+  direction: "asc" | "desc";
   pageSize: number;
 }
+
+const sortKeys = ["name", "email", "mobile", "status"];
 
 // The state a customer is shown in; a closed account outranks a suspension, which outranks a missing verification.
 export function customerStatus(row: Pick<CustomerAccountRow, "verified" | "suspended" | "closed">) {
@@ -142,6 +146,8 @@ export function customerAccountParams(parameters: SearchParams) {
       name: cleanText(text("name")),
       email: cleanText(text("email")),
       mobile: cleanText(text("mobile")),
+      sort: sortKeys.includes(text("sort")) ? text("sort") : "",
+      direction: text("direction") === "desc" ? ("desc" as const) : ("asc" as const),
       pageSize: isPageSize(pageSize) ? pageSize : DEFAULT_PAGE_SIZE,
     } satisfies CustomerAccountFilters,
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
@@ -151,7 +157,12 @@ export function customerAccountParams(parameters: SearchParams) {
 function filterEntries(filters: CustomerAccountFilters) {
   return Object.entries(filters)
     .filter(
-      ([key, value]) => key !== "pageSize" && value !== "" && !(key === "view" && value === "all"),
+      ([key, value]) =>
+        key !== "pageSize" &&
+        value !== "" &&
+        !(key === "view" && value === "all") &&
+        // Ascending is the default order, so only a descending direction is carried.
+        !(key === "direction" && (value === "asc" || !filters.sort)),
     )
     .map(([key, value]): [string, string] => [key, String(value)]);
 }

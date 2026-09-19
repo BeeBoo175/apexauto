@@ -8,7 +8,7 @@ import { RecordToolbar } from "@/components/ui/RecordToolbar";
 import { ResetFiltersButton } from "@/components/ui/ResetFiltersButton";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import { TableDiscovery } from "@/components/ui/data-table/TableDiscovery";
-import type { DataColumn } from "@/components/ui/data-table/types";
+import type { DataColumn, TableSort } from "@/components/ui/data-table/types";
 import { TextColumnFilter } from "@/components/ui/data-table/ColumnFilterForm";
 import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilters";
 import type { AppliedFilter } from "@/lib/staff/filter-summary";
@@ -30,14 +30,16 @@ const columns: DataColumn<CustomerAccountRow>[] = [
     id: "name",
     label: "Name",
     ...staffColumnSizing.person,
+    sortable: true,
     cell: (row) => <CustomerAvatar id={row.id} name={row.name} />,
   },
-  { id: "email", label: "Email", width: 240, cell: (row) => row.email },
-  { id: "mobile", label: "Mobile", width: 144, cell: (row) => row.mobile },
+  { id: "email", label: "Email", width: 240, sortable: true, cell: (row) => row.email },
+  { id: "mobile", label: "Mobile", width: 144, sortable: true, cell: (row) => row.mobile },
   {
     id: "status",
     label: "Status",
     ...staffColumnSizing.shortStatus,
+    sortable: true,
     cell: (row) => <StaffAccountStatus status={customerStatus(row)} />,
   },
 ];
@@ -90,6 +92,14 @@ export function CustomerAccountsTable({
     }));
   // The view tab is not a criterion to clear, so an empty tab never offers a clear.
   const narrowed = applied.length > 0 || Boolean(filters.search);
+  const sorting = {
+    value: filters.sort ? { column: filters.sort, direction: filters.direction } : null,
+    onChange: (next: TableSort | null) =>
+      void list.load(
+        { ...filters, sort: next?.column ?? "", direction: next?.direction ?? "asc" },
+        1,
+      ),
+  };
 
   function clearAll() {
     void list.load({ ...filters, search: "", name: "", email: "", mobile: "" }, 1);
@@ -109,6 +119,7 @@ export function CustomerAccountsTable({
           rowId={(row) => row.id}
           page={snapshot}
           mobile="columns"
+          sorting={sorting}
           busy={busy}
           disabled={false}
           selectedRowId={selectedId}
@@ -140,6 +151,7 @@ export function CustomerAccountsTable({
                   <TableDiscovery
                     label="customers"
                     columns={filteredColumns}
+                    sorting={sorting}
                     filterCount={applied.length}
                     disabled={busy}
                     onClearFilters={clearFilters}

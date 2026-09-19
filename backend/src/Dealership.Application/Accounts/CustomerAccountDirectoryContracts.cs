@@ -41,21 +41,33 @@ public sealed record CustomerDirectoryQuery(string Tab, string Search, int Page,
 
     public string Mobile { get; init; } = string.Empty;
 
+    // Empty keeps the canonical name order; otherwise the named column orders the whole filtered list.
+    public string Sort { get; init; } = string.Empty;
+
+    public bool Descending { get; init; }
+
+    private static readonly string[] SortColumns = ["name", "email", "mobile", "status"];
+
     public static CustomerDirectoryQuery? Parse(string? view, string? search, int page, int pageSize,
-        string? name = null, string? email = null, string? mobile = null)
+        string? name = null, string? email = null, string? mobile = null, string? sort = null,
+        string? direction = null)
     {
         var text = search?.Trim() ?? string.Empty;
         var nameText = name?.Trim() ?? string.Empty;
         var emailText = email?.Trim() ?? string.Empty;
         var mobileText = mobile?.Trim() ?? string.Empty;
         return !ListSearch.IsValid(nameText) || !ListSearch.IsValid(emailText) || !ListSearch.IsValid(mobileText) ||
-            !CustomerAccountTabs.IsValid(view) || !ListSearch.IsValid(text) || !Pagination.IsValid(page, pageSize)
+            !CustomerAccountTabs.IsValid(view) || !ListSearch.IsValid(text) || !Pagination.IsValid(page, pageSize) ||
+            (!string.IsNullOrEmpty(sort) && !SortColumns.Contains(sort)) ||
+            direction is not (null or "" or "asc" or "desc")
             ? null
             : new(view ?? CustomerAccountTabs.All, text, page, pageSize)
             {
                 Name = nameText,
                 Email = emailText,
-                Mobile = mobileText
+                Mobile = mobileText,
+                Sort = sort ?? string.Empty,
+                Descending = direction == "desc"
             };
     }
 }

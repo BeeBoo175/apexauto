@@ -16,6 +16,8 @@ const listKeys = [
   "name",
   "email",
   "mobile",
+  "sort",
+  "direction",
   "page",
   "pageSize",
 ];

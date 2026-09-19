@@ -42,7 +42,7 @@ public sealed class StaffAccountDirectory(DealershipDbContext database) : IStaff
             StaffAccountTabs.Deactivated => counts.Deactivated,
             _ => counts.All
         };
-        var page = await rows.OrderBy(row => row.Name).ThenBy(row => row.Id)
+        var page = await Order(rows, query)
             .ReadPageAsync(query.Page, query.PageSize, total, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         var items = page.Select(row => new StaffAccountRow(row.Id, row.Name, row.Email, row.Mobile, row.Role,
@@ -134,6 +134,24 @@ public sealed class StaffAccountDirectory(DealershipDbContext database) : IStaff
                    PictureId = null,
                    InvitationExpiresAt = invitation.ExpiresAt
                };
+    }
+
+    // The chosen column orders the complete filtered list before paging; name then id keep equal values stable.
+    private static IOrderedQueryable<DirectoryRow> Order(IQueryable<DirectoryRow> rows, StaffAccountQuery query)
+    {
+        var descending = query.Descending;
+        var ordered = query.Sort switch
+        {
+            "email" => descending ? rows.OrderByDescending(row => row.Email) : rows.OrderBy(row => row.Email),
+            "mobile" => descending ? rows.OrderByDescending(row => row.Mobile) : rows.OrderBy(row => row.Mobile),
+            "role" => descending ? rows.OrderByDescending(row => row.Role) : rows.OrderBy(row => row.Role),
+            "branchName" => descending
+                ? rows.OrderByDescending(row => row.BranchName) : rows.OrderBy(row => row.BranchName),
+            "status" => descending ? rows.OrderByDescending(row => row.Status) : rows.OrderBy(row => row.Status),
+            "name" when descending => rows.OrderByDescending(row => row.Name),
+            _ => rows.OrderBy(row => row.Name)
+        };
+        return ordered.ThenBy(row => row.Name).ThenBy(row => row.Id);
     }
 
     // The search and the role and branch filters apply to every tab, so each tab's count follows them too.

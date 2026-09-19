@@ -10,7 +10,7 @@ import { ResetFiltersButton } from "@/components/ui/ResetFiltersButton";
 import { Avatar } from "@/components/ui/Avatar";
 import { DataTable } from "@/components/ui/data-table/DataTable";
 import { TableDiscovery } from "@/components/ui/data-table/TableDiscovery";
-import type { DataColumn } from "@/components/ui/data-table/types";
+import type { DataColumn, TableSort } from "@/components/ui/data-table/types";
 import { AppliedWorklistFilters } from "@/components/staff/AppliedWorklistFilters";
 import { StaffQueueTabs } from "@/components/staff/StaffQueueTabs";
 import type { useStaffAccountsList } from "@/hooks/use-staff-accounts-list";
@@ -60,6 +60,7 @@ export function StaffAccountsTable({
       id: "name",
       label: "Name",
       ...staffColumnSizing.person,
+      sortable: true,
       cell: (row) => (
         <span className={table.inline}>
           <Avatar accountId={row.id} name={row.name} pictureId={row.pictureId} size="sm" />
@@ -69,19 +70,27 @@ export function StaffAccountsTable({
         </span>
       ),
     },
-    { id: "email", label: "Email", width: 240, cell: (row) => row.email },
-    { id: "mobile", label: "Mobile", width: 144, cell: (row) => row.mobile },
-    { id: "role", label: "Role", width: 168, cell: (row) => roleName(row.role) },
+    { id: "email", label: "Email", width: 240, sortable: true, cell: (row) => row.email },
+    { id: "mobile", label: "Mobile", width: 144, sortable: true, cell: (row) => row.mobile },
+    {
+      id: "role",
+      label: "Role",
+      width: 168,
+      sortable: true,
+      cell: (row) => roleName(row.role),
+    },
     {
       id: "branchName",
       label: "Branch",
       ...staffColumnSizing.branch,
+      sortable: true,
       cell: (row) => row.branchName ?? <span className={table.muted}>All branches</span>,
     },
     {
       id: "status",
       label: "Status",
       ...staffColumnSizing.shortStatus,
+      sortable: true,
       cell: (row) => <StaffAccountStatus status={row.status} />,
     },
   ];
@@ -136,6 +145,14 @@ export function StaffAccountsTable({
   }
   // The view tab is not a criterion to clear, so an empty tab never offers a clear.
   const narrowed = applied.length > 0 || Boolean(filters.search);
+  const sorting = {
+    value: filters.sort ? { column: filters.sort, direction: filters.direction } : null,
+    onChange: (next: TableSort | null) =>
+      void list.load(
+        { ...filters, sort: next?.column ?? "", direction: next?.direction ?? "asc" },
+        1,
+      ),
+  };
 
   function clearFilters() {
     void list.load({ ...filters, role: "", branchId: "", name: "", email: "", mobile: "" }, 1);
@@ -158,6 +175,7 @@ export function StaffAccountsTable({
           rowId={(row) => row.id}
           page={snapshot}
           mobile="columns"
+          sorting={sorting}
           busy={busy}
           disabled={false}
           selectedRowId={selectedId}
@@ -189,6 +207,7 @@ export function StaffAccountsTable({
                   <TableDiscovery
                     label="staff"
                     columns={filteredColumns}
+                    sorting={sorting}
                     filterCount={applied.length}
                     disabled={busy}
                     onClearFilters={clearFilters}
