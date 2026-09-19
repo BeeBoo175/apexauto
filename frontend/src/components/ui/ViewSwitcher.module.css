@@ -88,6 +88,11 @@
     padding: 2px;
   }
 
+  /* Labelled options keep room for their text until the label itself is hidden at 600px. */
+  .labelled {
+    --view-size: 112px;
+  }
+
   .option,
   .thumb {
     height: 30px;
