@@ -59,10 +59,10 @@ internal sealed class FakePayoutGateway(string signatureKey) : IPayoutGateway
 
     public Dictionary<string, string> Callback(string payoutId, string outcome, bool signed = true,
         string? reference = null) => new()
-    {
-        ["payout"] = payoutId,
-        ["reference"] = reference ?? string.Empty,
-        ["outcome"] = outcome,
-        ["signature"] = signed ? signatureKey : "bad"
-    };
+        {
+            ["payout"] = payoutId,
+            ["reference"] = reference ?? string.Empty,
+            ["outcome"] = outcome,
+            ["signature"] = signed ? signatureKey : "bad"
+        };
 }
