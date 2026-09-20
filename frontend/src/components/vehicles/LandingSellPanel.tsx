@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -38,6 +38,28 @@ export function LandingSellPanel({ taxonomy }: LandingSellPanelProps) {
   const router = useRouter();
   const [make, setMake] = useState("");
   const [year, setYear] = useState("");
+  // The car waits off to the right until the panel is in view, then drives in once.
+  const stage = useRef<HTMLDivElement>(null);
+  const [driven, setDriven] = useState(false);
+
+  useEffect(() => {
+    const element = stage.current;
+    if (!element) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Entries can arrive in a batch, so any one of them being in view is enough.
+        if (entries.some((entry) => entry.isIntersecting)) {
+          observer.disconnect();
+          setDriven(true);
+        }
+      },
+      { threshold: 0.35 },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   const makes = taxonomy?.makes.map((item) => item.name) ?? [];
   const years = sellableYears(taxonomy, make);
@@ -56,7 +78,7 @@ export function LandingSellPanel({ taxonomy }: LandingSellPanelProps) {
   }
 
   return (
-    <section className={patterns.band} aria-labelledby="sell-panel-heading">
+    <section className={`${patterns.band} ${styles.root}`} aria-labelledby="sell-panel-heading">
       <div className={layout.content}>
         <div className={styles.banner}>
           {/* Main Content Area: Copy + Capsule Form + Car Studio Render */}
@@ -125,7 +147,7 @@ export function LandingSellPanel({ taxonomy }: LandingSellPanelProps) {
             </div>
 
             {/* Right Side: Clean Sedan Cutout with Dynamic Overhang */}
-            <div className={styles.visualCol}>
+            <div ref={stage} className={styles.visualCol}>
               <Image
                 src="/images/sell-car-stage.png"
                 alt="Silver BMW sports sedan"
@@ -133,6 +155,7 @@ export function LandingSellPanel({ taxonomy }: LandingSellPanelProps) {
                 height={360}
                 unoptimized
                 className={styles.carImage}
+                data-drive={driven ? "arrived" : "waiting"}
               />
             </div>
           </div>

@@ -1,3 +1,9 @@
+/* The section spans the page, so clipping its sides cuts nothing visible. It only stops the car's slide-in from
+   widening the page while the car waits off to the right. */
+.root {
+  overflow-x: clip;
+}
+
 /* The card, not the viewport, decides the layout: it lives inside a capped content column, so container
    queries keep every width between phone and wide desktop in one of three deliberate compositions. */
 .banner {
@@ -173,11 +179,25 @@
 
 .carImage {
   display: block;
-  filter: drop-shadow(0 24px 20px rgb(14 27 42 / 45%)) drop-shadow(0 6px 6px rgb(14 27 42 / 30%));
   width: 100%;
   max-width: 820px;
   height: auto;
   object-fit: contain;
+}
+
+/* The car slides in a short way from the right as the panel comes into view. Without scripts or with reduced motion it
+   simply sits in place. */
+.carImage {
+  transition:
+    translate 1100ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 800ms ease-out;
+}
+
+@media (scripting: enabled) {
+  .carImage[data-drive="waiting"] {
+    opacity: 0;
+    translate: 64px 0;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -338,6 +358,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .carImage[data-drive] {
+    opacity: 1;
+    translate: none;
+    transition: none;
+  }
+
   .selectCell,
   .capsuleButton,
   .footnoteLink {
