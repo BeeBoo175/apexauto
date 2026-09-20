@@ -9,7 +9,7 @@ import { StaffHistoryBoundary } from "@/components/staff/StaffClientEntryBoundar
 export const metadata: Metadata = {
   title: "ApexAuto | Inspected Used Cars & Trade-In Valuation in Malaysia",
   description:
-    "Browse 210-point inspected used cars with transparent RM pricing, 48-hour online reservations, instant trade-in valuations and financing estimates.",
+    "Used cars checked on 210 points and sold at a fixed price across Malaysia. Reserve online, value your trade-in and see your monthly payment.",
 };
 
 export default function RootLayout({
