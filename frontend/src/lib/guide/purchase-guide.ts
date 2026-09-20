@@ -17,8 +17,12 @@ export interface GuideWarranty {
 export interface PurchaseGuide {
   processingFee: number;
   sstRate: number;
+  reservationHoldHours: number;
   warranties: readonly GuideWarranty[];
 }
+
+const MINIMUM_HOLD_HOURS = 1;
+const MAXIMUM_HOLD_HOURS = 168;
 
 const grades: readonly string[] = ["A", "B", "C"];
 
@@ -58,7 +62,10 @@ export function parsePurchaseGuide(value: unknown): PurchaseGuide | null {
     typeof value.sstRate !== "number" ||
     !Number.isFinite(value.sstRate) ||
     value.sstRate < 0 ||
-    value.sstRate > 1
+    value.sstRate > 1 ||
+    !Number.isSafeInteger(value.reservationHoldHours) ||
+    (value.reservationHoldHours as number) < MINIMUM_HOLD_HOURS ||
+    (value.reservationHoldHours as number) > MAXIMUM_HOLD_HOURS
   ) {
     return null;
   }
@@ -68,7 +75,12 @@ export function parsePurchaseGuide(value: unknown): PurchaseGuide | null {
     return null;
   }
 
-  return { processingFee: value.processingFee, sstRate: value.sstRate, warranties };
+  return {
+    processingFee: value.processingFee,
+    sstRate: value.sstRate,
+    reservationHoldHours: value.reservationHoldHours as number,
+    warranties,
+  };
 }
 
 // 0.08 reads as 8%, 0.065 as 6.5%.

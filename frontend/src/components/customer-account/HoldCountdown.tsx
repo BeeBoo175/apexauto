@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
 import styles from "./Reservations.module.css";
 
 const MS_PER_SECOND = 1000;
@@ -26,7 +25,7 @@ export function HoldCountdown({ until, label }: { until: string; label?: string 
   return (
     <p className={styles.clock}>
       <time className={styles.clockFace}>{clock(secondsLeft)}</time>
-      <span>{label ?? `left on your ${RESERVATION_HOLD_HOURS}-hour hold`}</span>
+      <span>{label ?? "left on your hold"}</span>
     </p>
   );
 }

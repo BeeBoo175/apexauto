@@ -19,6 +19,7 @@ public sealed class PurchaseGuideQuery(DealershipDbContext database) : IPurchase
             .Select(package => new PurchaseGuideWarranty(package.Id, package.Name, package.DurationMonths,
                 package.MileageCapKm, package.Price, package.MinimumGrade.ToString()))
             .ToArrayAsync(cancellationToken);
-        return new PurchaseGuide(settings.ProcessingFee, settings.SstRate, warranties);
+        return new PurchaseGuide(settings.ProcessingFee, settings.SstRate, settings.ReservationHoldHours,
+            warranties);
     }
 }

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { usePaymentMode } from "@/hooks/use-payment-mode";
 import { ReloadNotice } from "@/components/ui/ReloadNotice";
@@ -20,6 +20,7 @@ import {
   PAYMENT_WINDOW_MINUTES,
   RESERVATION_DEPOSIT,
   RESERVATION_HOLD_HOURS,
+  reservationHoldHours,
 } from "@/lib/vehicles/deposit-terms";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import { AssistedDepositRequest } from "./AssistedDepositRequest";
@@ -204,7 +205,7 @@ function OwnReservation({
               <Icon name="shield-check" />
               <h2>Reservation confirmed</h2>
             </span>
-            <span className={styles.holdBadge}>{RESERVATION_HOLD_HOURS}-hour hold</span>
+            <span className={styles.holdBadge}>{reservationHoldHours(receipt)}-hour hold</span>
           </div>
           <dl className={styles.receiptGrid}>
             <div>

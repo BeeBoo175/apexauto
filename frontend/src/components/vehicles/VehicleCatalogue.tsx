@@ -36,6 +36,7 @@ interface VehicleCatalogueProps {
   branches: Page<Branch> | null;
   taxonomy: Taxonomy | null;
   warranties: readonly GuideWarranty[] | null;
+  holdHours: number;
 }
 
 // The warranty band breaks the grid after two full rows of three.
@@ -48,6 +49,7 @@ export function VehicleCatalogue({
   branches,
   taxonomy,
   warranties,
+  holdHours,
 }: VehicleCatalogueProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const catalogue = useVehicleCatalogue(initial, filters, page, branches);
@@ -80,6 +82,7 @@ export function VehicleCatalogue({
         active={active.filters}
         showrooms={showrooms}
         busy={busy}
+        holdHours={holdHours}
         onShowroom={(branchId) => void applyFilters({ ...active.filters, branchId }, "all")}
       />
 

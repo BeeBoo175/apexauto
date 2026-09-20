@@ -7,6 +7,7 @@ import { parseTaxonomy } from "@/lib/intake/parse";
 import type { SearchParams } from "@/lib/query";
 import { requestApiJson } from "@/lib/server/http/api";
 import { CATALOGUE_LISTING_PAGE_SIZE } from "@/lib/vehicles/contracts";
+import { RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
 import { parseCatalogue } from "@/lib/vehicles/parse";
 import { catalogueParams, catalogueQuery } from "@/lib/vehicles/query";
 
@@ -47,6 +48,7 @@ export default async function VehiclesPage({
       branches={branches.data}
       taxonomy={taxonomy.data}
       warranties={guide.data?.warranties ?? null}
+      holdHours={guide.data?.reservationHoldHours ?? RESERVATION_HOLD_HOURS}
     />
   );
 }

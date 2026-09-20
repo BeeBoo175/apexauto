@@ -1,4 +1,4 @@
-﻿import { formatCurrency } from "@/lib/currency-format";
+import { formatCurrency } from "@/lib/currency-format";
 import type { InspectionGradingPolicy } from "./inspection-points";
 import { guideServiceTax, sstPercentLabel, type PurchaseGuide } from "./purchase-guide";
 import { eligibleWarrantyLabel } from "./warranty-plans";
@@ -38,6 +38,19 @@ export const faqCategories: readonly FaqCategory[] = [
   "Branches & test drives",
 ];
 
+// The hold length is an Administrator setting: pages that read the purchase guide pass its live value.
+function reservationHoldEntry(holdHours: number): FaqEntry {
+  return {
+    id: "reservation-hold",
+    onBuyingPage: true,
+    category: "Buying & warranty",
+    question: `How does the ${formatCurrency(RESERVATION_DEPOSIT, "RM")} reservation hold work?`,
+    answer: `Once you start a reservation the car is held for ${PAYMENT_WINDOW_MINUTES} minutes while you pay securely online. After your payment is confirmed the car is held for ${holdHours} hours, and the deposit counts toward your cash down payment. If you cancel or the hold lapses, the deposit is refunded.`,
+    href: "/buying-guide#reserve",
+    linkLabel: "See how reserving works",
+  };
+}
+
 // Entries that need no live figures, so the two guides can show them on pages generated ahead of time.
 const buyingEntries: FaqEntry[] = [
   {
@@ -50,15 +63,7 @@ const buyingEntries: FaqEntry[] = [
     href: "/register",
     linkLabel: "Create an account",
   },
-  {
-    id: "reservation-hold",
-    onBuyingPage: true,
-    category: "Buying & warranty",
-    question: `How does the ${formatCurrency(RESERVATION_DEPOSIT, "RM")} reservation hold work?`,
-    answer: `Once you start a reservation the car is held for ${PAYMENT_WINDOW_MINUTES} minutes while you pay securely online. After your payment is confirmed the car is held for ${RESERVATION_HOLD_HOURS} hours, and the deposit counts toward your cash down payment. If you cancel or the hold lapses, the deposit is refunded.`,
-    href: "/buying-guide#reserve",
-    linkLabel: "See how reserving works",
-  },
+  reservationHoldEntry(RESERVATION_HOLD_HOURS),
   {
     id: "payment-window",
     onBuyingPage: true,
@@ -165,7 +170,9 @@ export function faqEntries(
       linkLabel: "See a worked example",
       onWarrantyPage: true,
     },
-    ...buyingEntries,
+    ...buyingEntries.map((entry) =>
+      entry.id === "reservation-hold" ? reservationHoldEntry(guide.reservationHoldHours) : entry,
+    ),
     {
       id: "warranty-included",
       category: "Buying & warranty",

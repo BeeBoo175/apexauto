@@ -10,10 +10,17 @@ interface CatalogueHeroProps {
   active: CatalogueFilters;
   showrooms: Branch[] | null;
   busy: boolean;
+  holdHours: number;
   onShowroom: (branchId: string) => void;
 }
 
-export function CatalogueHero({ active, showrooms, busy, onShowroom }: CatalogueHeroProps) {
+export function CatalogueHero({
+  active,
+  showrooms,
+  busy,
+  holdHours,
+  onShowroom,
+}: CatalogueHeroProps) {
   const tabs = [
     { id: "", label: "All showrooms" },
     ...(showrooms ?? []).map((branch) => ({ id: branch.id, label: showroomName(branch.name) })),
@@ -24,7 +31,7 @@ export function CatalogueHero({ active, showrooms, busy, onShowroom }: Catalogue
       <div className={`${layout.content} ${styles.inner} ${patterns.rise}`}>
         <h1 className={`${layout.heroHeading} ${styles.heading}`}>Used cars for sale</h1>
         <p className={styles.lede}>
-          Signed 210-point inspection, upfront pricing, and a 48-hour hold on every car.
+          Signed 210-point inspection, upfront pricing, and a {holdHours}-hour hold on every car.
         </p>
 
         {showrooms && (

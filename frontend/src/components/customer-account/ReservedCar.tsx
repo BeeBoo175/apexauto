@@ -12,6 +12,7 @@ import {
   reservationVehicleName,
   type AccountReservation,
 } from "@/lib/vehicles/account-reservations";
+import { reservationHoldHours } from "@/lib/vehicles/deposit-terms";
 import { HoldCountdown } from "./HoldCountdown";
 import { ReservationTerms } from "./ReservationTerms";
 import styles from "./Reservations.module.css";
@@ -71,7 +72,10 @@ export function ReservedCar({
           )}
           {item.isActive && !item.isHandled && (
             <div className={styles.deadline}>
-              <HoldCountdown until={item.dueAt ?? item.receipt.expiresAt} />
+              <HoldCountdown
+                until={item.dueAt ?? item.receipt.expiresAt}
+                label={`left on your ${reservationHoldHours(item.receipt)}-hour hold`}
+              />
               <span>
                 The car stays off sale until{" "}
                 {formatMalaysianDateTime(item.dueAt ?? item.receipt.expiresAt)} (Malaysia).
