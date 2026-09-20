@@ -161,6 +161,25 @@ export const assetAttributions: readonly AssetAttributionItem[] = [
     changes: "Resized and cropped",
   },
   {
+    label: "About page workshop photograph",
+    author: "Artem Podrez",
+    sourceTitle: "Pexels photograph",
+    sourceUrl: "https://www.pexels.com/photo/mechanic-standing-under-a-car-on-a-car-lift-8986119/",
+    license: "Pexels License",
+    licenseUrl: "https://www.pexels.com/license/",
+    changes: "Resized to 1200px wide and cropped in the page",
+  },
+  {
+    label: "About page team portraits",
+    author: "Tony Zohari, Monirul Islam, Duy's House of Photo and Divya Modi",
+    sourceTitle: "Pexels photographs",
+    sourceUrl:
+      "https://www.pexels.com/photo/professional-portrait-of-smiling-woman-in-studio-38197025/",
+    license: "Pexels License",
+    licenseUrl: "https://www.pexels.com/license/",
+    changes: "Resized. The people pictured are stock-photo models, not ApexAuto staff",
+  },
+  {
     label: "Car photo placeholder",
     author: "Bulat843",
     sourceTitle: "Pexels photograph",
@@ -171,7 +190,7 @@ export const assetAttributions: readonly AssetAttributionItem[] = [
     changes: "Cropped and resized",
   },
   {
-    label: "Showroom floors and sell-panel car",
+    label: "Inspection cutaway and showroom illustrations",
     author: "ApexAuto",
     sourceTitle: "ApexAuto illustrations",
     sourceUrl: "/disclaimer",

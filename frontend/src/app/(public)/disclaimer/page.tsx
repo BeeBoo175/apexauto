@@ -1,42 +1,39 @@
 import type { Metadata } from "next";
-import { AssetAttributionList, DisclaimerNoticesGrid } from "@/components/guide/DisclaimerExplorer";
-import { GuideBand, GuideHubBanner } from "@/components/guide/GuidePageShell";
+import Image from "next/image";
+import patterns from "@/components/layout/PublicPatterns.module.css";
+import { HelpNotices } from "@/components/guide/HelpNotices";
+import layout from "@/components/vehicles/VehicleLayout.module.css";
 
 export const metadata: Metadata = {
-  title: "Disclaimers & Asset Credits — ApexAuto",
+  title: "Disclaimers and notices — ApexAuto",
   description:
-    "Scope boundaries for simulated holds, calculators, 210-point inspections, fixture branches, and media credits.",
+    "What this demonstration site does and does not do, how its estimates work, and credits for its photographs and icons.",
 };
 
 export default function DisclaimerPage() {
   return (
     <>
-      <GuideHubBanner
-        title="Disclaimers & asset credits"
-        description="Scope terms for simulated holds, calculators, inspections, and media credits."
-        actions={[
-          { href: "#credits", label: "Media attributions", variant: "primary" },
-          { href: "/vehicles", label: "Browse cars for sale", variant: "shell" },
-        ]}
-      />
-
-      <GuideBand
-        surface="canvas"
-        headingId="disclosures-heading"
-        heading="Platform scope & boundaries"
-      >
-        <DisclaimerNoticesGrid />
-      </GuideBand>
-
-      <GuideBand
-        id="credits"
-        surface="paper"
-        headingId="credits-heading"
-        heading="Photography and UI icon credits"
-        description="Sources and license attributions for storefront photography, map boundaries, and icons."
-      >
-        <AssetAttributionList />
-      </GuideBand>
+      <section className={patterns.hero} aria-labelledby="notices-page-title">
+        <Image
+          src="/images/apexauto-detail.webp"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className={patterns.heroPhoto}
+        />
+        <div className={patterns.heroScrim} aria-hidden="true" />
+        <div className={`${layout.content} ${patterns.heroInner} ${patterns.rise}`}>
+          <h1 id="notices-page-title" className={layout.heroHeading}>
+            Disclaimers and notices
+          </h1>
+          <p className={patterns.heroLede}>
+            What this demonstration site does and does not do, how its estimates work, and where its
+            photographs and icons come from.
+          </p>
+        </div>
+      </section>
+      <HelpNotices />
     </>
   );
 }
