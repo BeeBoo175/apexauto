@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { buttonClassName, Button } from "@/components/ui/Button";
 import { useApiCommand } from "@/hooks/use-api-command";
 import { privateApiFetch } from "@/lib/api-browser";
@@ -57,9 +56,11 @@ export function PendingPayment({
         </div>
       </div>
       <div className={styles.actions}>
-        <Link href={`/vehicles/${item.vehicleId}`} className={buttonClassName("primary", "lg")}>
-          Continue to payment
-        </Link>
+        {item.paymentUrl ? (
+          <a href={item.paymentUrl} className={buttonClassName("primary", "lg")}>
+            Continue to payment
+          </a>
+        ) : null}
         <Button variant="ghost" disabled={disabled || command.busy} onClick={() => void giveUp()}>
           Cancel this payment
         </Button>

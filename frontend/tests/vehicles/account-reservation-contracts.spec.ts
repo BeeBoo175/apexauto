@@ -118,6 +118,27 @@ test("customer history accepts no registration and keeps an independent active h
   expect(accountReservationPage({ page: "2147483648" })).toBe(1);
 });
 
+test("a pending payment carries only the provider payment address", () => {
+  const pendingPayment = {
+    requestId: id,
+    vehicleId: other,
+    branchName: "Petaling Jaya",
+    make: "Honda",
+    model: "City",
+    trim: "V",
+    manufactureYear: 2022,
+    expiresAt: "2026-10-30T01:15:00Z",
+    paymentUrl: "https://www.billplz-sandbox.com/bills/abc123",
+  };
+  const parse = (change: object) =>
+    parseAccountReservations({ ...snapshot, pendingPayment: { ...pendingPayment, ...change } });
+
+  expect(parse({})?.pendingPayment?.paymentUrl).toBe(pendingPayment.paymentUrl);
+  expect(parse({ paymentUrl: null })?.pendingPayment?.paymentUrl).toBeNull();
+  expect(parse({ paymentUrl: "https://evil.example.com/bills/abc123" })).toBeNull();
+  expect(parse({ paymentUrl: "http://www.billplz-sandbox.com/bills/abc123" })).toBeNull();
+});
+
 test("customer cancellation requires the exact operation, target and actor without a staff reason", () => {
   const parsed = parseCustomerCancellation(cancellation)!;
   const body = { operationId: other, reason: null };

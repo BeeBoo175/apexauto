@@ -28,6 +28,11 @@ public sealed class ReservationPendingPaymentAccountTests(IntakePhotoFixture fix
         Assert.Equal(requestId, account.History!.PendingPayment!.RequestId);
         Assert.Null(account.History.Active);
 
+        // Continuing goes to the provider's bill, because the public vehicle page hides a car with a pending request.
+        var bill = await scenario.Database.ReservationDepositPayments.AsNoTracking()
+            .SingleAsync(payment => payment.RequestId == requestId);
+        Assert.Equal(bill.BillUrl, account.History.PendingPayment.PaymentUrl);
+
         // The customer can give it up, and the car is free again.
         var cancelled = await client.PostAsync($"/api/account/pending-payments/{requestId}/cancellations", null);
         Assert.Equal(HttpStatusCode.OK, cancelled.StatusCode);

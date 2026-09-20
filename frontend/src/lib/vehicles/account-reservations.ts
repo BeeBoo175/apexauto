@@ -5,6 +5,7 @@ import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { ACCOUNT_PAGE_SIZE } from "@/lib/pagination";
 import type { SearchParams } from "@/lib/query";
 import type { HistoryFilters } from "@/lib/intake/list-query";
+import { providerPaymentAddress } from "./payment-address";
 import { parseCustomerReservation, type CustomerReservationReceipt } from "./customer-reservation";
 
 export const customerReservationStates = {
@@ -50,6 +51,7 @@ export interface PendingPayment {
   trim: string;
   manufactureYear: number;
   expiresAt: string;
+  paymentUrl: string | null;
 }
 
 export interface AccountReservations extends Page<AccountReservation> {
@@ -63,7 +65,9 @@ function parsePendingPayment(value: unknown): PendingPayment | null {
     return null;
   }
   const texts = [value.branchName, value.make, value.model, value.trim];
+  const paymentUrl = value.paymentUrl == null ? null : providerPaymentAddress(value);
   if (
+    (value.paymentUrl != null && !paymentUrl) ||
     !isUuid(value.requestId) ||
     !isUuid(value.vehicleId) ||
     !texts.every((text) => typeof text === "string" && text.trim().length > 0) ||
@@ -81,6 +85,7 @@ function parsePendingPayment(value: unknown): PendingPayment | null {
     trim: String(value.trim),
     manufactureYear: Number(value.manufactureYear),
     expiresAt: value.expiresAt,
+    paymentUrl,
   };
 }
 

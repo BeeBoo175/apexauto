@@ -78,7 +78,11 @@ public sealed class ReservationReadStore(DealershipDbContext database, TimeProvi
                       join vehicle in database.Vehicles on request.VehicleId equals vehicle.Id
                       orderby request.CreatedAt
                       select new PendingPaymentItem(request.Id, request.VehicleId, branch.Name, vehicle.Make, vehicle.Model,
-                          vehicle.Trim, vehicle.ManufactureYear, request.ExpiresAt))
+                          vehicle.Trim, vehicle.ManufactureYear, request.ExpiresAt,
+                          database.ReservationDepositPayments
+                              .Where(payment => payment.RequestId == request.Id)
+                              .Select(payment => payment.BillUrl)
+                              .FirstOrDefault()))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }
