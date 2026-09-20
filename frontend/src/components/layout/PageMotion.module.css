@@ -1,0 +1,42 @@
+/* The page fades in when it opens. It only fades, because heroes and sections already rise on their own and a second
+   movement on top of them reads as a shift. */
+.page {
+  animation: page-in 240ms ease-out both;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Section content rises a little the first time it comes into view. The attribute is set by PageMotion on the first
+   child of a section, which is why these two selectors are global. Each plays once and ends on the element's own
+   style, so nothing is left transformed afterwards. */
+:global([data-sr="hidden"]) {
+  opacity: 0;
+  translate: 0 20px;
+}
+
+:global([data-sr="shown"]) {
+  animation: section-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes section-in {
+  from {
+    opacity: 0;
+    translate: 0 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page {
+    animation: none;
+  }
+
+  :global([data-sr]) {
+    opacity: 1;
+    translate: none;
+    animation: none;
+  }
+}
