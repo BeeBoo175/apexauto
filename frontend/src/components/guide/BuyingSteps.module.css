@@ -6,7 +6,8 @@
 
 .tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  grid-auto-columns: minmax(150px, 1fr);
+  grid-auto-flow: column;
   gap: 16px;
   overflow-x: auto;
   scrollbar-width: none;
@@ -36,7 +37,7 @@
     color 200ms ease;
 }
 
-.tab span {
+.marker {
   display: grid;
   flex: none;
   place-items: center;
@@ -50,6 +51,14 @@
     background-color 200ms ease,
     border-color 200ms ease,
     color 200ms ease;
+}
+
+.marker > :global(span) {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  line-height: 0;
 }
 
 .tab:hover {
@@ -66,7 +75,7 @@
   color: var(--color-graphite);
 }
 
-.tab[aria-selected="true"] span {
+.tab[aria-selected="true"] .marker {
   border-color: var(--color-signal);
   background: var(--color-signal);
   color: var(--color-paper);
@@ -229,7 +238,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .tab,
-  .tab span,
+  .marker,
   .panel,
   .image,
   .next {

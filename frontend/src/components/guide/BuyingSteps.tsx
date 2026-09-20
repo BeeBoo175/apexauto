@@ -54,8 +54,8 @@ export function BuyingSteps({ steps }: { steps: readonly BuyingStepPanel[] }) {
             className={styles.tab}
             onClick={() => select(index)}
           >
-            <span aria-hidden="true">
-              {step.icon ? <Icon name={step.icon} grid={16} /> : index + 1}
+            <span className={styles.marker} aria-hidden="true">
+              {step.icon ? <Icon name={step.icon} /> : index + 1}
             </span>
             {step.label}
           </button>
