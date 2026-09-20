@@ -1,0 +1,41 @@
+/* Hidden elements are moved with the translate and rotate properties, so an element's own transform (the tilt on a
+   note, say) is left alone. */
+.reveal[data-reveal="hidden"] {
+  opacity: 0;
+}
+
+.reveal[data-reveal="hidden"][data-from="up"] {
+  translate: 0 36px;
+}
+
+.reveal[data-reveal="hidden"][data-from="left"] {
+  translate: -56px 0;
+}
+
+.reveal[data-reveal="hidden"][data-from="right"] {
+  translate: 56px 0;
+}
+
+.reveal[data-reveal="hidden"][data-from="drop"] {
+  translate: 0 40px;
+  rotate: -3deg;
+}
+
+.reveal[data-reveal="shown"] {
+  opacity: 1;
+  translate: 0 0;
+  rotate: 0deg;
+  transition:
+    opacity 700ms ease-out var(--delay, 0ms),
+    translate 900ms cubic-bezier(0.16, 1, 0.3, 1) var(--delay, 0ms),
+    rotate 900ms cubic-bezier(0.16, 1, 0.3, 1) var(--delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal[data-reveal] {
+    opacity: 1;
+    translate: none;
+    rotate: none;
+    transition: none;
+  }
+}

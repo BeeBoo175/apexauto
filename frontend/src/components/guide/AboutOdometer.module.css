@@ -1,0 +1,104 @@
+/* The bar the odometers sit in. It is white so it stands apart from the navy hero it hangs off. */
+.bar {
+  padding: 28px clamp(20px, 3vw, 40px) 32px;
+  border-radius: 8px;
+  background: var(--color-paper);
+  box-shadow:
+    0 2px 4px rgb(14 27 42 / 0.12),
+    0 24px 40px rgb(14 27 42 / 0.28);
+  color: var(--color-graphite);
+}
+
+.meters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px clamp(24px, 4vw, 64px);
+  align-items: flex-end;
+  justify-content: space-evenly;
+}
+
+.meter {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+
+.meterLabel {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.drums {
+  display: inline-flex;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--color-graphite);
+  color: var(--color-paper);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.4vw, 3rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.drum {
+  position: relative;
+  display: block;
+  height: 1.15em;
+  overflow: hidden;
+  border-radius: 4px;
+  background: linear-gradient(
+    to bottom,
+    #0b1522,
+    var(--color-graphite-soft) 18%,
+    var(--color-graphite-soft) 82%,
+    #0b1522
+  );
+}
+
+/* The roller's curve: the digit darkens as it turns away from the window. */
+.drum::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0.5),
+    transparent 30%,
+    transparent 70%,
+    rgb(0 0 0 / 0.5)
+  );
+  content: "";
+  pointer-events: none;
+}
+
+.strip {
+  display: block;
+  transition: transform 2600ms cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.strip span {
+  display: block;
+  width: 0.62em;
+  height: 1.15em;
+  line-height: 1.15em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .bar {
+    padding: 20px 16px 24px;
+  }
+
+  .meters {
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .strip {
+    transition: none;
+  }
+}

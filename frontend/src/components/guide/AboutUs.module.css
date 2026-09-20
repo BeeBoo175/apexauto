@@ -1,0 +1,671 @@
+/* The top: the title and opening lines beside a workshop photograph. The odometer bar straddles the bottom edge of the
+   dark hero, half over the hero and half over the section below, which makes room for it in its top padding. */
+.top,
+.afterBar {
+  --bar-half: 80px;
+}
+
+.top {
+  position: relative;
+}
+
+.hero {
+  padding: 72px 0 calc(var(--bar-half) + 56px);
+  background: var(--color-graphite);
+  color: var(--color-paper);
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 56px;
+  align-items: center;
+}
+
+.heroCopy {
+  display: grid;
+  gap: 20px;
+  align-content: center;
+}
+
+.heroCopy h1 {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 6.4vw, 5.5rem);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+}
+
+.heroStatement {
+  max-width: 30ch;
+  margin: 0;
+  font-size: clamp(1.1875rem, 1.7vw, 1.4375rem);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.heroNote {
+  max-width: 40ch;
+  margin: 0;
+  color: var(--color-line);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+
+.heroPhoto {
+  aspect-ratio: 5 / 6;
+  max-height: 520px;
+  justify-self: end;
+  width: 100%;
+  max-width: 440px;
+}
+
+.heroPhoto img {
+  object-fit: cover;
+  object-position: 50% 40%;
+}
+
+.barSlot {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  transform: translateY(50%);
+}
+
+.tone.afterBar {
+  padding-top: calc(var(--bar-half) + 64px);
+  border-top: 0;
+}
+
+/* Every section opens the same way: a centred heading with one line under it. */
+.sectionHead {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  margin-bottom: 56px;
+  text-align: center;
+}
+
+.sectionHead h2 {
+  margin: 0;
+}
+
+.sectionHead p {
+  max-width: 48ch;
+}
+
+/* The darker band the selling guide gives its showroom visit, so the pages share one tone. */
+.tone {
+  border-block: 1px solid var(--color-line);
+  background: color-mix(in srgb, var(--color-graphite) 7%, var(--color-canvas));
+  color: var(--color-graphite);
+}
+
+/* What we stand for: the charter on a clipboard, with a pencil beside it. */
+.desk {
+  position: relative;
+  width: min(100%, 600px);
+  margin-inline: auto;
+}
+
+.clipboard {
+  position: relative;
+  padding: 44px 18px 18px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, var(--color-graphite-soft), var(--color-graphite));
+  box-shadow:
+    0 2px 4px rgb(14 27 42 / 0.2),
+    0 24px 40px rgb(14 27 42 / 0.22);
+}
+
+.clip {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  width: 132px;
+  height: 46px;
+  margin-left: -66px;
+  border-radius: 8px 8px 4px 4px;
+  background: linear-gradient(
+    to bottom,
+    var(--color-line-soft),
+    var(--color-line) 45%,
+    var(--color-subtle)
+  );
+  box-shadow: 0 4px 8px rgb(5 9 15 / 0.35);
+}
+
+/* The slot the sheet is pinched in. */
+.clip::after {
+  position: absolute;
+  right: 18px;
+  bottom: 8px;
+  left: 18px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--color-graphite);
+  content: "";
+}
+
+.sheet {
+  border-radius: 2px;
+  background: var(--color-paper);
+}
+
+.sheetHead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 0 24px;
+  padding: 32px 0 14px;
+  border-bottom: 1px solid var(--color-line-soft);
+  color: var(--color-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sheet ul {
+  display: grid;
+  margin: 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.sheet li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--color-line-soft);
+}
+
+.sheet li > div {
+  display: grid;
+  gap: 4px;
+}
+
+.sheet li strong {
+  font-size: 1.0625rem;
+  line-height: 1.3;
+}
+
+.sheet li > div > span {
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+/* The shared tick sits on a soft disc. */
+.check {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-canvas);
+}
+
+.signoff {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+  padding: 20px 24px 24px;
+}
+
+.signLabel {
+  color: var(--color-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* A pencil lying beside the board, drawn from one element in the site's own colours: a pale eraser, a steel band, a
+   red body, bare wood and a graphite point. */
+.pencil {
+  position: absolute;
+  top: 72px;
+  right: -76px;
+  width: 18px;
+  height: 230px;
+  background: linear-gradient(
+    to bottom,
+    var(--color-line-soft) 0 9%,
+    var(--color-line) 9% 16%,
+    var(--color-signal) 16% 85%,
+    var(--color-line-soft) 85% 95%,
+    var(--color-graphite) 95% 100%
+  );
+  clip-path: polygon(0 0, 100% 0, 100% 85%, 50% 100%, 0 85%);
+  filter: drop-shadow(0 6px 6px rgb(14 27 42 / 0.3));
+  transform: rotate(14deg);
+}
+
+/* The light along the pencil body. */
+.pencil::after {
+  position: absolute;
+  top: 16%;
+  bottom: 15%;
+  left: 30%;
+  width: 28%;
+  background: rgb(255 255 255 / 0.3);
+  content: "";
+}
+
+/* Along the way: a line down the middle. Milestones are hollow, showrooms solid and awards red, sides alternating. */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  justify-content: center;
+  margin: -24px 0 48px;
+  padding: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  list-style: none;
+}
+
+.legend li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.legend li::before {
+  width: 12px;
+  height: 12px;
+  box-sizing: border-box;
+  border: 3px solid var(--color-graphite);
+  border-radius: 50%;
+  content: "";
+}
+
+.legend li[data-kind="showroom"]::before {
+  background: var(--color-graphite);
+}
+
+.legend li[data-kind="award"]::before {
+  border-color: var(--color-signal);
+  background: var(--color-signal);
+}
+
+.timeline {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline::before {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-line);
+  content: "";
+}
+
+.timeline > li {
+  position: relative;
+  width: 50%;
+  padding: 0 48px 36px;
+}
+
+.timeline > li:nth-child(odd) {
+  margin-right: auto;
+  text-align: right;
+}
+
+.timeline > li:nth-child(even) {
+  margin-left: auto;
+}
+
+.entryBody {
+  display: block;
+}
+
+.entryBody::after {
+  position: absolute;
+  top: 8px;
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  border: 3px solid var(--color-graphite);
+  border-radius: 50%;
+  background: var(--color-paper);
+  content: "";
+}
+
+.timeline > li:nth-child(odd) .entryBody::after {
+  right: -7px;
+}
+
+.timeline > li:nth-child(even) .entryBody::after {
+  left: -7px;
+}
+
+.entryBody[data-kind="showroom"]::after {
+  background: var(--color-graphite);
+}
+
+.entryBody[data-kind="award"]::after {
+  border-color: var(--color-signal);
+  background: var(--color-signal);
+}
+
+.entryBody time {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-graphite);
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.entryBody[data-kind="award"] time {
+  color: var(--color-signal);
+}
+
+.entryBody p {
+  max-width: 34ch;
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+
+.timeline > li:nth-child(odd) .entryBody p {
+  margin-left: auto;
+}
+
+/* The people: tall portraits with the name beneath, every other column dropped a little so the row has rhythm. */
+.people {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 40px 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.people li {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+
+.people li:nth-child(even) {
+  margin-top: 40px;
+}
+
+.portrait {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  margin-bottom: 18px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--color-line-soft);
+}
+
+.portrait img {
+  object-fit: cover;
+  object-position: 50% 18%;
+}
+
+.people strong {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+.role {
+  color: var(--color-graphite);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.people p {
+  max-width: 28ch;
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+/* Customer notes: slips of paper pinned to the board, each a little off square. */
+.notes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 40px 56px;
+  margin: 0;
+  padding: 12px 0 0;
+  list-style: none;
+}
+
+.notes li {
+  position: relative;
+  display: grid;
+  gap: 20px;
+  align-content: start;
+  padding: 36px 32px 28px;
+  border-radius: 2px;
+  background: var(--color-paper);
+  box-shadow:
+    0 1px 2px rgb(14 27 42 / 0.12),
+    0 12px 24px rgb(14 27 42 / 0.12);
+  transform: rotate(var(--tilt, 0deg));
+}
+
+.notes li:nth-child(1) {
+  --tilt: -1.2deg;
+}
+
+.notes li:nth-child(2) {
+  --tilt: 0.9deg;
+  margin-top: 28px;
+}
+
+.notes li:nth-child(3) {
+  --tilt: 0.7deg;
+}
+
+.notes li:nth-child(4) {
+  --tilt: -0.8deg;
+  margin-top: 28px;
+}
+
+.pin {
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  border-radius: 50%;
+  background: var(--color-signal);
+  box-shadow:
+    inset -2px -2px 3px rgb(0 0 0 / 0.25),
+    0 3px 4px rgb(14 27 42 / 0.3);
+}
+
+.notes blockquote {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.1875rem, 1.7vw, 1.4375rem);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.notes p {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.notes p span {
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+}
+
+.closing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px 48px;
+}
+
+.closingLine {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.closingActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 960px) {
+  .heroGrid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  .heroPhoto {
+    justify-self: stretch;
+    max-width: none;
+    aspect-ratio: 16 / 10;
+  }
+
+  .people {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 40px 24px;
+  }
+
+  .people li:nth-child(even) {
+    margin-top: 0;
+  }
+
+  .notes {
+    gap: 32px 32px;
+  }
+
+  .pencil {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .timeline::before {
+    left: 7px;
+    margin-left: -1px;
+  }
+
+  .timeline > li,
+  .timeline > li:nth-child(odd),
+  .timeline > li:nth-child(even) {
+    width: auto;
+    margin: 0;
+    padding: 0 0 32px 40px;
+    text-align: left;
+  }
+
+  .timeline > li:nth-child(odd) .entryBody::after,
+  .timeline > li:nth-child(even) .entryBody::after {
+    right: auto;
+    left: 0;
+  }
+
+  .timeline > li:nth-child(odd) .entryBody p {
+    margin-left: 0;
+  }
+
+  .legend {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .top,
+  .afterBar {
+    --bar-half: 130px;
+  }
+
+  .hero {
+    padding-top: 48px;
+  }
+
+  .sectionHead {
+    margin-bottom: 36px;
+  }
+
+  .legend {
+    margin-top: -12px;
+    margin-bottom: 32px;
+  }
+
+  .clipboard {
+    padding-inline: 12px;
+  }
+
+  .sheetHead,
+  .sheet ul {
+    margin-inline: 18px;
+  }
+
+  .signoff {
+    padding-inline: 18px;
+  }
+
+  .notes {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+
+  .notes li:nth-child(2),
+  .notes li:nth-child(4) {
+    margin-top: 0;
+  }
+
+  .notes li {
+    padding: 32px 22px 22px;
+  }
+
+  .people {
+    gap: 32px 16px;
+  }
+
+  .closingActions {
+    width: 100%;
+  }
+
+  .closingActions > * {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notes li {
+    transform: none;
+  }
+}
