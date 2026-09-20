@@ -53,7 +53,9 @@ export function VehicleValuationFields({
         disabled={!model}
         onChange={(event) => {
           const chosen = model?.trims.find((item) => item.name === event.target.value);
-          const kept = supportedManufactureYears(chosen, new Date()).includes(Number(value.manufactureYear));
+          const kept = supportedManufactureYears(chosen, new Date()).includes(
+            Number(value.manufactureYear),
+          );
           onChange({
             ...value,
             trim: event.target.value,
