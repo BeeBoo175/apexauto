@@ -1,0 +1,335 @@
+.heading {
+  margin-bottom: 32px;
+}
+
+/* The darker band the selling guide gives its showroom visit, so the two pages share one tone. */
+.bookBand {
+  border-block: 1px solid var(--color-line);
+  background: color-mix(in srgb, var(--color-graphite) 7%, var(--color-canvas));
+  color: var(--color-graphite);
+}
+
+/* The showroom stack beside the one map. The stack is the home page's accordion turned upright: the open panel
+   grows and holds everything about its showroom, so nothing is repeated elsewhere on the page. */
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 32px;
+  align-items: stretch;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: clamp(520px, 64vh, 640px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 72px;
+  overflow: hidden;
+  border-radius: var(--radius-surface);
+  box-shadow: var(--shadow-surface);
+  background: var(--color-graphite);
+  isolation: isolate;
+  transition: flex-grow 640ms cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+
+.panel[data-active="true"] {
+  flex-grow: 8;
+}
+
+/* The photo keeps one fixed size and is only cropped by the panel, so it never re-scales while the panel animates. */
+.photo {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  z-index: -2;
+  width: 100%;
+  height: 560px;
+  transform: translateY(-50%);
+}
+
+.image {
+  object-fit: cover;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    to top,
+    rgb(14 27 42 / 0.94),
+    rgb(14 27 42 / 0.55) 50%,
+    rgb(14 27 42 / 0.12) 85%
+  );
+}
+
+.panel:not([data-active="true"]) .scrim {
+  background: linear-gradient(to right, rgb(14 27 42 / 0.9), rgb(14 27 42 / 0.45));
+}
+
+.trigger {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  padding: 0 24px;
+  border: 0;
+  background: transparent;
+  color: var(--color-paper);
+  cursor: pointer;
+}
+
+.panel[data-active="true"] .trigger {
+  pointer-events: none;
+}
+
+.trigger:focus-visible {
+  outline: 3px solid var(--color-paper);
+  outline-offset: -6px;
+  border-radius: var(--radius-surface);
+}
+
+.collapsedName {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+  transition:
+    opacity 300ms ease,
+    transform 300ms ease;
+}
+
+.panel:hover:not([data-active="true"]) .collapsedName {
+  transform: translateX(6px);
+}
+
+.panel[data-active="true"] .collapsedName {
+  opacity: 0;
+}
+
+.details {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  gap: 6px;
+  padding: 28px;
+  color: var(--color-paper);
+  opacity: 0;
+  transform: translateY(14px);
+  pointer-events: none;
+  transition:
+    opacity 260ms ease,
+    transform 260ms ease;
+}
+
+.panel[data-active="true"] .details {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition:
+    opacity 420ms ease 260ms,
+    transform 420ms cubic-bezier(0.22, 0.8, 0.24, 1) 260ms;
+}
+
+.name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2.2vw, 2rem);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.status,
+.address,
+.hours {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.status {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 600;
+}
+
+.address,
+.hours {
+  opacity: 0.88;
+}
+
+/* Filled when open, a ring when closed, so the state never rests on colour alone. */
+.lamp {
+  flex: none;
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--color-paper);
+  border-radius: 50%;
+}
+
+.status[data-open="true"] .lamp {
+  background: var(--color-paper);
+}
+
+/* Until the time is known the lamp is drawn as a placeholder dot, so it does not change shape when it resolves. */
+.lampShell {
+  border-color: rgb(255 255 255 / 0.22);
+  background: rgb(255 255 255 / 0.22);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition:
+    background-color 200ms ease,
+    transform 200ms ease;
+}
+
+.primary {
+  background: var(--color-signal);
+  color: var(--color-paper);
+}
+
+.primary:hover {
+  background: var(--color-signal-dark);
+  transform: translateY(-1px);
+}
+
+.primary:active {
+  background: var(--color-signal-dark);
+  transform: translateY(1px);
+}
+
+.secondary {
+  background: rgb(255 255 255 / 0.14);
+  color: var(--color-paper);
+}
+
+.secondary:hover {
+  background: rgb(255 255 255 / 0.26);
+}
+
+.secondary:active {
+  background: rgb(255 255 255 / 0.36);
+  transform: translateY(1px);
+}
+
+.panel:not([data-active="true"]):active .collapsedName {
+  transform: translateX(2px) scale(0.98);
+}
+
+/* Loading shell for the car count: the text keeps its size and carries a shimmer until the count arrives. */
+.shell {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  border-radius: 2px;
+  white-space: nowrap;
+  background: rgb(255 255 255 / 0.22);
+  color: transparent;
+  vertical-align: bottom;
+}
+
+.shell::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.35), transparent);
+  content: "";
+  transform: translateX(-100%);
+  animation: stockShellShimmer 2.4s linear infinite;
+}
+
+@keyframes stockShellShimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 3px solid var(--color-paper);
+  outline-offset: 3px;
+}
+
+/* The one map fills the height of the stack. */
+.map {
+  display: grid;
+}
+
+.map > aside {
+  position: static;
+  height: 100%;
+}
+
+@media (max-width: 960px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stack {
+    height: 560px;
+  }
+
+  .panel[data-active="true"] {
+    flex-grow: 6;
+  }
+}
+
+@media (max-width: 640px) {
+  .heading {
+    margin-bottom: 20px;
+  }
+
+  .details {
+    padding: 20px;
+  }
+
+  .trigger {
+    padding: 0 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .collapsedName,
+  .details,
+  .panel[data-active="true"] .details,
+  .primary,
+  .secondary {
+    transition: none;
+  }
+
+  .shell::after {
+    animation: none;
+  }
+}

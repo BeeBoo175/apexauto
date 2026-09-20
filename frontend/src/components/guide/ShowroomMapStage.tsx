@@ -189,7 +189,7 @@ export function ShowroomMapStage({
                       className={styles.pinTagBox}
                     />
                     <text x="0" y="0" className={styles.pinTagText}>
-                      Selangor (2)
+                      {`Selangor (${selangorBranches.length})`}
                     </text>
                   </g>
                 </g>

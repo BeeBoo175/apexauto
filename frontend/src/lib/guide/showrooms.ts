@@ -14,13 +14,36 @@ export interface ShowroomBranchInfo {
   lng: number;
 }
 
-export interface IntakeSlotWindow {
-  id: string;
-  windowLabel: string;
-  cutoffLabel: string;
+export const SHOWROOM_OPERATING_HOURS = "Mon – Sat, 09:00 – 18:00 MYT";
+
+const OPENING_MINUTES = 9 * 60;
+const CLOSING_MINUTES = 18 * 60;
+const MALAYSIA_OFFSET_MS = 8 * 60 * 60 * 1000;
+
+export interface ShowroomOpenStatus {
+  open: boolean;
+  label: string;
 }
 
-export const SHOWROOM_OPERATING_HOURS = "Mon – Sat, 09:00 – 18:00 MYT";
+// Whether the showrooms are open at this moment and, if not, when they next open. Malaysia keeps UTC+8 all year,
+// so the weekday and clock are read from a fixed offset rather than the visitor's own time zone.
+export function showroomOpenStatus(now: Date): ShowroomOpenStatus {
+  const malaysia = new Date(now.getTime() + MALAYSIA_OFFSET_MS);
+  const weekday = malaysia.getUTCDay();
+  const minutes = malaysia.getUTCHours() * 60 + malaysia.getUTCMinutes();
+  const trading = weekday !== 0;
+
+  if (trading && minutes >= OPENING_MINUTES && minutes < CLOSING_MINUTES) {
+    return { open: true, label: "Open now, closes at 18:00" };
+  }
+  if (trading && minutes < OPENING_MINUTES) {
+    return { open: false, label: "Closed, opens today at 09:00" };
+  }
+  if (weekday >= 1 && weekday <= 5) {
+    return { open: false, label: "Closed, opens tomorrow at 09:00" };
+  }
+  return { open: false, label: "Closed, opens Monday at 09:00" };
+}
 
 // Presentation details the branch record does not hold (D-07), keyed by the branch's stored short code so a
 // database rebuild with new identities still finds them.
@@ -62,11 +85,3 @@ export function resolveShowrooms(branches: readonly Branch[]): ShowroomBranchInf
     return details ? [{ id: branch.id, name: branch.name, ...details }] : [];
   });
 }
-export const dailyIntakeSlots: readonly IntakeSlotWindow[] = [
-  { id: "09:00", windowLabel: "09:00 – 10:30", cutoffLabel: "Book by 07:00" },
-  { id: "10:30", windowLabel: "10:30 – 12:00", cutoffLabel: "Book by 08:30" },
-  { id: "12:00", windowLabel: "12:00 – 13:30", cutoffLabel: "Book by 10:00" },
-  { id: "13:30", windowLabel: "13:30 – 15:00", cutoffLabel: "Book by 11:30" },
-  { id: "15:00", windowLabel: "15:00 – 16:30", cutoffLabel: "Book by 13:00" },
-  { id: "16:30", windowLabel: "16:30 – 18:00", cutoffLabel: "Book by 14:30" },
-];
