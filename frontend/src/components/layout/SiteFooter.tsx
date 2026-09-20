@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
+import { SITE_CONTACT } from "@/lib/site-contact";
 import styles from "./SiteChrome.module.css";
 
 export function SiteFooter() {
@@ -12,12 +13,18 @@ export function SiteFooter() {
               <Logo />
             </Link>
             <p className={styles.footerTagline}>
-              Verified cars, transparent RM pricing, and trusted trade-ins across Malaysia.
+              ApexAuto is a used car dealer with showrooms in Selangor and Pulau Pinang. Buy an
+              inspected car, book a test drive, or sell or trade in yours.
             </p>
+            <address className={styles.footerContact}>
+              <a href={`mailto:${SITE_CONTACT.email}`}>{SITE_CONTACT.email}</a>
+              <a href={`tel:${SITE_CONTACT.phoneHref}`}>{SITE_CONTACT.phone}</a>
+              <span>{SITE_CONTACT.hours}</span>
+            </address>
           </div>
           <nav className={styles.footerColumns} aria-label="Footer navigation">
             <div className={styles.footerColumn}>
-              <h2>Buy a car</h2>
+              <h2>Buy</h2>
               <ul>
                 <li>
                   <Link href="/vehicles" prefetch={false}>
@@ -25,56 +32,43 @@ export function SiteFooter() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/buying-guide#pricing">Pricing and fees</Link>
-                </li>
-                <li>
-                  <Link href="/buying-guide#financing">Financing guide</Link>
-                </li>
-                <li>
-                  <Link href="/buying-guide#warranty">ApexShield warranty</Link>
-                </li>
-              </ul>
-            </div>
-            <div className={styles.footerColumn}>
-              <h2>Sell &amp; inspect</h2>
-              <ul>
-                <li>
-                  <Link href="/sell" prefetch={false}>
-                    Sell your car
-                  </Link>
+                  <Link href="/buying-guide">How buying works</Link>
                 </li>
                 <li>
                   <Link href="/inspection">210-point inspection</Link>
                 </li>
                 <li>
-                  <Link href="/buying-guide#trade-in">How trade-in works</Link>
-                </li>
-                <li>
-                  <Link href="/branches">Showroom branches</Link>
+                  <Link href="/warranty">ApexShield warranty</Link>
                 </li>
               </ul>
             </div>
             <div className={styles.footerColumn}>
-              <h2>Company &amp; help</h2>
+              <h2>Sell</h2>
               <ul>
                 <li>
-                  <Link href="/buying-guide">Buying guide</Link>
+                  <Link href="/sell" prefetch={false}>
+                    Sell my car
+                  </Link>
                 </li>
+                <li>
+                  <Link href="/selling-guide">How selling works</Link>
+                </li>
+                <li>
+                  <Link href="/branches">Book an appraisal</Link>
+                </li>
+              </ul>
+            </div>
+            <div className={styles.footerColumn}>
+              <h2>Support</h2>
+              <ul>
                 <li>
                   <Link href="/faq">FAQ</Link>
                 </li>
                 <li>
-                  <Link href="/disclaimer">Disclaimers &amp; notices</Link>
+                  <a href={`mailto:${SITE_CONTACT.email}`}>Contact us</a>
                 </li>
-              </ul>
-            </div>
-            <div className={styles.footerColumn}>
-              <h2>Account</h2>
-              <ul>
                 <li>
-                  <Link href="/account" prefetch={false}>
-                    Your reservations
-                  </Link>
+                  <Link href="/branches">Locate us</Link>
                 </li>
                 <li>
                   <Link href="/login" prefetch={false}>
@@ -82,17 +76,36 @@ export function SiteFooter() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/register" prefetch={false}>
-                    Create account
+                  <Link href="/account" prefetch={false}>
+                    Your reservations
                   </Link>
+                </li>
+              </ul>
+            </div>
+            <div className={styles.footerColumn}>
+              <h2>About ApexAuto</h2>
+              <ul>
+                <li>
+                  <Link href="/about">Our story</Link>
+                </li>
+                <li>
+                  <Link href="/register" prefetch={false}>
+                    Create an account
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/disclaimer">Disclaimers &amp; notices</Link>
                 </li>
               </ul>
             </div>
           </nav>
         </div>
         <div className={styles.footerBottom}>
-          <p>&copy; 2026 ApexAuto Sdn Bhd. All rights reserved.</p>
-          <p>Malaysia (RM)</p>
+          <p>&copy; 2026 ApexAuto Sdn Bhd. A portfolio demonstration, not a real dealership.</p>
+          <nav className={styles.footerLegal} aria-label="Legal">
+            <Link href="/privacy">Privacy policy</Link>
+            <Link href="/terms">Terms of use</Link>
+          </nav>
         </div>
       </div>
     </footer>

@@ -17,7 +17,7 @@
   flex-shrink: 0;
   border-radius: var(--radius-sm, 4px);
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1;
   text-decoration: none;
@@ -39,39 +39,164 @@
 .navigation {
   display: flex;
   align-items: center;
-  gap: clamp(8px, 1.5vw, 22px);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  gap: 2px;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
-.navigation a {
-  padding: 8px 10px;
-  border-radius: var(--radius-sm, 4px);
+.navItem {
+  position: relative;
+}
+
+/* Links and dropdown triggers share one pill: quiet at rest, lifted on hover, pressed on click. */
+.navigation > a,
+.navTrigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
   color: var(--color-line-soft);
+  font: inherit;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.navigation > a:hover,
+.navTrigger:hover {
+  background: color-mix(in srgb, var(--color-paper) 10%, transparent);
+  color: var(--color-paper);
+}
+
+.navigation > a:active,
+.navTrigger:active {
+  background: color-mix(in srgb, var(--color-paper) 16%, transparent);
+  transform: scale(0.97);
+}
+
+.navTrigger[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--color-paper) 12%, transparent);
+  color: var(--color-paper);
+}
+
+/* The page you are on keeps full-strength text and a short signal bar under it. */
+.navigation > a[aria-current="page"],
+.navTrigger[data-active] {
+  color: var(--color-paper);
+}
+
+.navigation > a[aria-current="page"]::after,
+.navTrigger[data-active]::after {
+  position: absolute;
+  right: 14px;
+  bottom: 3px;
+  left: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-signal);
+  content: "";
+}
+
+.navCaret {
+  display: inline-flex;
+  transition: transform 200ms ease;
+}
+
+.navCaret svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* The caret points down when closed and up while the menu is open. */
+.navTrigger[aria-expanded="true"] .navCaret {
+  transform: rotate(180deg);
+}
+
+.navTrigger[aria-expanded="true"] .navCaret {
+  transform: rotate(180deg);
+}
+
+/* The panel hangs below the bar; the transparent ::before bridges the gap so hover is never lost. */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 0;
+  z-index: 50;
+  display: grid;
+  gap: 2px;
+  min-width: 232px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-paper) 12%, transparent);
+  border-radius: 16px;
+  background: var(--color-graphite);
+  box-shadow: 0 20px 40px rgb(7 15 24 / 40%);
+  animation: dropdown-in 160ms ease-out;
+}
+
+.dropdown::before {
+  position: absolute;
+  top: -14px;
+  right: 0;
+  left: 0;
+  height: 14px;
+  content: "";
+}
+
+.navigation .dropdown a {
+  position: relative;
+  display: block;
+  padding: 10px 36px 10px 14px;
+  border-radius: 10px;
+  color: var(--color-line-soft);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
   white-space: nowrap;
   transition:
-    color 150ms ease,
-    background-color 150ms ease;
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
-.navigation a:hover,
-.navigation a:active,
-.navigation a[aria-current="page"] {
+.navigation .dropdown a:hover {
+  background: color-mix(in srgb, var(--color-paper) 9%, transparent);
   color: var(--color-paper);
-  text-decoration: underline;
-  text-decoration-color: var(--color-signal);
-  text-decoration-thickness: 2px;
-  text-underline-offset: 6px;
 }
 
-.navigation a:hover {
-  background: rgb(255 255 255 / 8%);
+.navigation .dropdown a:active {
+  background: color-mix(in srgb, var(--color-paper) 15%, transparent);
+  color: var(--color-paper);
 }
 
-.navigation a:active {
-  background: rgb(255 255 255 / 20%);
+.navigation .dropdown a[aria-current="page"] {
+  background: color-mix(in srgb, var(--color-paper) 6%, transparent);
+  color: var(--color-paper);
+}
+
+.navigation .dropdown a[aria-current="page"]::after {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-signal);
+  content: "";
+  transform: translateY(-50%);
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 
 .mobileControls {
@@ -100,6 +225,26 @@
   box-shadow: 0 18px 36px rgb(7 15 24 / 32%);
 }
 
+.mobileGroup {
+  display: grid;
+  gap: 4px;
+  padding-block: 8px;
+}
+
+.mobileGroup + .mobileGroup {
+  border-top: 1px solid var(--color-graphite-soft);
+}
+
+.mobileGroupLabel {
+  margin: 0;
+  padding: 4px 12px;
+  color: var(--color-line-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .mobileMenu a {
   display: flex;
   align-items: center;
@@ -124,13 +269,13 @@
 }
 
 .mobileMenu a:active {
-  background: rgb(255 255 255 / 20%);
-  border-color: rgb(255 255 255 / 28%);
+  background: color-mix(in srgb, var(--color-paper) 20%, transparent);
+  border-color: color-mix(in srgb, var(--color-paper) 28%, transparent);
   color: var(--color-paper);
 }
 
 .mobileMenu a[aria-current="page"] {
-  border-color: rgb(255 255 255 / 26%);
+  border-color: color-mix(in srgb, var(--color-paper) 26%, transparent);
 }
 
 .header a:focus-visible,
@@ -189,6 +334,57 @@
   font-size: 13px;
   line-height: 1.55;
   color: var(--color-line);
+}
+
+.footerContact {
+  display: grid;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 13px;
+  font-style: normal;
+  line-height: 1.5;
+  color: var(--color-line);
+}
+
+.footerContact a {
+  width: fit-content;
+  color: var(--color-line-soft);
+  text-decoration: none;
+  transition: color 180ms ease;
+}
+
+.footerContact a:hover {
+  color: var(--color-paper);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.footerContact a:active {
+  color: var(--color-paper);
+  opacity: 0.78;
+}
+
+.footerLegal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+}
+
+.footerLegal a {
+  color: var(--color-line-soft);
+  text-decoration: none;
+  transition: color 180ms ease;
+}
+
+.footerLegal a:hover {
+  color: var(--color-paper);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.footerLegal a:active {
+  color: var(--color-paper);
+  opacity: 0.78;
 }
 
 .footerColumns {
@@ -278,7 +474,7 @@
     border: 1px solid #49617a;
     border-radius: var(--radius-sm, 4px);
     background: #203449;
-    color: #ffffff;
+    color: var(--color-paper);
   }
 
   .menuToggle:hover {
@@ -329,9 +525,18 @@
 
 @media (prefers-reduced-motion: reduce) {
   .brand,
+  .navTrigger,
+  .navCaret,
+  .dropdown,
   .navigation a,
   .mobileMenu a,
-  .footerColumn a {
+  .footerColumn a,
+  .footerContact a,
+  .footerLegal a {
     transition: none;
+  }
+
+  .dropdown {
+    animation: none;
   }
 }
