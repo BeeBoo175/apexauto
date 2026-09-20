@@ -1,5 +1,6 @@
 "use client";
 
+import type { KeyboardEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { ReloadNotice } from "@/components/ui/ReloadNotice";
@@ -7,11 +8,21 @@ import { useRetentionHolds } from "@/hooks/use-retention-holds";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import styles from "@/components/staff/StaffForms.module.css";
 
-// Controls are not a form: the surrounding retention form owns Enter and must not save settings from here.
+// Controls are not a form: the surrounding retention form owns Enter, so no field here may submit it.
+function keepEnterFromSettings(event: KeyboardEvent<HTMLElement>) {
+  if (event.key === "Enter" && event.target instanceof HTMLInputElement) {
+    event.preventDefault();
+  }
+}
+
 export function RetentionHolds() {
   const holds = useRetentionHolds();
   return (
-    <section className={styles.section} aria-label="Preservation holds">
+    <section
+      className={styles.section}
+      aria-label="Preservation holds"
+      onKeyDown={keepEnterFromSettings}
+    >
       <h3>Preservation holds</h3>
       <p className={styles.hint}>
         A held sale keeps its buyer details, documents and photographs past the business evidence
@@ -24,7 +35,6 @@ export function RetentionHolds() {
           value={holds.draft.reservationNumber}
           disabled={holds.busy}
           maxLength={40}
-          onKeyDown={(event) => event.key === "Enter" && event.preventDefault()}
           onChange={(event) => holds.edit({ reservationNumber: event.target.value })}
         />
         <Input
