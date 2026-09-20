@@ -204,7 +204,11 @@
 /* Photograph hero shared by the customer pages: a dimmed photograph, a scrim and left-aligned copy. */
 .hero {
   position: relative;
-  padding-block: 96px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--hero-min-height, 260px);
+  padding-block: 36px;
   background: var(--color-graphite);
   color: var(--color-paper);
 }
@@ -229,7 +233,7 @@
   position: relative;
   display: grid;
   justify-items: start;
-  gap: 16px;
+  gap: 12px;
 }
 
 .heroInner h1 {
@@ -237,7 +241,7 @@
 }
 
 .heroLede {
-  max-width: 56ch;
+  max-width: 62ch;
   margin: 0;
   color: var(--color-line-soft);
   font-size: 1.0625rem;
@@ -247,13 +251,23 @@
 .heroActions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 @media (max-width: 640px) {
   .hero {
-    padding-block: 48px;
+    padding-block: 28px;
+  }
+
+  .heroLede {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
+  .heroActions > * {
+    flex: 1 1 auto;
+    justify-content: center;
   }
 }
 
