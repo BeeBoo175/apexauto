@@ -27,6 +27,7 @@ export interface FaqEntry {
   // Shown on the buying and selling guides too.
   onBuyingPage?: boolean;
   onSellingPage?: boolean;
+  onInspectionPage?: boolean;
 }
 
 export const faqCategories: readonly FaqCategory[] = [
@@ -85,6 +86,39 @@ const buyingEntries: FaqEntry[] = [
       "Each car's Financing tab uses a 3% flat annual rate over 1–9 years, rounded to exact sen with any remainder settled in the final month. It is a budgeting estimate, not a loan offer.",
     href: "/buying-guide#settle",
     linkLabel: "See a worked estimate",
+  },
+];
+
+const inspectionEntries: FaqEntry[] = [
+  {
+    id: "instant-fail",
+    category: "Inspection & grades",
+    question: "What does “Instant fail” mean on a checkpoint?",
+    answer:
+      "A critical finding rejects the car, whatever the repair cost, and a rejected car is never listed. Structural accident or cut-and-weld damage, flood immersion and mileage tampering are always critical. Repair costs above our limit also reject.",
+    href: "/inspection#areas",
+    linkLabel: "See where we check",
+    onInspectionPage: true,
+  },
+  {
+    id: "repairs-before-sale",
+    onInspectionPage: true,
+    category: "Inspection & grades",
+    question: "Are defects repaired before the car is sold?",
+    answer:
+      "Yes. Every Minor defect, Major defect, and paid repair item finishes workshop rectification before listing.",
+    href: "/inspection#areas",
+    linkLabel: "See where we check",
+  },
+  {
+    id: "puspakom-scope",
+    onInspectionPage: true,
+    category: "Inspection & grades",
+    question: "Does ApexAuto's check replace a Puspakom or B5 inspection?",
+    answer:
+      "No. Our 210-point check covers dealership quality and stays separate from Malaysia's statutory Puspakom B5 transfer inspection.",
+    href: "/disclaimer",
+    linkLabel: "Read disclosures",
   },
 ];
 
@@ -168,25 +202,9 @@ export function faqEntries(
       href: "/inspection#grades",
       linkLabel: "Try the grade ruler",
       onWarrantyPage: true,
+      onInspectionPage: true,
     },
-    {
-      id: "repairs-before-sale",
-      category: "Inspection & grades",
-      question: "Are defects repaired before the car is sold?",
-      answer:
-        "Yes. Every Minor defect, Major defect, and paid repair item finishes workshop rectification before listing.",
-      href: "/inspection#repairs",
-      linkLabel: "See repairs before listing",
-    },
-    {
-      id: "puspakom-scope",
-      category: "Inspection & grades",
-      question: "Does ApexAuto's check replace a Puspakom or B5 inspection?",
-      answer:
-        "No. Our 210-point check covers dealership quality and stays separate from Malaysia's statutory Puspakom B5 transfer inspection.",
-      href: "/disclaimer",
-      linkLabel: "Read disclosures",
-    },
+    ...inspectionEntries,
     ...sellingEntries,
     {
       id: "branch-hours",
