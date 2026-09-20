@@ -42,7 +42,7 @@ export function LandingStorefront() {
         loading={data === null}
       />
       <LandingSellPanel taxonomy={data?.taxonomy.data} />
-      <LandingShowrooms branches={branches} vehicles={vehicles} loading={data === null} />
+      <LandingShowrooms branches={branches} loading={data === null} />
     </>
   );
 }

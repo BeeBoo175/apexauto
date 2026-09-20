@@ -4,16 +4,15 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import patterns from "@/components/layout/PublicPatterns.module.css";
+import { useShowroomStock } from "@/hooks/use-showroom-stock";
 import type { Branch } from "@/lib/branches";
 import { showroomPhoto } from "@/lib/guide/showroom-photos";
 import { resolveShowrooms, type ShowroomBranchInfo } from "@/lib/guide/showrooms";
-import type { PublicVehicle } from "@/lib/vehicles/contracts";
 import styles from "./LandingShowrooms.module.css";
 import layout from "./VehicleLayout.module.css";
 
 interface LandingShowroomsProps {
   branches: Branch[] | null;
-  vehicles: PublicVehicle[];
   // Shows the accordion with placeholder text until the showrooms have loaded.
   loading?: boolean;
 }
@@ -35,9 +34,11 @@ function showroomNumber(index: number) {
   return String(index + 1).padStart(2, "0");
 }
 
-export function LandingShowrooms({ branches, vehicles, loading = false }: LandingShowroomsProps) {
+export function LandingShowrooms({ branches, loading = false }: LandingShowroomsProps) {
   const showrooms = loading ? SHELL_SHOWROOMS : resolveShowrooms(branches ?? []);
   const [chosenId, setChosenId] = useState("");
+  // Each showroom's own catalogue total, not a count over the first page of the newest cars.
+  const { stock } = useShowroomStock(loading ? [] : showrooms);
   // The first showroom is open until one is chosen, including when the list arrives after the first render.
   const activeId = showrooms.some((showroom) => showroom.id === chosenId)
     ? chosenId
@@ -67,9 +68,7 @@ export function LandingShowrooms({ branches, vehicles, loading = false }: Landin
           {showrooms.map((showroom, index) => {
             const active = showroom.id === activeId;
             const photo = showroomPhoto(showroom.shortLabel);
-            const stockCount = vehicles.filter(
-              (vehicle) => vehicle.branchId === showroom.id,
-            ).length;
+            const stockCount = stock[showroom.id] ?? 0;
             return (
               <li key={showroom.id} className={styles.panel} data-active={active}>
                 <div className={styles.photo}>
