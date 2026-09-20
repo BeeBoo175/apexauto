@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import { Icon } from "@/components/ui/Icon";
@@ -20,17 +20,24 @@ const topics: readonly { name: NoticeTopic; icon: IconName }[] = [
 
 const CREDITS_ID = "credits";
 
+function subscribeToHash(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
+
 // The disclaimers laid out like the FAQ: a topic rail beside hairline rows that open and close.
 export function HelpNotices() {
   const [topic, setTopic] = useState<NoticeTopic>("All");
   const [openIds, setOpenIds] = useState<string[]>(disclaimerNotices.map((notice) => notice.id));
-
-  // A link to the credits opens their row, since it would otherwise land on a closed one.
-  useEffect(() => {
-    if (window.location.hash === `#${CREDITS_ID}`) {
-      setOpenIds((current) => (current.includes(CREDITS_ID) ? current : [...current, CREDITS_ID]));
-    }
-  }, []);
+  // A link to the credits opens their row, since it would otherwise land on a closed one. Once the visitor opens or
+  // closes the row themselves, that choice wins over the link.
+  const linkedToCredits = useSyncExternalStore(
+    subscribeToHash,
+    () => window.location.hash === `#${CREDITS_ID}`,
+    () => false,
+  );
+  const [creditsChoice, setCreditsChoice] = useState<boolean | null>(null);
+  const creditsOpen = creditsChoice ?? linkedToCredits;
 
   const showNotices = topic !== "Credits";
   const showCredits = topic !== "Notices";
@@ -129,16 +136,16 @@ export function HelpNotices() {
                   <button
                     type="button"
                     className={faq.accordionTrigger}
-                    aria-expanded={openIds.includes(CREDITS_ID)}
+                    aria-expanded={creditsOpen}
                     aria-controls="notice-panel-credits"
-                    onClick={() => toggle(CREDITS_ID)}
+                    onClick={() => setCreditsChoice(!creditsOpen)}
                   >
                     <span className={faq.triggerQuestion}>Photography and icon credits</span>
                     <span className={faq.triggerIcon} aria-hidden="true">
                       <Icon name="down" />
                     </span>
                   </button>
-                  {openIds.includes(CREDITS_ID) && (
+                  {creditsOpen && (
                     <div id="notice-panel-credits" className={faq.accordionBody}>
                       <ul
                         className={styles.creditList}

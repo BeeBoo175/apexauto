@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { buttonClassName } from "@/components/ui/Button";
 import { useShowroomSlots } from "@/hooks/use-showroom-slots";
 import { addCalendarDays, calendarDate, calendarDayLabel, calendarTime } from "@/lib/calendar";
@@ -46,11 +46,9 @@ export function ShowroomVisitBooking({ showroom }: { showroom: ShowroomBranchInf
   const { offer, busy } = useShowroomSlots(showroom.id, date);
   // The times already on screen stay until the next day's times arrive, so choosing a day never empties the row.
   const [lastOffer, setLastOffer] = useState<SlotOffer | null>(null);
-  useEffect(() => {
-    if (offer) {
-      setLastOffer(offer);
-    }
-  }, [offer]);
+  if (offer && offer !== lastOffer) {
+    setLastOffer(offer);
+  }
   const shown = offer ?? (lastOffer?.branchId === showroom.id ? lastOffer : null);
   const shownDate = shown?.date ?? date;
 

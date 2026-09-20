@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import styles from "./AboutOdometer.module.css";
 
 // Fictional figures for this demonstration site, counted to 1 December 2026. Yearly intake of 140 cars in 2014,
@@ -42,15 +43,14 @@ function Odometer({ value, places, label }: { value: number; places: number; lab
 // A decorative pair of odometers. They sit at zero until they scroll into view, then roll once to their final count.
 export function AboutOdometer() {
   const root = useRef<HTMLDivElement>(null);
-  const [counted, setCounted] = useState(false);
+  const reduced = usePrefersReducedMotion();
+  const [arrived, setArrived] = useState(false);
+  // With reduced motion the counters show their totals straight away.
+  const counted = reduced || arrived;
 
   useEffect(() => {
     const element = root.current;
-    if (!element) {
-      return;
-    }
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setCounted(true);
+    if (!element || reduced) {
       return;
     }
     const observer = new IntersectionObserver(
@@ -58,14 +58,14 @@ export function AboutOdometer() {
         // Entries can arrive in a batch, so any one of them being in view is enough.
         if (entries.some((entry) => entry.isIntersecting)) {
           observer.disconnect();
-          setCounted(true);
+          setArrived(true);
         }
       },
       { threshold: 0.4 },
     );
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [reduced]);
 
   return (
     <section className={styles.bar} aria-label="ApexAuto in numbers">

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useShowroomOpenStatus } from "@/hooks/use-showroom-open-status";
 import { useShowroomStock } from "@/hooks/use-showroom-stock";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import { buttonClassName } from "@/components/ui/Button";
@@ -10,7 +11,6 @@ import { LiveVehicles } from "@/components/vehicles/LiveVehicles";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import { showroomPhoto } from "@/lib/guide/showroom-photos";
 import type { BranchRegionState, ShowroomBranchInfo } from "@/lib/guide/showrooms";
-import { showroomOpenStatus, type ShowroomOpenStatus } from "@/lib/guide/showrooms";
 import { catalogueDefaults, catalogueHref } from "@/lib/vehicles/query";
 import { MAX_MAP_ZOOM_INDEX, ShowroomMapStage } from "./ShowroomMapStage";
 import { ShowroomVisitBooking } from "./ShowroomVisitBooking";
@@ -43,15 +43,10 @@ export function ShowroomsWorkspace({
   const [selangorFocused, setSelangorFocused] = useState(false);
   const [hoveredBranchId, setHoveredBranchId] = useState<string | null>(null);
   const [zoomIndex, setZoomIndex] = useState(0);
-  // Read after mount so the server and the first browser render agree; the status line reserves its space.
-  const [openStatus, setOpenStatus] = useState<ShowroomOpenStatus | null>(null);
+  // Null until the page is running, so the server and the first browser render agree; the status line reserves its
+  // space.
+  const openStatus = useShowroomOpenStatus();
   const { ready, stock } = useShowroomStock(showroomBranches);
-
-  useEffect(() => {
-    setOpenStatus(showroomOpenStatus(new Date()));
-    const refresh = window.setInterval(() => setOpenStatus(showroomOpenStatus(new Date())), 60_000);
-    return () => window.clearInterval(refresh);
-  }, []);
 
   const panel = showroomBranches.find((branch) => branch.id === panelId) ?? showroomBranches[0];
   const selectedBranch = showroomBranches.find((branch) => branch.id === selectedId) ?? null;
