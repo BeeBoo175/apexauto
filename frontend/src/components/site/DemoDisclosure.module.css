@@ -1,16 +1,41 @@
+/* The points line up with the dialog's title and description: no indent, with a small marker whose column keeps
+   wrapped lines aligned. */
 .points {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 12px;
   margin: 0;
-  padding-left: 20px;
+  padding: 0;
+  list-style: none;
   color: var(--color-graphite);
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 22px;
+}
+
+.points li {
+  display: grid;
+  grid-template-columns: 6px minmax(0, 1fr);
+  column-gap: 12px;
+}
+
+.points li::before {
+  width: 6px;
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 50%;
+  background: var(--color-signal);
+  content: "";
 }
 
 .actions {
   display: flex;
   justify-content: flex-end;
   margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-line-soft);
+}
+
+@media (max-width: 600px) {
+  .actions > * {
+    flex: 1 1 auto;
+  }
 }
