@@ -219,6 +219,29 @@
   .faqRail {
     position: static;
   }
+
+  /* Topics become one swipeable row of chips so questions start near the top. */
+  .railHeading {
+    display: none;
+  }
+
+  .topicNav {
+    display: flex;
+    margin-inline: -16px;
+    padding: 2px 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .topicButton {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 44px;
+    border-color: var(--color-line);
+    border-radius: 999px;
+    background: var(--color-paper);
+    white-space: nowrap;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

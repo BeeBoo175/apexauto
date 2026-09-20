@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { SearchField } from "@/components/ui/SearchField";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import { faqCategories, type FaqCategory, type FaqEntry } from "@/lib/guide/faq-items";
 import type { IconName } from "@/lib/icons";
@@ -18,9 +17,16 @@ const categoryIcons: Record<FaqCategory, IconName> = {
   "Branches & test drives": "map-pin",
 };
 
-export function FaqExplorer({ faqEntries }: { faqEntries: readonly FaqEntry[] }) {
+export function FaqExplorer({
+  faqEntries,
+  query,
+  onResetQuery,
+}: {
+  faqEntries: readonly FaqEntry[];
+  query: string;
+  onResetQuery: () => void;
+}) {
   const [category, setCategory] = useState<FaqCategory>("All");
-  const [query, setQuery] = useState("");
   const [openIds, setOpenIds] = useState<string[]>([faqEntries[0].id]);
 
   const normalizedQuery = query.trim().toLowerCase();
@@ -78,21 +84,6 @@ export function FaqExplorer({ faqEntries }: { faqEntries: readonly FaqEntry[] })
 
       <div className={styles.faqMain}>
         <div className={styles.faqTopBar}>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-            }}
-          >
-            <SearchField
-              label="Search frequently asked questions"
-              value={query}
-              disabled={false}
-              onChange={setQuery}
-              onClear={query ? () => setQuery("") : undefined}
-              placeholder="Search questions (e.g. SST, RM 500, Grade B, trade-in)..."
-            />
-          </form>
-
           <div className={styles.resultsMeta}>
             <h2 id="faq-list-heading" className={styles.resultsHeading}>
               {category === "All" ? "All questions" : category}
@@ -112,7 +103,7 @@ export function FaqExplorer({ faqEntries }: { faqEntries: readonly FaqEntry[] })
               size="md"
               onClick={() => {
                 setCategory("All");
-                setQuery("");
+                onResetQuery();
               }}
             >
               Reset topic and search
