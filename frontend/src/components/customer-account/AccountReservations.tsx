@@ -18,6 +18,7 @@ import { ReservedCar } from "./ReservedCar";
 import { ReservationHistoryRow } from "./ReservationHistoryRow";
 import { CancelReservation } from "./CancelReservation";
 import { DepositRefunds } from "./DepositRefunds";
+import { PendingPayment } from "./PendingPayment";
 import { AccountLoadingShell } from "./AccountLoadingShell";
 import styles from "./Reservations.module.css";
 import historyStyles from "./ReservationHistory.module.css";
@@ -63,6 +64,14 @@ export function AccountReservations({
           <Button variant="secondary" disabled={disabled} onClick={() => void history.load()}>
             Try loading reservations again
           </Button>
+        )}
+        {snapshot?.pendingPayment && (
+          <PendingPayment
+            key={snapshot.pendingPayment.requestId}
+            item={snapshot.pendingPayment}
+            disabled={disabled}
+            onChanged={() => void history.load()}
+          />
         )}
         {featured && (
           <div id="reserved-car" className={styles.currentReservation}>

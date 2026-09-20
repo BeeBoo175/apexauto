@@ -108,7 +108,7 @@
   aspect-ratio: 3 / 2;
   overflow: hidden;
   border-radius: 6px;
-  background: var(--color-line-soft);
+  background: var(--vehicle-photo-placeholder);
 }
 
 .thumb img {

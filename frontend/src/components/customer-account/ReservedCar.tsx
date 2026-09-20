@@ -3,7 +3,8 @@
 import { usePaymentMode } from "@/hooks/use-payment-mode";
 import { useState } from "react";
 import Image from "next/image";
-import { Button } from "@/components/ui/Button";
+import Link from "next/link";
+import { buttonClassName } from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import {
@@ -11,6 +12,7 @@ import {
   reservationVehicleName,
   type AccountReservation,
 } from "@/lib/vehicles/account-reservations";
+import { HoldCountdown } from "./HoldCountdown";
 import { ReservationTerms } from "./ReservationTerms";
 import styles from "./Reservations.module.css";
 
@@ -69,8 +71,11 @@ export function ReservedCar({
           )}
           {item.isActive && !item.isHandled && (
             <div className={styles.deadline}>
-              <span>Held until (Malaysia)</span>
-              <strong>{formatMalaysianDateTime(item.dueAt ?? item.receipt.expiresAt)}</strong>
+              <HoldCountdown until={item.dueAt ?? item.receipt.expiresAt} />
+              <span>
+                The car stays off sale until{" "}
+                {formatMalaysianDateTime(item.dueAt ?? item.receipt.expiresAt)} (Malaysia).
+              </span>
             </div>
           )}
           {item.release && (
@@ -96,14 +101,19 @@ export function ReservedCar({
         <p className={styles.reference}>Reservation {item.receipt.number}</p>
         {/* Once our team handles the sale, changes are agreed with them rather than cancelled online. */}
         {item.isActive && !item.isHandled && (
-          <Button
-            variant="secondary"
-            className={styles.cancelButton}
-            disabled={disabled}
-            onClick={onCancel}
-          >
-            Cancel reservation
-          </Button>
+          <div className={styles.heldActions}>
+            <Link href="/branches" className={buttonClassName("primary", "lg")}>
+              Book my showroom visit
+            </Link>
+            <button
+              type="button"
+              className={styles.cancelLink}
+              disabled={disabled}
+              onClick={onCancel}
+            >
+              Cancel and refund {formatCurrency(item.receipt.deposit)}
+            </button>
+          </div>
         )}
       </div>
       <details className={styles.disclosure}>

@@ -59,7 +59,7 @@
   aspect-ratio: 3 / 2;
   overflow: hidden;
   border-radius: 8px;
-  background: var(--color-line-soft);
+  background: var(--vehicle-photo-placeholder);
   color: var(--color-muted);
   font-size: 14px;
 }
@@ -316,5 +316,116 @@
 @media (max-width: 540px) {
   .heading {
     align-items: start;
+  }
+}
+
+/* The held car is the one thing in the account with a deadline, so it sits on a graphite band. */
+.reservedCar {
+  padding: 32px;
+  border-radius: 8px;
+  background: var(--color-graphite);
+  color: var(--color-paper);
+}
+
+.reservedCar .state {
+  background: var(--color-graphite-soft);
+  color: var(--color-line-soft);
+}
+
+.reservedCar .location,
+.reservedCar .price span,
+.reservedCar .deadline span,
+.reservedCar .help,
+.reservedCar .reference {
+  color: var(--color-line);
+}
+
+.reservedCar .refund {
+  color: var(--color-line-soft);
+}
+
+.reservedCar .steps li {
+  border-top-color: var(--color-graphite-soft);
+  color: var(--color-line);
+}
+
+.reservedCar .steps li[data-state="done"],
+.reservedCar .steps li[data-state="current"] {
+  color: var(--color-paper);
+}
+
+.reservedCar .steps li[data-state="done"] {
+  border-top-color: var(--color-line-soft);
+}
+
+.reservedCar .reservationActions {
+  border-top-color: var(--color-graphite-soft);
+}
+
+.reservedCar .disclosure summary {
+  color: var(--color-paper);
+}
+
+.reservedCar .terms {
+  padding: 24px;
+  border-radius: 8px;
+  background: var(--color-paper);
+  color: var(--color-graphite);
+}
+
+.clock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.clockFace {
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: var(--color-paper);
+  color: var(--color-graphite);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.heldActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 24px;
+}
+
+.cancelLink {
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-paper);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.cancelLink:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancelLink:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .reservedCar {
+    padding: 16px;
+  }
+
+  .clockFace {
+    font-size: 1.75rem;
   }
 }

@@ -40,9 +40,48 @@ export interface AccountReservation {
   dueAt: string | null;
 }
 
+// A deposit the customer started paying for: the car is held for them, but nothing is reserved until it is paid.
+export interface PendingPayment {
+  requestId: string;
+  vehicleId: string;
+  branchName: string;
+  make: string;
+  model: string;
+  trim: string;
+  manufactureYear: number;
+  expiresAt: string;
+}
+
 export interface AccountReservations extends Page<AccountReservation> {
   actor: CurrentActor;
   active: AccountReservation | null;
+  pendingPayment: PendingPayment | null;
+}
+
+function parsePendingPayment(value: unknown): PendingPayment | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const texts = [value.branchName, value.make, value.model, value.trim];
+  if (
+    !isUuid(value.requestId) ||
+    !isUuid(value.vehicleId) ||
+    !texts.every((text) => typeof text === "string" && text.trim().length > 0) ||
+    !Number.isSafeInteger(value.manufactureYear) ||
+    !isUtcInstant(value.expiresAt)
+  ) {
+    return null;
+  }
+  return {
+    requestId: value.requestId,
+    vehicleId: value.vehicleId,
+    branchName: String(value.branchName),
+    make: String(value.make),
+    model: String(value.model),
+    trim: String(value.trim),
+    manufactureYear: Number(value.manufactureYear),
+    expiresAt: value.expiresAt,
+  };
 }
 
 function parseRelease(value: unknown): CustomerReservationRelease | null {
@@ -117,7 +156,10 @@ export function parseAccountReservations(value: unknown): AccountReservations | 
   const page = parsePage(value, parseAccountReservation, ACCOUNT_PAGE_SIZE);
   const actor = parseActor(value.actor);
   const active = value.active === null ? null : parseAccountReservation(value.active);
+  const pendingPayment =
+    value.pendingPayment == null ? null : parsePendingPayment(value.pendingPayment);
   if (
+    (value.pendingPayment != null && !pendingPayment) ||
     !page ||
     page.pageSize !== ACCOUNT_PAGE_SIZE ||
     !actor ||
@@ -135,7 +177,7 @@ export function parseAccountReservations(value: unknown): AccountReservations | 
   if (page.items.length !== expectedCount) {
     return null;
   }
-  return { ...page, actor, active };
+  return { ...page, actor, active, pendingPayment };
 }
 
 export interface ReservationFilters extends HistoryFilters {
