@@ -11,7 +11,7 @@ interface VehiclePriceBoxProps {
   total: string;
   totalNote: string;
   monthly: { amount: number; years: number } | null;
-  breakdown: { label: string; amount: string }[];
+  breakdown: { label: string; amount: string; discount?: boolean }[];
   actions: ReactNode;
   promo: ReactNode;
 }
@@ -65,7 +65,7 @@ export function VehiclePriceBox({
 
       <dl className={styles.breakdown}>
         {breakdown.map((row) => (
-          <div key={row.label} data-discount={row.amount.startsWith("−") || undefined}>
+          <div key={row.label} data-discount={row.discount || undefined}>
             <dt>{row.label}</dt>
             <dd>{row.amount}</dd>
           </div>

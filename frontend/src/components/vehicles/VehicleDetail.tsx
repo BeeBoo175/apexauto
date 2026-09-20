@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { StatusPage } from "@/components/ui/StatusPage";
@@ -162,7 +162,8 @@ export function VehicleDetail({
                     ? [
                         {
                           label: `Promo discount (${promo.accepted.promoCode})`,
-                          amount: `âˆ’${formatCurrency(price.promoDiscount)}`,
+                          amount: `−${formatCurrency(price.promoDiscount)}`,
+                          discount: true,
                         },
                       ]
                     : []),
