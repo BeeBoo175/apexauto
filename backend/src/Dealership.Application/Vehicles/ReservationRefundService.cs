@@ -150,10 +150,16 @@ public sealed class ReservationRefundService(IReservationRefundStore refunds, IP
     private async Task<RefundResult> PayOutAsync(ReservationRefund refund, RefundDue due, string accountNumber,
         CancellationToken cancellationToken)
     {
+        // A refund still being paid out always has its holder; only a completed refund loses it to retention.
+        if (refund.AccountHolder is not { } accountHolder)
+        {
+            throw new InvalidOperationException("A refund without an account holder cannot be paid out.");
+        }
+
         try
         {
             var payout = await gateway.CreatePayoutAsync(new(refund.Reference, refund.BankCode, accountNumber,
-                refund.AccountHolder!, refund.AmountSen, "ApexAuto reservation deposit refund"), cancellationToken);
+                accountHolder, refund.AmountSen, "ApexAuto reservation deposit refund"), cancellationToken);
             refund.AttachPayout(payout.Id);
             if (payout.Outcome == PayoutOutcome.Completed)
             {

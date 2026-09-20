@@ -44,7 +44,7 @@ public sealed class StaffInvitationStore(DealershipDbContext database, UserManag
                 return Result(StaffInvitationStatus.Invalid);
             }
 
-            if (await EmailHasAccountAsync(invitation.Email!, cancellationToken))
+            if (await EmailHasAccountAsync(invitation.Email, cancellationToken))
             {
                 return Result(StaffInvitationStatus.EmailTaken);
             }
@@ -181,11 +181,16 @@ public sealed class StaffInvitationStore(DealershipDbContext database, UserManag
             return new PublicStaffInvitationResult(StaffInvitationStatus.Unavailable);
         }
 
+        if (invitation.Name is not { } name)
+        {
+            return new PublicStaffInvitationResult(StaffInvitationStatus.Unavailable);
+        }
+
         var branchName = invitation.BranchId is null ? null : await database.Branches.AsNoTracking()
             .Where(branch => branch.Id == invitation.BranchId).Select(branch => branch.Name)
             .SingleOrDefaultAsync(cancellationToken);
         return new PublicStaffInvitationResult(StaffInvitationStatus.Succeeded,
-            new PublicStaffInvitation(invitation.Name!, invitation.Role, branchName));
+            new PublicStaffInvitation(name, invitation.Role, branchName));
     }
 
     public async Task<StaffInvitationResult> ActivateAsync(string token, string password, string username,
@@ -221,7 +226,14 @@ public sealed class StaffInvitationStore(DealershipDbContext database, UserManag
                 return Result(StaffInvitationStatus.Unavailable);
             }
 
-            if (await EmailHasAccountAsync(invitation.Email!, cancellationToken))
+            // Email, name and mobile are NULL together only once the activated person is erased.
+            if (invitation.Email is not { } email || invitation.Name is not { } name ||
+                invitation.Mobile is not { } mobile)
+            {
+                return Result(StaffInvitationStatus.Unavailable);
+            }
+
+            if (await EmailHasAccountAsync(email, cancellationToken))
             {
                 return Result(StaffInvitationStatus.EmailTaken);
             }
@@ -230,8 +242,8 @@ public sealed class StaffInvitationStore(DealershipDbContext database, UserManag
             var user = new AccountUser
             {
                 Id = Guid.NewGuid(),
-                UserName = invitation.Email,
-                Email = invitation.Email,
+                UserName = email,
+                Email = email,
                 AccountUsername = username,
                 EmailConfirmed = true,
                 Role = invitation.Role,
@@ -246,7 +258,7 @@ public sealed class StaffInvitationStore(DealershipDbContext database, UserManag
                     ? StaffInvitationStatus.EmailTaken : StaffInvitationStatus.Invalid);
             }
 
-            database.StaffProfiles.Add(new StaffProfile(user.Id, invitation.Name!, invitation.Mobile!));
+            database.StaffProfiles.Add(new StaffProfile(user.Id, name, mobile));
             invitation.ActivatedAt = now;
             invitation.ActivatedUserId = user.Id;
             await database.SaveChangesAsync(cancellationToken);

@@ -51,8 +51,9 @@ public sealed class ReservationRefund
     public int Attempt { get; private set; }
     public string BankCode { get; private set; } = string.Empty;
     public string AccountLast4 { get; private set; } = string.Empty;
-    // NULL once the retention executor has removed the holder name of a completed refund.
-    public string? AccountHolder { get; private set; } = string.Empty;
+    // NULL once the retention executor has removed the holder name of a completed refund; the database CHECK
+    // CK_ReservationRefunds_Holder allows NULL only on a Completed refund.
+    public string? AccountHolder { get; private set; }
     public string? PayoutId { get; private set; }
     public DateTimeOffset RequestedAt { get; private set; }
     public DateTimeOffset? SettledAt { get; private set; }
@@ -122,7 +123,7 @@ public sealed class ReservationRefund
 
     private void SetAccount(string bankCode, string accountNumber, string accountHolder)
     {
-        var holder = accountHolder?.Trim();
+        var holder = accountHolder?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(bankCode) || bankCode.Length > MaximumBankCodeLength || !bankCode.All(char.IsAsciiLetterOrDigit) ||
             !IsValidAccountNumber(accountNumber) || !IsValidAccountHolder(holder))
         {
@@ -131,6 +132,6 @@ public sealed class ReservationRefund
 
         BankCode = bankCode;
         AccountLast4 = accountNumber[^4..];
-        AccountHolder = holder!;
+        AccountHolder = holder;
     }
 }
