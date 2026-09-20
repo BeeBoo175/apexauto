@@ -14,6 +14,9 @@ export interface ApiRequestOptions {
   expectedActor?: string;
   // The customer a staff member books for; the backend authorizes the staff role and branch.
   onBehalfOf?: string;
+  // Reads that never change per visitor (the inspection catalogue) may be cached for this many seconds, so the page
+  // that shows them can be generated ahead of time.
+  revalidateSeconds?: number;
 }
 
 export async function requestApi(
@@ -32,7 +35,10 @@ export async function requestApi(
     ...(options.signal ? [options.signal] : []),
   ]);
   const clientHeader = process.env.TRUSTED_CLIENT_IP_HEADER;
-  const clientAddress = clientHeader ? trustedClientAddress(await headers(), clientHeader) : null;
+  const cached = options.revalidateSeconds !== undefined;
+  // Reading the request headers would make the page dynamic, so a cached read does not forward the client address.
+  const clientAddress =
+    clientHeader && !cached ? trustedClientAddress(await headers(), clientHeader) : null;
   let body: BodyInit | undefined;
   if (options.body) {
     body = JSON.stringify(options.body);
@@ -54,7 +60,9 @@ export async function requestApi(
       ...(clientAddress ? { "X-Forwarded-For": clientAddress } : {}),
     },
     body,
-    cache: "no-store",
+    ...(cached
+      ? { next: { revalidate: options.revalidateSeconds } }
+      : { cache: "no-store" as const }),
     redirect: "error",
     signal,
   });
