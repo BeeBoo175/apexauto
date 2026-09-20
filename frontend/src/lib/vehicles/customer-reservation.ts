@@ -1,7 +1,7 @@
 import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { parsePurchasePrice, type PurchasePrice } from "./purchase-quote";
 import { providerPaymentAddress } from "./payment-address";
-import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "./deposit-terms";
+import { RESERVATION_DEPOSIT } from "./deposit-terms";
 
 export interface CustomerReservationRequest {
   operationId: string;
@@ -81,8 +81,8 @@ export function parseCustomerReservation(value: unknown): CustomerReservationRec
     value.deposit !== RESERVATION_DEPOSIT ||
     !isUtcInstant(value.createdAt) ||
     !isUtcInstant(value.expiresAt) ||
-    Date.parse(value.expiresAt) - Date.parse(value.createdAt) !==
-      RESERVATION_HOLD_HOURS * 60 * 60 * 1000
+    // The hold length is an Administrator setting, so only its direction is checked.
+    Date.parse(value.expiresAt) <= Date.parse(value.createdAt)
   ) {
     return null;
   }

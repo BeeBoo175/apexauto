@@ -126,6 +126,10 @@ test("reservation confirmations bind exact operation, vehicle, publication, prom
   expect(parsed).not.toBeNull();
   expect(JSON.stringify(parsed)).not.toMatch(/private|nric|mobile/);
   expect(parseCustomerReservation(parsed)).toEqual(parsed);
+  // An Administrator may set any hold length, so a 24-hour receipt is accepted as well.
+  expect(
+    parseCustomerReservation({ ...receipt, expiresAt: "2026-10-31T00:00:00Z" }),
+  ).not.toBeNull();
   expect(matchesCustomerReservation(parsed, body, photoId, id, receipt.buyer.email)).toBe(true);
   for (const changed of [{ operationId: photoId }, { publicationId: id }, { promoId: id }]) {
     expect(
@@ -144,7 +148,8 @@ test("reservation confirmations bind exact operation, vehicle, publication, prom
   expect(matchesCustomerReservation(parsed, body, id, id, null)).toBe(false);
   for (const changed of [
     { deposit: 0 },
-    { expiresAt: "2026-11-01T00:00:01Z" },
+    { expiresAt: receipt.createdAt },
+    { expiresAt: "2026-10-29T23:59:59Z" },
     { createdAt: "2026-10-30T00:00:00" },
     { price: { ...price, total: price.total + 1 } },
     { promoId: undefined },
