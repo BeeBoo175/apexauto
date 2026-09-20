@@ -1,5 +1,5 @@
-using Dealership.Domain.Accounts;
 using Dealership.Application.Accounts;
+using Dealership.Domain.Accounts;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,8 +20,13 @@ public sealed class PersonQuery(DealershipDbContext database) : IPersonQuery
                       join picture in database.AccountPictures.Where(AccountPicture.Current)
                           on user.Id equals picture.UserId into pictures
                       from picture in pictures.DefaultIfEmpty()
-                      select new Person(user.Id, user.Role, customer.LegalName ?? staff.Name ?? PersonLabels.FormerCustomer, user.AccountUsername ?? string.Empty,
-                          user.IsActive, user.BranchId, branch.Name, user.Email, staff.Mobile, (Guid?)picture.Id))
+                      // An erased person keeps the label of their role, as AccountNames reads it.
+                      let erasedLabel = user.Role == AccountRoles.Customer
+                          ? PersonLabels.FormerCustomer
+                          : PersonLabels.FormerEmployee
+                      select new Person(user.Id, user.Role, customer.LegalName ?? staff.Name ?? erasedLabel,
+                          user.AccountUsername ?? string.Empty, user.IsActive, user.BranchId, branch.Name, user.Email,
+                          staff.Mobile, (Guid?)picture.Id))
             .SingleOrDefaultAsync(cancellationToken);
     }
 }

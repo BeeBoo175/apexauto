@@ -59,6 +59,9 @@ public sealed class AdministratorStaffErasureTests(IntakePhotoFixture fixture) :
         var directory = await admin.GetAsync("/api/staff-accounts?pageSize=50");
         Assert.Equal(HttpStatusCode.OK, directory.StatusCode);
         Assert.Contains("Former employee", await directory.Content.ReadAsStringAsync());
+        var person = await verify.ServiceProvider.GetRequiredService<IPersonQuery>()
+            .FindAsync(userId, CancellationToken.None);
+        Assert.Equal(PersonLabels.FormerEmployee, person!.Name);
     }
 
     private static async Task<Guid> UserIdAsync(
