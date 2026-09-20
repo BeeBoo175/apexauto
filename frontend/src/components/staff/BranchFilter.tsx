@@ -82,7 +82,7 @@ export function BranchFilter({
           </option>
         ))}
       </Select>
-      {!branches && <ReloadNotice subject="Branches" />}
+      {!branches && <ReloadNotice subject="Branches" compact />}
       {pagination &&
         (paginationClassName ? (
           <div className={paginationClassName}>{pagination}</div>
