@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import { prefersReducedMotion } from "@/lib/motion";
 import styles from "./PageMotion.module.css";
 
 // Sections that already move on their own, or open the page, are left alone.
@@ -16,7 +17,7 @@ function movesItself(section: Element) {
 // anything the browser's reduced-motion setting rules out, are left as they are.
 export function PageMotion({ children }: { children: ReactNode }) {
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (prefersReducedMotion()) {
       return;
     }
     const observers: IntersectionObserver[] = [];

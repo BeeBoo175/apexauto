@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { prefersReducedMotion } from "@/lib/motion";
 import styles from "./AboutReveal.module.css";
 
 type RevealState = "visible" | "hidden" | "shown";
@@ -29,7 +30,7 @@ export function Reveal({
 
   useEffect(() => {
     const element = ref.current;
-    if (!element || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (!element || prefersReducedMotion()) {
       return;
     }
     if (element.getBoundingClientRect().top < window.innerHeight * 0.9) {

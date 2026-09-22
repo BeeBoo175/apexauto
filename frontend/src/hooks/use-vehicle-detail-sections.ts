@@ -1,6 +1,6 @@
 "use client";
 
-import { prefersReducedMotion } from "@/lib/motion";
+import { prefersReducedMotion, TABBED_LAYOUT_QUERY } from "@/lib/motion";
 import { useLayoutEffect, useRef, useState } from "react";
 import {
   isVehicleDetailSection,
@@ -11,7 +11,7 @@ import { writeAddress } from "@/lib/browser-url";
 
 // Below this width the sections are tabs: only the chosen one is shown.
 function isTabbedLayout() {
-  return window.matchMedia("(max-width: 920px)").matches;
+  return window.matchMedia(TABBED_LAYOUT_QUERY).matches;
 }
 
 function updateSectionUrl(section: VehicleDetailSection | null) {

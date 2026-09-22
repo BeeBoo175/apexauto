@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { prefersReducedMotion } from "@/lib/motion";
 
 const COUNT_DURATION_MS = 350;
 
@@ -11,7 +12,7 @@ export function useCountedNumber(target: number) {
 
   useEffect(() => {
     const from = current.current;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = prefersReducedMotion();
     if (reduced || from === target) {
       current.current = target;
       setShown(target);

@@ -1,4 +1,5 @@
-const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+export const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+export const TABBED_LAYOUT_QUERY = "(max-width: 920px)";
 
 // True when the visitor asked the system for less motion; false where there is no window to ask.
 export function prefersReducedMotion() {

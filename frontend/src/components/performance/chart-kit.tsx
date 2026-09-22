@@ -1,6 +1,7 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { REDUCED_MOTION_QUERY } from "@/lib/motion";
 import styles from "./Performance.module.css";
 
 // Every chart on Performance and Home is drawn with Recharts and shares these settings, so scales, margins, height and
@@ -22,21 +23,9 @@ export const colors = {
 
 export const tickStyle = { fill: "var(--color-muted)", fontSize: 12 };
 
-const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
-
-function subscribe(listener: () => void) {
-  const media = window.matchMedia(reducedMotionQuery);
-  media.addEventListener("change", listener);
-  return () => media.removeEventListener("change", listener);
-}
-
 // Charts draw in when they appear, unless the person asked their device for less motion.
 export function useReducedMotion() {
-  return useSyncExternalStore(
-    subscribe,
-    () => window.matchMedia(reducedMotionQuery).matches,
-    () => false,
-  );
+  return useMediaQuery(REDUCED_MOTION_QUERY);
 }
 
 interface TipLine {
