@@ -22,13 +22,21 @@ export function useFinderCount(filters: CatalogueFilters, initialTotal: number |
 
     const attempt = new AbortController();
     const timer = window.setTimeout(async () => {
-      const result = await apiFetch(`/api/vehicles?${catalogueQuery(filters, 1)}`, parseCatalogue, {
-        signal: attempt.signal,
-      });
-      if (attempt.signal.aborted || !result.data) {
-        return;
+      try {
+        const result = await apiFetch(
+          `/api/vehicles?${catalogueQuery(filters, 1)}`,
+          parseCatalogue,
+          {
+            signal: attempt.signal,
+          },
+        );
+        if (attempt.signal.aborted || !result.data) {
+          return;
+        }
+        setTotal(result.data.total);
+      } catch {
+        // A failed read keeps the last confirmed figure.
       }
-      setTotal(result.data.total);
     }, COUNT_DELAY_MS);
 
     return () => {

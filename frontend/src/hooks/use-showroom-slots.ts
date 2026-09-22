@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api-browser";
 import type { SlotOffer } from "@/lib/intake/contracts";
@@ -10,8 +10,7 @@ import { parseSlots } from "@/lib/intake/parse";
 export function useShowroomSlots(branchId: string, date: string) {
   const [offer, setOffer] = useState<SlotOffer | null>(null);
   const [busy, setBusy] = useState(false);
-  // The toast helpers are rebuilt whenever a toast appears, so a failed read must not restart this effect.
-  const toastRef = useRef(useToast());
+  const { error: showError } = useToast();
 
   useEffect(() => {
     const attempt = new AbortController();
@@ -32,7 +31,7 @@ export function useShowroomSlots(branchId: string, date: string) {
         setOffer(result.data);
       } catch (error) {
         if (!attempt.signal.aborted) {
-          toastRef.current.error(
+          showError(
             error instanceof Error && error.message
               ? error.message
               : "Times could not be refreshed. The last confirmed times remain visible.",
@@ -46,7 +45,7 @@ export function useShowroomSlots(branchId: string, date: string) {
     }
     void load();
     return () => attempt.abort();
-  }, [branchId, date]);
+  }, [branchId, date, showError]);
 
   const current = offer?.branchId === branchId && offer.date === date ? offer : null;
   return { offer: current, busy };

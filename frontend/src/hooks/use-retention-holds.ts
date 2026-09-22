@@ -63,6 +63,10 @@ export function useRetentionHolds() {
         toast.error(result.message || "The hold could not be changed.");
       }
       return false;
+    } catch {
+      toast.warning("The change is unconfirmed. Reload the holds before repeating it.");
+      reload();
+      return false;
     } finally {
       inFlight.current = false;
       setBusy(false);
