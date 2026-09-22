@@ -20,7 +20,7 @@ import {
   DEFAULT_TERM_YEARS,
   defaultCashContribution,
 } from "@/lib/vehicles/financing";
-import { handoverDocuments } from "./BuyingGuideOverviewSection";
+import { handoverDocuments } from "@/lib/guide/handover-documents";
 import { BuyingSteps, type BuyingStepPanel } from "./BuyingSteps";
 import styles from "./BuyingJourney.module.css";
 

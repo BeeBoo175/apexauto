@@ -75,28 +75,6 @@ export const inspectionCategoryTitles: Record<InspectionCategoryKey, string> = {
   UnderbodyBrakesSuspension: "Underbody, Brakes & Suspension",
 };
 
-export function signOffInvariants(
-  pointCount: number,
-): readonly { icon: IconName; title: string; copy: string }[] {
-  return [
-    {
-      icon: "check",
-      title: "Every point checked",
-      copy: `All ${pointCount} checks inspected or marked Not fitted.`,
-    },
-    {
-      icon: "tool",
-      title: "Fixed before listing",
-      copy: "Minor, Major, and paid repairs finish before sale.",
-    },
-    {
-      icon: "shield-check",
-      title: "Tamper-proof reports",
-      copy: "Signed reports lock and version cleanly on updates.",
-    },
-  ];
-}
-
 /**
  * Mirrors InspectionGrading.Calculate in Dealership.Domain:
  * grade is the worse of the estimated-cost threshold and worst-severity floor.
