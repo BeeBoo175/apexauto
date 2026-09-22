@@ -13,13 +13,6 @@
   color: var(--color-graphite);
 }
 
-.sectionDescription {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 0.9375rem;
-  line-height: 1.65;
-}
-
 .inputs {
   min-width: 0;
 }
@@ -27,11 +20,6 @@
 .fields {
   display: grid;
   gap: 24px;
-}
-
-.budgetGroup {
-  display: grid;
-  gap: 16px;
 }
 
 .sliderField {
@@ -78,15 +66,6 @@
   color: var(--color-muted);
   font-size: 0.75rem;
   line-height: 1.65;
-}
-
-.allowance {
-  color: var(--color-trust);
-  font-weight: 600;
-}
-
-.summary .allowance dt {
-  color: inherit;
 }
 
 .error {
@@ -150,10 +129,6 @@
 
 .mixCash {
   background: #0d7a64;
-}
-
-.mixTradeIn {
-  background: #2f6bd6;
 }
 
 .mixPrincipal {
@@ -246,17 +221,6 @@
 
 .resultStatus {
   width: 100%;
-}
-
-.allowanceTitle {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.browseAction {
-  margin-top: 20px;
 }
 
 .qualification {
@@ -352,10 +316,6 @@
 
 .result .summary dd {
   color: var(--color-paper);
-}
-
-.result .allowance {
-  color: var(--color-line-soft);
 }
 
 .result .mixBar {

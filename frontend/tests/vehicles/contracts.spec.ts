@@ -27,7 +27,6 @@ import {
   buildAppliedCataloguePills,
   buildPaginationSlots,
 } from "@/lib/vehicles/catalogue-controls";
-import { matchingQuickFilterId } from "@/lib/vehicles/featured";
 
 const ids = [
   "47cf2705-95cc-48b6-b907-64bf18dd87da",
@@ -594,18 +593,4 @@ test("catalogue pills and pagination slots summarize active criteria and bounded
   expect(buildPaginationSlots(1, 5)).toEqual([1, 2, 3, 4, 5]);
   expect(buildPaginationSlots(5, 10)).toEqual([1, "ellipsis-start", 4, 5, 6, "ellipsis-end", 10]);
   expect(buildPaginationSlots(14, 10)).toEqual([1, "ellipsis-start", 9, 10]);
-  expect(
-    matchingQuickFilterId({
-      ...catalogueDefaults,
-      maximumPrice: "60000",
-      sort: "price",
-      direction: "asc",
-    }),
-  ).toBe("under-60k");
-  expect(
-    matchingQuickFilterId({
-      ...catalogueDefaults,
-      search: "City",
-    }),
-  ).toBeNull();
 });

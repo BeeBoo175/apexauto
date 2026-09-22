@@ -2,11 +2,9 @@
 
 import { RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
 
-import { useState } from "react";
 import Link from "next/link";
-import { Button, buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { Input, Select } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input";
 import { useCountedNumber } from "@/hooks/use-counted-number";
 import { useVehicleFinancing } from "@/hooks/use-vehicle-financing";
 import { formatCurrency } from "@/lib/currency-format";
@@ -17,66 +15,26 @@ import layout from "./VehicleLayout.module.css";
 
 const DEPOSIT_PERCENT_PRESETS = [10, 20, 30] as const;
 
-export interface FinancingPreset {
-  id: string;
-  label: string;
-  total: number;
-}
-
 interface VehicleFinancingProps {
   total: number;
-  tradeInAllowance?: number;
   headingId?: string;
-  heading?: string;
-  description?: string;
-  presets?: readonly FinancingPreset[];
-  allowCustomTotal?: boolean;
-  browseHref?: (targetTotal: number) => string;
-  onClearTradeIn?: () => void;
 }
 
 export function VehicleFinancing({
   total,
-  tradeInAllowance = 0,
   headingId = "vehicle-financing",
-  heading = "Financing estimate",
-  description,
-  presets,
-  allowCustomTotal = false,
-  browseHref,
-  onClearTradeIn,
 }: VehicleFinancingProps) {
-  const [selectedPresetId, setSelectedPresetId] = useState(presets?.[0]?.id ?? "custom");
-  const [customTotalDraft, setCustomTotalDraft] = useState(() => total.toFixed(2));
-  const parsedCustom = parseMyr(customTotalDraft);
-  const customTotal =
-    allowCustomTotal && parsedCustom !== null && parsedCustom > 0 ? parsedCustom : null;
-  const effectiveTotal = customTotal ?? total;
-  const totalError =
-    allowCustomTotal && customTotal === null ? "Enter a positive vehicle price in RM." : null;
-
   const { cashContribution, setCashContribution, termYears, setTermYears, estimate, error } =
-    useVehicleFinancing(effectiveTotal, tradeInAllowance);
+    useVehicleFinancing(total);
   const monthlyShown = useCountedNumber(estimate?.monthlyInstallment ?? 0);
   const cash = parseMyr(cashContribution);
-  const sliderCash = Math.min(effectiveTotal, cash ?? 0);
+  const sliderCash = Math.min(total, cash ?? 0);
   const appliedCash = Math.max(0, cash ?? 0);
   const mixSum =
-    estimate && !error
-      ? Math.max(1, appliedCash + tradeInAllowance + estimate.principal + estimate.interest)
-      : 1;
+    estimate && !error ? Math.max(1, appliedCash + estimate.principal + estimate.interest) : 1;
   const cashMixPct = (appliedCash / mixSum) * 100;
-  const tradeInMixPct = (tradeInAllowance / mixSum) * 100;
   const principalMixPct = ((estimate?.principal ?? 0) / mixSum) * 100;
   const interestMixPct = ((estimate?.interest ?? 0) / mixSum) * 100;
-
-  function selectPreset(id: string) {
-    setSelectedPresetId(id);
-    const match = presets?.find((item) => item.id === id);
-    if (match) {
-      setCustomTotalDraft(match.total.toFixed(2));
-    }
-  }
 
   return (
     <section aria-labelledby={headingId} className={styles.calculator}>
@@ -84,42 +42,10 @@ export function VehicleFinancing({
         <div className={styles.inputs}>
           <header className={styles.sectionHeading}>
             <h2 id={headingId} className={`${layout.sectionHeading} ${styles.title}`}>
-              {heading}
+              Financing estimate
             </h2>
-            {description && <p className={styles.sectionDescription}>{description}</p>}
           </header>
           <div className={`${styles.fields} ${layout.calmFields}`}>
-            {allowCustomTotal && (
-              <div className={styles.budgetGroup}>
-                {presets && presets.length > 0 && (
-                  <Select
-                    label="Sample showroom vehicle or preset"
-                    id={`${headingId}-preset`}
-                    value={selectedPresetId}
-                    onChange={(event) => selectPreset(event.target.value)}
-                  >
-                    {presets.map((preset) => (
-                      <option key={preset.id} value={preset.id}>
-                        {preset.label} ({formatCurrency(preset.total)})
-                      </option>
-                    ))}
-                    <option value="custom">Custom vehicle price</option>
-                  </Select>
-                )}
-                <Input
-                  label="Target vehicle price (RM)"
-                  id={`${headingId}-total`}
-                  inputMode="decimal"
-                  maxLength={20}
-                  value={customTotalDraft}
-                  aria-invalid={totalError ? true : undefined}
-                  onChange={(event) => {
-                    setSelectedPresetId("custom");
-                    setCustomTotalDraft(event.target.value);
-                  }}
-                />
-              </div>
-            )}
             <div className={styles.sliderField}>
               <Input
                 label="Cash contribution (RM)"
@@ -136,7 +62,7 @@ export function VehicleFinancing({
                 aria-label="Adjust cash contribution"
                 type="range"
                 min="0"
-                max={effectiveTotal}
+                max={total}
                 step="0.01"
                 value={sliderCash}
                 aria-valuetext={formatCurrency(sliderCash)}
@@ -148,7 +74,7 @@ export function VehicleFinancing({
                 aria-label="Deposit as a share of the price"
               >
                 {DEPOSIT_PERCENT_PRESETS.map((percent) => {
-                  const share = cashShare(effectiveTotal, percent);
+                  const share = cashShare(total, percent);
                   return (
                     <button
                       key={percent}
@@ -163,7 +89,7 @@ export function VehicleFinancing({
               </div>
               <div className={styles.rangeLabels}>
                 <span>RM 0</span>
-                <span>{formatCurrency(effectiveTotal)}</span>
+                <span>{formatCurrency(total)}</span>
               </div>
               <p id={`${headingId}-cash-help`} className={styles.help}>
                 Includes any {formatCurrency(RESERVATION_DEPOSIT, "RM")} hold deposit paid online.
@@ -193,16 +119,16 @@ export function VehicleFinancing({
             </div>
           </div>
           <p id={`${headingId}-error`} role="status" className={styles.error}>
-            {totalError ?? error}
+            {error}
           </p>
         </div>
         <div className={styles.result}>
           <div role="status" aria-atomic="true" className={styles.resultStatus}>
-            {(totalError || (!error && !estimate)) && (
+            {!error && !estimate && (
               <p>Enter a valid target price and contribution to see an estimate.</p>
             )}
-            {!totalError && error && <p>Update your contribution to see an estimate.</p>}
-            {!totalError && estimate && !error && (
+            {error && <p>Update your contribution to see an estimate.</p>}
+            {estimate && !error && (
               <>
                 <p className={styles.resultLabel}>
                   {estimate.principal === 0
@@ -215,9 +141,6 @@ export function VehicleFinancing({
                   <div className={styles.mixBar} aria-hidden="true">
                     {cashMixPct > 0 && (
                       <span className={styles.mixCash} style={{ width: `${cashMixPct}%` }} />
-                    )}
-                    {tradeInMixPct > 0 && (
-                      <span className={styles.mixTradeIn} style={{ width: `${tradeInMixPct}%` }} />
                     )}
                     {principalMixPct > 0 && (
                       <span
@@ -236,11 +159,6 @@ export function VehicleFinancing({
                     <span>
                       <i className={styles.mixCash} /> Cash
                     </span>
-                    {tradeInAllowance > 0 && (
-                      <span>
-                        <i className={styles.mixTradeIn} /> Trade-in
-                      </span>
-                    )}
                     <span>
                       <i className={styles.mixPrincipal} /> Principal
                     </span>
@@ -251,31 +169,9 @@ export function VehicleFinancing({
                 </div>
                 <dl className={styles.summary}>
                   <div>
-                    <dt>
-                      {allowCustomTotal ? "Target vehicle budget" : "Estimated purchase total"}
-                    </dt>
-                    <dd>{formatCurrency(effectiveTotal)}</dd>
+                    <dt>Estimated purchase total</dt>
+                    <dd>{formatCurrency(total)}</dd>
                   </div>
-                  {tradeInAllowance > 0 && (
-                    <div className={styles.allowance}>
-                      <dt>
-                        <span className={styles.allowanceTitle}>
-                          <span>Trade-in allowance</span>
-                          {onClearTradeIn && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="row"
-                              onClick={onClearTradeIn}
-                            >
-                              Remove
-                            </Button>
-                          )}
-                        </span>
-                      </dt>
-                      <dd>{formatCurrency(tradeInAllowance)}</dd>
-                    </div>
-                  )}
                   <div>
                     <dt>Amount financed</dt>
                     <dd>{formatCurrency(estimate.principal)}</dd>
@@ -288,7 +184,7 @@ export function VehicleFinancing({
               </>
             )}
           </div>
-          {!totalError && estimate && !error && (
+          {estimate && !error && (
             <details className={styles.breakdown}>
               <summary>
                 Repayment breakdown <Icon name="down" />
@@ -308,17 +204,6 @@ export function VehicleFinancing({
                 </div>
               </dl>
             </details>
-          )}
-          {browseHref && !totalError && (
-            <div className={styles.browseAction}>
-              <Link
-                href={browseHref(effectiveTotal)}
-                prefetch={false}
-                className={buttonClassName("primary", "md")}
-              >
-                Browse cars under {formatCurrency(effectiveTotal)}
-              </Link>
-            </div>
           )}
           <p className={styles.qualification}>
             Indicative only. Final purchase terms require confirmation.
