@@ -32,6 +32,8 @@ export function parsePublicVehicle(value: unknown): PublicVehicle | null {
     value.manufactureYear > 9999 ||
     !isNonNegativeInteger(value.mileageKilometres) ||
     !isMyr(value.vehiclePrice) ||
+    !isMyr(value.onTheRoadTotal) ||
+    value.onTheRoadTotal <= 0 ||
     !isNonNegativeInteger(value.photoCount) ||
     (value.coverPhotoId !== null && !isUuid(value.coverPhotoId)) ||
     (value.photoCount === 0) !== (value.coverPhotoId === null) ||
@@ -56,6 +58,7 @@ export function parsePublicVehicle(value: unknown): PublicVehicle | null {
     manufactureYear: value.manufactureYear,
     mileageKilometres: value.mileageKilometres,
     vehiclePrice: value.vehiclePrice,
+    onTheRoadTotal: value.onTheRoadTotal,
     transmission,
     fuel,
     // The grade arrives as its name or its number; a missing or unknown one shows no grade rather than failing the card.

@@ -20,6 +20,8 @@ internal static class PurchaseQuoteAssertions
         Assert.Equal(PurchaseQuoteStatus.Unavailable, (await quotes.QuoteAsync(vehicleId, null, CancellationToken.None)).Status);
         using var missingSettings = await client.GetAsync($"/api/vehicles/{vehicleId}");
         Assert.Equal(HttpStatusCode.ServiceUnavailable, missingSettings.StatusCode);
+        var publicStore = services.GetRequiredService<IPublicListingStore>();
+        Assert.Equal(ListingStatus.Unavailable, (await publicStore.ReadAsync(new(), CancellationToken.None)).Status);
         var estimateRequest = await VerifyEstimateAccessAsync(database, listingClient, vehicleId, updater);
         database.PurchaseSettings.Add(new(500m, 0.08m, updater, DateTimeOffset.UtcNow));
         database.PromoCodes.AddRange(

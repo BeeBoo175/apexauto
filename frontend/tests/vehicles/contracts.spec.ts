@@ -44,6 +44,7 @@ const vehicle = {
   manufactureYear: 2020,
   mileageKilometres: 90000,
   vehiclePrice: 45000,
+  onTheRoadTotal: 45630,
   transmission: 0,
   fuel: 0,
   coverPhotoId: ids[2],
@@ -439,6 +440,8 @@ test("catalogue accepts exact twelve-item paging and rejects missing, duplicate 
     { items: [{ ...vehicle, id: "invalid" }] },
     { items: [{ ...vehicle, fuel: 5 }] },
     { items: [{ ...vehicle, vehiclePrice: -1 }] },
+    { items: [{ ...vehicle, onTheRoadTotal: undefined }] },
+    { items: [{ ...vehicle, onTheRoadTotal: 0 }] },
     { items: [{ ...vehicle, coverPhotoId: null }] },
     { items: [{ ...vehicle, publishedAt: "yesterday" }] },
   ]) {

@@ -21,6 +21,7 @@ const listing = {
   manufactureYear: 2020,
   mileageKilometres: 90000,
   vehiclePrice: 45000,
+  onTheRoadTotal: 45630,
   transmission: 0,
   fuel: 0,
   coverPhotoId: photoId,

@@ -14,12 +14,16 @@ import {
   RESERVATION_DEPOSIT,
   RESERVATION_HOLD_HOURS,
 } from "@/lib/vehicles/deposit-terms";
-import { calculateFinancing, defaultCashContribution } from "@/lib/vehicles/financing";
+import {
+  calculateFinancing,
+  DEFAULT_CASH_PERCENT,
+  DEFAULT_TERM_YEARS,
+  defaultCashContribution,
+} from "@/lib/vehicles/financing";
 import { handoverDocuments } from "./BuyingGuideOverviewSection";
 import { BuyingSteps, type BuyingStepPanel } from "./BuyingSteps";
 import styles from "./BuyingJourney.module.css";
 
-const ESTIMATE_YEARS = 7;
 // An illustration, not a listed car, so the page needs no live data and can be generated ahead of time.
 const EXAMPLE_ON_THE_ROAD = 60000;
 
@@ -86,17 +90,17 @@ function CostSheet() {
 
 function EstimateTable() {
   const cash = Number(defaultCashContribution(EXAMPLE_ON_THE_ROAD));
-  const estimate = calculateFinancing(EXAMPLE_ON_THE_ROAD, cash, ESTIMATE_YEARS);
+  const estimate = calculateFinancing(EXAMPLE_ON_THE_ROAD, cash, DEFAULT_TERM_YEARS);
   if (!estimate) {
     return null;
   }
 
   const rows = [
     { label: "On the road", value: formatCurrency(EXAMPLE_ON_THE_ROAD) },
-    { label: "Cash contribution (10%)", value: formatCurrency(cash) },
+    { label: `Cash contribution (${DEFAULT_CASH_PERCENT}%)`, value: formatCurrency(cash) },
     { label: "Loan", value: formatCurrency(estimate.principal) },
     {
-      label: `Monthly over ${ESTIMATE_YEARS} years`,
+      label: `Monthly over ${DEFAULT_TERM_YEARS} years`,
       value: formatCurrency(estimate.monthlyInstallment),
     },
   ];

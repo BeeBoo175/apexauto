@@ -2,8 +2,8 @@
 
 import { Button } from "@/components/ui/Button";
 import { useVehicleCardPhotos } from "@/hooks/use-vehicle-card-photos";
-import { formatCurrency } from "@/lib/currency-format";
-import { defaultMonthlyInstallment } from "@/lib/vehicles/financing";
+import { formatCurrency, formatWholeCurrency } from "@/lib/currency-format";
+import { defaultMonthlyEstimate } from "@/lib/vehicles/financing";
 import type { PublicVehicle } from "@/lib/vehicles/contracts";
 import { VehicleCardView } from "./VehicleCardView";
 import styles from "./VehicleCardView.module.css";
@@ -19,7 +19,7 @@ export function VehicleCard({
 }) {
   const photos = useVehicleCardPhotos(vehicle, photoVersion);
   const name = `${vehicle.manufactureYear} ${vehicle.make} ${vehicle.model} ${vehicle.trim}`;
-  const installment = defaultMonthlyInstallment(vehicle.vehiclePrice);
+  const estimate = defaultMonthlyEstimate(vehicle.onTheRoadTotal);
 
   return (
     <div className={styles.interactive}>
@@ -31,9 +31,7 @@ export function VehicleCard({
         <VehicleCardView
           vehicle={vehicle}
           price={formatCurrency(vehicle.vehiclePrice)}
-          monthly={
-            installment === null ? null : `RM ${Math.round(installment).toLocaleString("en-MY")}`
-          }
+          monthly={estimate ? formatWholeCurrency(estimate.monthlyInstallment) : null}
           photoUrl={photos.photoId ? `/api/vehicles/${vehicle.id}/photos/${photos.photoId}` : null}
           photoPending={photos.position > 0 && !photos.photoId}
           first={first || photos.position > 0}

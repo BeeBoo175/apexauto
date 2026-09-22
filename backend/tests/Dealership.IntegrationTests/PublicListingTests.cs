@@ -50,6 +50,11 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         var outsideSales = await ProvisionAsync(services, outsideBranch, AccountRoles.SalesAgent);
         var other = await CreateAsync(data, services, outsideManager, outsideTechnician, RecordCount + 1, outsideBranch, outsideSales);
 
+        using var client = data.Factory.CreateClient();
+        using var listingApi = fixture.CreateFactory();
+        using var listingClient = listingApi.CreateClient();
+        var first = records[0];
+        await PurchaseQuoteAssertions.VerifyAsync(services, client, listingClient, first.VehicleId, manager);
         var filter = new PublicListingFilter(BranchId: data.BranchId, Sort: "price", Direction: "asc");
         var firstPage = await store.ReadAsync(filter, CancellationToken.None);
         Assert.Equal(ListingStatus.Succeeded, firstPage.Status);
@@ -65,11 +70,6 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         await ListingReadAssertions.VerifyAsync(fixture, services, data, manager, outsideManager, technician,
             records[0].VehicleId, other.VehicleId);
 
-        using var client = data.Factory.CreateClient();
-        using var listingApi = fixture.CreateFactory();
-        using var listingClient = listingApi.CreateClient();
-        var first = records[0];
-        await PurchaseQuoteAssertions.VerifyAsync(services, client, listingClient, first.VehicleId, manager);
         using var response = await client.GetAsync($"/api/vehicles/{first.VehicleId}");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.CacheControl!.NoStore);
@@ -83,6 +83,10 @@ public sealed class PublicListingTests(IntakePhotoFixture fixture) : IClassFixtu
         Assert.Equal(90m, detail.RoadTax);
         Assert.Equal(new PurchasePrice(60000m, 500m, 90m, 40m, 0m, 60630m), detail.Price);
         Assert.Equal(0.08m, detail.SstRate);
+        Assert.Equal(60630m, detail.Listing.OnTheRoadTotal);
+        var catalogue = await store.ReadAsync(new(BranchId: data.BranchId, RequestedPageSize: PublicListingFilter.CataloguePageSize),
+            CancellationToken.None);
+        Assert.Equal(detail.Price.Total, catalogue.Catalogue!.Items.Single(item => item.Id == first.VehicleId).OnTheRoadTotal);
         var json = await response.Content.ReadAsStringAsync();
         foreach (var privateValue in new[] { data.OwnerId.ToString(), first.InspectionId.ToString(), first.SignedId.ToString(),
             technician.ToString(), manager.ToString(), first.Draft.Id.ToString(), "PL1BT000000000000", "WYY 8800", "Private owner reference" })

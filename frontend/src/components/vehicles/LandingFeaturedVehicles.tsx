@@ -24,6 +24,7 @@ const SHELL_VEHICLE: PublicVehicle = {
   manufactureYear: 2024,
   mileageKilometres: 50000,
   vehiclePrice: 50000,
+  onTheRoadTotal: 50630,
   transmission: "Automatic",
   fuel: "Petrol",
   grade: "A",

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
 import { formatCurrency } from "@/lib/currency-format";
+import { DEFAULT_CASH_PERCENT } from "@/lib/vehicles/financing";
 import layout from "./VehicleLayout.module.css";
 import styles from "./VehiclePriceBox.module.css";
 
@@ -48,8 +49,8 @@ export function VehiclePriceBox({
         <span className={styles.note}>{totalNote}</span>
         {monthly && (
           <span className={styles.note}>
-            About {formatCurrency(monthly.amount)} a month over {monthly.years} years, 10% cash. Not
-            a loan offer.
+            About {formatCurrency(monthly.amount)} a month over {monthly.years} years,{" "}
+            {DEFAULT_CASH_PERCENT}% cash. Not a loan offer.
           </span>
         )}
       </div>

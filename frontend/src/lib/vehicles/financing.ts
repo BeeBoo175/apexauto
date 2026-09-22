@@ -30,21 +30,29 @@ export function exactMyr(sen: bigint): number | null {
   return parseMyr(`${whole}.${fraction}`);
 }
 
-export function defaultCashContribution(total: number): string {
+export const DEFAULT_TERM_YEARS = 7;
+export const DEFAULT_CASH_PERCENT = 10;
+
+// A whole-percent share of the total, rounded to the nearest sen without floating point.
+export function cashShare(total: number, percent: number): string {
   const totalSen = minorUnits(total);
   if (totalSen === null) {
     return "";
   }
-  return exactMyr(roundedDivision(totalSen, BigInt(10)))?.toFixed(2) ?? "";
+  return exactMyr(roundedDivision(totalSen * BigInt(percent), BigInt(100)))?.toFixed(2) ?? "";
 }
 
-// The listing card quotes the same starting terms the vehicle page opens with: 10% cash over seven years.
-export function defaultMonthlyInstallment(total: number): number | null {
+export function defaultCashContribution(total: number): string {
+  return cashShare(total, DEFAULT_CASH_PERCENT);
+}
+
+// Listing cards and the vehicle page quote this one estimate, on the on-the-road total.
+export function defaultMonthlyEstimate(total: number): FinancingEstimate | null {
   const cash = parseMyr(defaultCashContribution(total));
   if (cash === null) {
     return null;
   }
-  return calculateFinancing(total, cash, 7)?.monthlyInstallment ?? null;
+  return calculateFinancing(total, cash, DEFAULT_TERM_YEARS);
 }
 
 // This local estimate mirrors PurchasePricing; the backend owns agreed terms.

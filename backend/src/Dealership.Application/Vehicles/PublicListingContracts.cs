@@ -63,7 +63,11 @@ public sealed record PublicListingFilter(int Page = 1, string? Make = null, stri
 
 public sealed record PublicListingItem(Guid Id, Guid BranchId, string BranchName, string Make, string Model,
     string Trim, int ManufactureYear, int MileageKilometres, decimal VehiclePrice, VehicleTransmission Transmission,
-    VehicleFuel Fuel, Guid? CoverPhotoId, int PhotoCount, DateTimeOffset PublishedAt, InspectionGrade? Grade);
+    VehicleFuel Fuel, Guid? CoverPhotoId, int PhotoCount, DateTimeOffset PublishedAt, InspectionGrade? Grade)
+{
+    // The no-promo on-the-road total from PurchasePricing; the store fills it so cards and detail quote one figure.
+    public decimal OnTheRoadTotal { get; init; }
+}
 
 public sealed record PublicListingPage(IReadOnlyList<PublicListingItem> Items, int Total, int Page, int PageSize);
 

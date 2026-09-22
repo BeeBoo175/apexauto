@@ -13,7 +13,7 @@ import type { ApiResult } from "@/lib/api";
 import { formatCurrency, formatWholeCurrency } from "@/lib/currency-format";
 import type { ShowroomBranchInfo } from "@/lib/guide/showrooms";
 import { fuelLabel } from "@/lib/vehicles/contracts";
-import { calculateFinancing, defaultCashContribution } from "@/lib/vehicles/financing";
+import { DEFAULT_TERM_YEARS, defaultMonthlyEstimate } from "@/lib/vehicles/financing";
 import { RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import type { CustomerVehicleAccess } from "@/lib/vehicles/customer-access";
@@ -33,9 +33,6 @@ import { LiveVehicles } from "./LiveVehicles";
 import { VehicleGradeBadge } from "./VehicleGradeBadge";
 import styles from "./VehicleDetail.module.css";
 import layout from "./VehicleLayout.module.css";
-
-// The loan terms behind the monthly estimate match the calculator's defaults.
-const ESTIMATE_YEARS = 7;
 
 export function VehicleDetail({
   id,
@@ -60,9 +57,7 @@ export function VehicleDetail({
     ? `${listing.manufactureYear} ${listing.make} ${listing.model} ${listing.trim}`
     : "Vehicle details";
 
-  const monthly = price
-    ? calculateFinancing(price.total, Number(defaultCashContribution(price.total)), ESTIMATE_YEARS)
-    : null;
+  const monthly = price ? defaultMonthlyEstimate(price.total) : null;
 
   return (
     <section className={styles.page}>
@@ -149,7 +144,7 @@ export function VehicleDetail({
                     : `Includes ${formatCurrency(price.processingFee + price.roadTax + price.serviceTax)} fees and road tax`
                 }
                 monthly={
-                  monthly ? { amount: monthly.monthlyInstallment, years: ESTIMATE_YEARS } : null
+                  monthly ? { amount: monthly.monthlyInstallment, years: DEFAULT_TERM_YEARS } : null
                 }
                 breakdown={[
                   { label: "Processing fee", amount: formatCurrency(price.processingFee) },

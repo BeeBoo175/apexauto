@@ -1,6 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { calculateGuideOtr } from "@/lib/guide/buying-guide-math";
-import { calculateFinancing, defaultCashContribution } from "@/lib/vehicles/financing";
+import {
+  calculateFinancing,
+  cashShare,
+  DEFAULT_CASH_PERCENT,
+  DEFAULT_TERM_YEARS,
+  defaultCashContribution,
+  defaultMonthlyEstimate,
+} from "@/lib/vehicles/financing";
 
 test("flat estimate reconciles every sen through the final installment", () => {
   expect(defaultCashContribution(60000)).toBe("6000.00");
@@ -47,6 +54,25 @@ test("cash includes the deposit and covered prices require zero financing withou
   }
   expect(calculateFinancing(60000, 500, 7, 9000)?.principal).toBe(50500);
   expect(calculateFinancing(1, 0.33, 1, 0.34)?.principal).toBe(0.33);
+});
+
+test("card and page quote one monthly estimate on the on-the-road total", () => {
+  const total = 60630;
+  const page = calculateFinancing(
+    total,
+    Number(cashShare(total, DEFAULT_CASH_PERCENT)),
+    DEFAULT_TERM_YEARS,
+  );
+  expect(defaultMonthlyEstimate(total)).toEqual(page);
+  expect(defaultMonthlyEstimate(total)?.monthlyInstallment).toBe(786.02);
+  expect(defaultMonthlyEstimate(-1)).toBeNull();
+});
+
+test("deposit shares round to the sen without floating point", () => {
+  expect(cashShare(60630, 20)).toBe("12126.00");
+  expect(cashShare(0.05, 10)).toBe("0.01");
+  expect(cashShare(1.15, 30)).toBe("0.35");
+  expect(cashShare(-1, 10)).toBe("");
 });
 
 test("invalid money, unsafe output and non-whole terms never produce a financing estimate", () => {

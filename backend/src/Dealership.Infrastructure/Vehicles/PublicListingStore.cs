@@ -14,7 +14,7 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
     private const string GradeBJson = "{\"assessment\":{\"grade\":1}}";
     private const string GradeCJson = "{\"assessment\":{\"grade\":2}}";
 
-    private static readonly Expression<Func<PublicListingRow, PublicListingItem>> Item = row => new(
+    private static readonly Expression<Func<PublicListingRow, PublicListingRead>> Item = row => new(new PublicListingItem(
         row.Vehicle.Id, row.Vehicle.BranchId, row.BranchName, row.Vehicle.Make, row.Vehicle.Model,
         row.Vehicle.Trim, row.Vehicle.ManufactureYear, row.Vehicle.MileageKilometres,
         row.Revision.VehiclePrice, row.Revision.Transmission, row.Revision.Fuel,
@@ -22,7 +22,11 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
         row.Publication.RecordedAt,
         EF.Functions.JsonContains(row.ReportJson, GradeAJson) ? (InspectionGrade?)InspectionGrade.A :
         EF.Functions.JsonContains(row.ReportJson, GradeBJson) ? (InspectionGrade?)InspectionGrade.B :
-        EF.Functions.JsonContains(row.ReportJson, GradeCJson) ? (InspectionGrade?)InspectionGrade.C : null);
+        EF.Functions.JsonContains(row.ReportJson, GradeCJson) ? (InspectionGrade?)InspectionGrade.C : null),
+        row.Revision.RoadTax);
+
+    // The card item plus the road tax its on-the-road total needs; the total is priced after materialisation.
+    private sealed record PublicListingRead(PublicListingItem Item, decimal RoadTax);
 
     public async Task<PublicListingPageResult> ReadAsync(PublicListingFilter filter, CancellationToken cancellationToken)
     {
@@ -50,8 +54,15 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
         var now = await database.DatabaseNowAsync(cancellationToken);
         var rows = Filter(PublicListingQuery.Read(database, now), filter);
         var total = await rows.CountAsync(cancellationToken);
-        var items = await Order(rows, filter).Select(Item)
+        var settings = await database.PurchaseSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        if (settings is null)
+        {
+            return new(ListingStatus.Unavailable);
+        }
+
+        var reads = await Order(rows, filter).Select(Item)
             .ReadPageAsync(filter.Page, filter.RequestedPageSize, total, cancellationToken);
+        var items = reads.Select(read => read.Item with { OnTheRoadTotal = OnTheRoadTotal(read, settings) }).ToArray();
         return new(ListingStatus.Succeeded, new(Array.AsReadOnly(items), total, filter.Page, filter.RequestedPageSize));
     }
 
@@ -72,8 +83,8 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
         await ReservationReadSnapshot.ReconcileAsync(database, vehicleId, cancellationToken);
         var now = await database.DatabaseNowAsync(cancellationToken);
         var listing = PublicListingQuery.Read(database, now).Where(row => row.Vehicle.Id == vehicleId);
-        var item = await listing.Select(Item).SingleOrDefaultAsync(cancellationToken);
-        if (item is null)
+        var read = await listing.Select(Item).SingleOrDefaultAsync(cancellationToken);
+        if (read is null)
         {
             return new(ListingStatus.NotFound);
         }
@@ -84,6 +95,7 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
             return new(ListingStatus.Unavailable);
         }
 
+        var item = read.Item;
         var details = await listing.Select(row => new
         {
             row.Revision.RoadTax,
@@ -102,9 +114,13 @@ public sealed class PublicListingStore(DealershipDbContext database) : IPublicLi
             report.SignedAt, Array.AsReadOnly(points));
         var price = PurchasePricing.CalculatePrice(item.VehiclePrice, settings.ProcessingFee,
             details.RoadTax, settings.SstRate);
+        item = item with { OnTheRoadTotal = price.Total };
         return new(ListingStatus.Succeeded, new(item, details.RoadTax, details.Description,
             Array.AsReadOnly(details.PhotoIds), checklist, price, settings.SstRate, details.PublicationId));
     }
+
+    private static decimal OnTheRoadTotal(PublicListingRead read, PurchaseSettings settings) =>
+        PurchasePricing.CalculatePrice(read.Item.VehiclePrice, settings.ProcessingFee, read.RoadTax, settings.SstRate).Total;
 
     private static IQueryable<PublicListingRow> Filter(IQueryable<PublicListingRow> rows, PublicListingFilter filter)
     {

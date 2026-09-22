@@ -39,6 +39,7 @@ export interface PublicVehicle {
   manufactureYear: number;
   mileageKilometres: number;
   vehiclePrice: number;
+  onTheRoadTotal: number;
   transmission: (typeof transmissions)[number];
   fuel: (typeof fuels)[number];
   grade: VehicleGrade | null;

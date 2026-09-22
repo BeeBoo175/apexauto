@@ -11,6 +11,7 @@ import { useCountedNumber } from "@/hooks/use-counted-number";
 import { useVehicleFinancing } from "@/hooks/use-vehicle-financing";
 import { formatCurrency } from "@/lib/currency-format";
 import { parseMyr } from "@/lib/currency-input";
+import { cashShare } from "@/lib/vehicles/financing";
 import styles from "./VehicleFinancing.module.css";
 import layout from "./VehicleLayout.module.css";
 
@@ -146,20 +147,19 @@ export function VehicleFinancing({
                 role="group"
                 aria-label="Deposit as a share of the price"
               >
-                {DEPOSIT_PERCENT_PRESETS.map((percent) => (
-                  <button
-                    key={percent}
-                    type="button"
-                    aria-pressed={
-                      cash !== null && Math.abs(cash - (effectiveTotal * percent) / 100) < 0.005
-                    }
-                    onClick={() =>
-                      setCashContribution(((effectiveTotal * percent) / 100).toFixed(2))
-                    }
-                  >
-                    {percent}%
-                  </button>
-                ))}
+                {DEPOSIT_PERCENT_PRESETS.map((percent) => {
+                  const share = cashShare(effectiveTotal, percent);
+                  return (
+                    <button
+                      key={percent}
+                      type="button"
+                      aria-pressed={cash !== null && cash === parseMyr(share)}
+                      onClick={() => setCashContribution(share)}
+                    >
+                      {percent}%
+                    </button>
+                  );
+                })}
               </div>
               <div className={styles.rangeLabels}>
                 <span>RM 0</span>
