@@ -8,8 +8,6 @@ internal static class RemovedDetails
 
     public static IResult Problem()
     {
-        return Results.Problem(statusCode: 409,
-            title: "The buyer's personal details were removed after the retention period.",
-            extensions: new Dictionary<string, object?> { ["code"] = Code });
+        return CodedProblem.Conflict(Code, "The buyer's personal details were removed after the retention period.");
     }
 }

@@ -47,21 +47,7 @@ public static class StaffAccountAdministrationEndpoints
         AccountErasureService service, CancellationToken cancellationToken)
     {
         var result = await service.EraseStaffAsync(HttpContextActor.ActorId(context), id, request, cancellationToken);
-        return result.Status switch
-        {
-            AccountErasureStatus.Erased => Results.Ok(result.Receipt),
-            AccountErasureStatus.Forbidden => Results.Forbid(),
-            AccountErasureStatus.NotFound => Results.NotFound(),
-            AccountErasureStatus.WrongPassword => Results.Json(new { code = "wrong-password" }, statusCode: 409),
-            AccountErasureStatus.Refused => Results.Json(new { code = "protected" }, statusCode: 409),
-            AccountErasureStatus.Conflict => Results.Json(new { code = "conflict" }, statusCode: 409),
-            AccountErasureStatus.SessionChanged => Results.Json(new { code = "session-changed" }, statusCode: 409),
-            AccountErasureStatus.RetryLater => Results.Json(new { code = "retry-later" }, statusCode: 409),
-            AccountErasureStatus.Blocked => Results.Json(new { code = "blocked", blockers = result.StaffBlockers },
-                statusCode: 409),
-            _ => Results.Problem(statusCode: 400,
-                title: "Provide an operation id, a reason of at most 1000 characters and your password.")
-        };
+        return AccountErasureResults.Map(result, result.StaffBlockers);
     }
 
     private static async Task<IResult> RunAsync(Func<Task<AccountAdministrationResult>> action)

@@ -39,13 +39,12 @@ public static class CustomerClosureEndpoints
         {
             CustomerClosureStatus.Closed => Results.Ok(result.Receipt),
             CustomerClosureStatus.Forbidden => Results.Forbid(),
-            CustomerClosureStatus.Conflict => Results.Json(new { code = "conflict" }, statusCode: 409),
-            CustomerClosureStatus.WrongPassword => Results.Json(new { code = "wrong-password" }, statusCode: 409),
-            CustomerClosureStatus.ProtectedSample => Results.Json(new { code = "protected-sample" }, statusCode: 409),
-            CustomerClosureStatus.SessionChanged => Results.Json(new { code = "session-changed" }, statusCode: 409),
-            CustomerClosureStatus.RetryLater => Results.Json(new { code = "retry-later" }, statusCode: 409),
-            CustomerClosureStatus.Blocked => Results.Json(new { code = "blocked", blockers = result.Blockers },
-                statusCode: 409),
+            CustomerClosureStatus.Conflict => CodedProblem.CodeConflict("conflict"),
+            CustomerClosureStatus.WrongPassword => CodedProblem.CodeConflict("wrong-password"),
+            CustomerClosureStatus.ProtectedSample => CodedProblem.CodeConflict("protected-sample"),
+            CustomerClosureStatus.SessionChanged => CodedProblem.CodeConflict("session-changed"),
+            CustomerClosureStatus.RetryLater => CodedProblem.CodeConflict("retry-later"),
+            CustomerClosureStatus.Blocked => CodedProblem.Blocked(result.Blockers),
             _ => Results.Problem(statusCode: 400, title: "Provide an operation id and your password.")
         };
     }

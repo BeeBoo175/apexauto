@@ -8,7 +8,6 @@ internal static class ClosedCustomer
 
     public static IResult Problem()
     {
-        return Results.Problem(statusCode: 409, title: "This customer has closed their account.",
-            extensions: new Dictionary<string, object?> { ["code"] = Code });
+        return CodedProblem.Conflict(Code, "This customer has closed their account.");
     }
 }
