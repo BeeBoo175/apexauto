@@ -14,7 +14,8 @@ namespace Dealership.Infrastructure.Accounts;
 // Lock order: picture owner advisory, closure advisory, user, vehicles by id with due holds released, then the
 // customer's deposit requests and payments, then one blocker statement. Provider I/O never runs inside it.
 public sealed class CustomerClosureStore(DealershipDbContext database,
-    IPasswordHasher<AccountUser> passwords, MissingAccountPasswordHash missingHash, PhotoCleanupSignal cleanup)
+    IPasswordHasher<AccountUser> passwords, MissingAccountPasswordHash missingHash, PhotoCleanupSignal cleanup,
+    IBusinessEvidencePeriod evidencePeriod)
     : ICustomerClosureStore
 {
     public async Task<IReadOnlyList<ClosureBlocker>?> BlockersAsync(Guid customerId,
@@ -145,7 +146,8 @@ public sealed class CustomerClosureStore(DealershipDbContext database,
         CancellationToken cancellationToken)
     {
         var pending = await CustomerErasure.FileRemovalPendingAsync(database, customerId, cancellationToken);
+        var years = await evidencePeriod.YearsAsync(cancellationToken);
         return new(CustomerClosureStatus.Closed, null,
-            new CustomerClosureReceipt(receiptId, closedAt, pending, ClosureRetention.Categories));
+            new CustomerClosureReceipt(receiptId, closedAt, pending, ClosureRetention.Categories(years)));
     }
 }

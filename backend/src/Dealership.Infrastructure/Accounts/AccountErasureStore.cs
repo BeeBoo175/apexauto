@@ -14,7 +14,8 @@ namespace Dealership.Infrastructure.Accounts;
 // An Administrator erasing another account. The lock order matches a customer's own closure, with the actor's row
 // share-locked before the target so a deactivated or demoted Administrator cannot finish an erasure.
 public sealed class AccountErasureStore(DealershipDbContext database, IPasswordHasher<AccountUser> passwords,
-    MissingAccountPasswordHash missingHash, PhotoCleanupSignal cleanup) : IAccountErasureStore
+    MissingAccountPasswordHash missingHash, PhotoCleanupSignal cleanup, IBusinessEvidencePeriod evidencePeriod)
+    : IAccountErasureStore
 {
     public Task<bool> IsAdministratorAsync(Guid administratorId, CancellationToken cancellationToken) =>
         AdministratorScope.IsAdministratorAsync(database, administratorId, cancellationToken);
@@ -252,7 +253,9 @@ public sealed class AccountErasureStore(DealershipDbContext database, IPasswordH
         bool staff, CancellationToken cancellationToken)
     {
         var pending = await CustomerErasure.FileRemovalPendingAsync(database, userId, cancellationToken);
+        var years = await evidencePeriod.YearsAsync(cancellationToken);
+        var retained = staff ? ClosureRetention.StaffCategories(years) : ClosureRetention.Categories(years);
         return new(AccountErasureStatus.Erased, null, null, new CustomerClosureReceipt(receiptId, erasedAt, pending,
-            staff ? ClosureRetention.StaffCategories : ClosureRetention.Categories));
+            retained));
     }
 }

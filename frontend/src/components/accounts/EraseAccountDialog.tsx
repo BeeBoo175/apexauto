@@ -130,8 +130,9 @@ export function EraseAccountDialog({
       onConfirm={() => erasure.confirm(reason, password)}
     >
       <p>
-        <strong>This cannot be undone.</strong> {name} is signed out everywhere and loses their
-        sign-in, name and contact details. Nobody can restore the account.
+        <strong>This cannot be undone.</strong> {name} is signed out everywhere and nobody can
+        restore the account. Their sign-in and contact details are removed from the account. Their
+        name and the details a sale document needs are kept only on the records listed below.
       </p>
       <p>Not everything is erased. These records stay, for the reasons given:</p>
       <RetainedList retained={state.preview.retained} />

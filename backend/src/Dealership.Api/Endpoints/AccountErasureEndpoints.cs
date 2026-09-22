@@ -27,9 +27,13 @@ public static class AccountErasureEndpoints
 
             var preview = await service.PreviewCustomerAsync(administratorId, id, token);
             // The retained categories travel with the blockers so the confirmation names them before the Administrator acts.
-            return preview is null
-                ? Results.NotFound()
-                : Results.Ok(new { blockers = preview.CustomerBlockers, retained = ClosureRetention.Categories });
+            if (preview is null)
+            {
+                return Results.NotFound();
+            }
+
+            var retained = await service.RetainedAsync(token);
+            return Results.Ok(new { blockers = preview.CustomerBlockers, retained });
         }, "Account erasure details are temporarily unavailable.", cancellationToken);
     }
 

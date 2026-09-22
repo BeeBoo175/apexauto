@@ -67,8 +67,8 @@ export const privacySections: readonly LegalSection[] = [
   {
     heading: "Your choices",
     paragraphs: [
-      "You can close your own account from your account page. Closing it ends your access everywhere and removes your email address, username, name, NRIC number, mobile number and address. This cannot be undone, and you can register again later as a new customer.",
-      "Some business records, such as a past reservation or sale, are kept for their retention period without your personal details, so the history of a car stays intact. They no longer point to you.",
+      "You can close your own account from your account page. Closing it ends your access everywhere and removes your email address, username, mobile number and sign-in from your account. This cannot be undone, and you can register again later as a new customer.",
+      "Some business records, such as a past reservation or sale, keep your name, and where a sale document needs them your NRIC number and address, for the business-evidence period (seven years by default). They are then removed.",
       `To ask what we hold about you, to correct it, or to ask us to remove it before you close your account, write to ${SITE_CONTACT.email}.`,
     ],
   },

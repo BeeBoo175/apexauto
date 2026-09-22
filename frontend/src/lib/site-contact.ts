@@ -7,4 +7,4 @@ export const SITE_CONTACT = {
   hours: "Monday to Saturday, 09:00 to 18:00",
 } as const;
 
-export const LEGAL_UPDATED = "1 December 2026";
+export const LEGAL_UPDATED = "17 November 2026";

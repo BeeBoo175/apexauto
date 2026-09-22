@@ -6,8 +6,12 @@ namespace Dealership.Application.Accounts;
 // An Administrator erases a customer who cannot or will not do it themselves. Blockers come before the password so a
 // blocked account is no password oracle, the slow hash runs before any transaction, and provider bills are deleted
 // outside the locked command, exactly as in the customer's own closure.
-public sealed class AccountErasureService(IAccountErasureStore store, ReservationPaymentService payments)
+public sealed class AccountErasureService(IAccountErasureStore store, ReservationPaymentService payments,
+    IBusinessEvidencePeriod evidencePeriod)
 {
+    public async Task<IReadOnlyList<RetainedCategory>> RetainedAsync(CancellationToken cancellationToken) =>
+        ClosureRetention.Categories(await evidencePeriod.YearsAsync(cancellationToken));
+
     public Task<bool> IsAdministratorAsync(Guid administratorId, CancellationToken cancellationToken) =>
         administratorId == Guid.Empty ? Task.FromResult(false) : store.IsAdministratorAsync(administratorId, cancellationToken);
 

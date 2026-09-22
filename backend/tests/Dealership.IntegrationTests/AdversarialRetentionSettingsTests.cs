@@ -185,6 +185,39 @@ public sealed class AdversarialRetentionSettingsTests(IntakePhotoFixture fixture
         Assert.Equal(1L, (await admin.GetFromJsonAsync<RetentionSettingsView>(Path))!.Version);
     }
 
+    [Fact]
+    public async Task TheErasureBlockersNameTheBusinessEvidencePeriodInForce()
+    {
+        // Guarantee: the retained categories shown before an erasure state the Administrator-set years, never a fixed figure.
+        using var factory = fixture.CreateFactory();
+        using var admin = factory.CreateClient();
+        using var customer = factory.CreateClient();
+        await StaffInvitationTests.SignInAdministratorAsync(factory, admin);
+        await SeedAsync(factory, admin);
+        await IntakePhotoFixture.RegisterAsync(customer);
+        var customerId = (await customer.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!.UserId;
+        var blockersPath = $"/api/accounts/{customerId}/erasure-blockers";
+
+        Assert.Contains(await RetainedPeriodsAsync(admin, blockersPath), period => period == "Up to 7 years after the related sale, hold or refund ends");
+
+        Assert.Equal(HttpStatusCode.OK, (await admin.PutAsync(Path, Json(Body("30", "30", "30", "5", "1", true)))).StatusCode);
+        var shortened = await RetainedPeriodsAsync(admin, blockersPath);
+        Assert.Contains("Up to 5 years after the related sale, hold or refund ends", shortened);
+        Assert.DoesNotContain(shortened, period => period.Contains("7 years", StringComparison.Ordinal));
+
+        Assert.Equal(HttpStatusCode.OK, (await admin.PutAsync(Path, Json(Body("30", "30", "30", "1", "2", true)))).StatusCode);
+        Assert.Contains("Up to 1 year after the related sale, hold or refund ends", await RetainedPeriodsAsync(admin, blockersPath));
+
+        await SeedAsync(factory, admin);
+    }
+
+    private static async Task<List<string>> RetainedPeriodsAsync(HttpClient admin, string blockersPath)
+    {
+        using var document = await JsonDocument.ParseAsync(await admin.GetStreamAsync(blockersPath));
+        return document.RootElement.GetProperty("retained").EnumerateArray()
+            .Select(item => item.GetProperty("endsWhen").GetString()!).ToList();
+    }
+
     private static string Body(string security, string mail, string invitations, string years, string version,
         bool confirmed = false) =>
         "{\"securityArtifactDays\":" + security + ",\"mailDetailDays\":" + mail + ",\"invitationDays\":" + invitations +

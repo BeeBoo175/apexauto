@@ -115,9 +115,10 @@ export function CloseAccountDialog({ open, onClose }: { open: boolean; onClose: 
       onConfirm={() => closure.confirm(password)}
     >
       <p>
-        <strong>This cannot be undone.</strong> You will be signed out everywhere, your email,
-        username, name, NRIC, mobile and address are removed, and nobody can restore the account.
-        You can register again later as a new customer.
+        <strong>This cannot be undone.</strong> You will be signed out everywhere and nobody can
+        restore the account. Your sign-in and contact details are removed from your account. Your
+        name and the details a sale document needs are kept only on the records listed below. You
+        can register again later as a new customer.
       </p>
       <p>Not everything is erased. These records stay, for the reasons given:</p>
       <RetainedList retained={state.preview.retained} />

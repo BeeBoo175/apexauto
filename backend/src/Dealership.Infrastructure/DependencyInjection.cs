@@ -72,6 +72,7 @@ public static class DependencyInjection
         services.AddScoped<IPurchaseConfigurationStore, PurchaseConfigurationStore>();
         services.AddScoped<IPurchaseSettingsAdministrationStore, PurchaseSettingsAdministrationStore>();
         services.AddScoped<IRetentionSettingsStore, RetentionSettingsStore>();
+        services.AddScoped<IBusinessEvidencePeriod, BusinessEvidencePeriod>();
         services.AddScoped<IPromoAdministrationStore, PromoAdministrationStore>();
         services.AddScoped<IWarrantyAdministrationStore, WarrantyAdministrationStore>();
         services.AddScoped<Application.Sales.ISaleCommandStore, Sales.SaleCommandStore>();

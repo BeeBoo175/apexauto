@@ -1,7 +1,7 @@
 namespace Dealership.Domain.Accounts;
 
 // The four Administrator retention durations. Pending-upload lifetimes and batch sizes are deployment
-// configuration, not settings. Business evidence is consumed by the seven-year disposal executor.
+// configuration, not settings. Business evidence is consumed by the business-evidence disposal executor.
 public sealed class RetentionSettings
 {
     public const int SingletonId = 1;

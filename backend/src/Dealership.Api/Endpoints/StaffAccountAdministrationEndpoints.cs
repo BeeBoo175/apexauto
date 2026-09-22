@@ -34,7 +34,7 @@ public static class StaffAccountAdministrationEndpoints
                 {
                     blockers = result.Blockers,
                     // Named before the Administrator acts, like the customer preview.
-                    retained = ClosureRetention.StaffCategories
+                    retained = await service.RetainedAsync(token)
                 }),
                 AccountAdministrationStatus.Forbidden => Results.Forbid(),
                 AccountAdministrationStatus.NotFound => Results.NotFound(),

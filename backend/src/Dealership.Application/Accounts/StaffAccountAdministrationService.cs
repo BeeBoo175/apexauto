@@ -2,8 +2,12 @@ using Dealership.Domain.Accounts;
 
 namespace Dealership.Application.Accounts;
 
-public sealed class StaffAccountAdministrationService(IStaffAccountAdministrationStore store)
+public sealed class StaffAccountAdministrationService(IStaffAccountAdministrationStore store,
+    IBusinessEvidencePeriod evidencePeriod)
 {
+    public async Task<IReadOnlyList<RetainedCategory>> RetainedAsync(CancellationToken cancellationToken) =>
+        ClosureRetention.StaffCategories(await evidencePeriod.YearsAsync(cancellationToken));
+
     public Task<AccountAdministrationResult> BlockersAsync(Guid administratorId, Guid staffId,
         CancellationToken cancellationToken) =>
         administratorId == Guid.Empty || staffId == Guid.Empty

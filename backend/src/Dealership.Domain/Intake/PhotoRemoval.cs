@@ -8,7 +8,7 @@ public enum PhotoRemovalReason
     // The owner's account was erased: unattached uploads and photographs of appointments that never happened.
     OwnerErased,
 
-    // The seven-year business-evidence period ended for the checked-in appointment the photograph belongs to.
+    // The business-evidence period ended for the checked-in appointment the photograph belongs to.
     RetentionExpired
 }
 

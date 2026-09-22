@@ -5,7 +5,7 @@ public enum InspectionPhotoRemovalReason
     // An upload that expired without ever being attached to a saved checklist.
     UnattachedExpired,
 
-    // The seven-year business-evidence period ended for the signed inspection the photograph belongs to.
+    // The business-evidence period ended for the signed inspection the photograph belongs to.
     RetentionExpired
 }
 
