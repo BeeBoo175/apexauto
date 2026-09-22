@@ -30,6 +30,12 @@ export async function requestApi(
     throw new Error("API_BASE_URL is required.");
   }
 
+  // A cached answer is shared by every visitor, so it must never carry one visitor's identity.
+  const carriesActor = Boolean(options.token || options.expectedActor || options.onBehalfOf);
+  if (options.revalidateSeconds !== undefined && carriesActor) {
+    throw new Error("A cached upstream read cannot carry a token or actor.");
+  }
+
   const signal = AbortSignal.any([
     AbortSignal.timeout(deadlineMs),
     ...(options.signal ? [options.signal] : []),
