@@ -1,6 +1,6 @@
 import type { IconName } from "@/lib/icons";
 import { parseMyr } from "@/lib/currency-input";
-import { inspectionCategoryIcons, type Severity } from "@/lib/inspection/contracts";
+import { inspectionCategoryIcons, label, type Severity } from "@/lib/inspection/contracts";
 import { formatCurrency } from "@/lib/currency-format";
 import type {
   InspectionGradingPolicy,
@@ -74,6 +74,11 @@ export const inspectionCategoryTitles: Record<InspectionCategoryKey, string> = {
   InteriorElectrical: "Interior & Electrical",
   UnderbodyBrakesSuspension: "Underbody, Brakes & Suspension",
 };
+
+export function categoryTitle(category: string) {
+  const titles: Record<string, string> = inspectionCategoryTitles;
+  return titles[category] ?? label(category);
+}
 
 /**
  * Mirrors InspectionGrading.Calculate in Dealership.Domain:

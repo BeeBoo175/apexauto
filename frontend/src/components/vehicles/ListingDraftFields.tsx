@@ -3,7 +3,7 @@
 import { useId } from "react";
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import type { ListingDraft } from "@/lib/vehicles/listing-draft";
-import { fuels, transmissions } from "@/lib/vehicles/contracts";
+import { fuelLabel, fuels, transmissions } from "@/lib/vehicles/contracts";
 import { parseMyr } from "@/lib/currency-input";
 import styles from "./ListingEditor.module.css";
 import { LISTING_DESCRIPTION_MAX_LENGTH } from "@/lib/vehicles/listing-limits";
@@ -89,7 +89,7 @@ export function ListingDraftFields({
             <option value="">Choose fuel</option>
             {fuels.map((name) => (
               <option key={name} value={name}>
-                {name === "PlugInHybrid" ? "Plug-in hybrid" : name}
+                {fuelLabel(name)}
               </option>
             ))}
           </Select>

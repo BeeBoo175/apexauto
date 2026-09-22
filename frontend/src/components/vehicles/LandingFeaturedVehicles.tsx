@@ -6,8 +6,9 @@ import { StatusPage } from "@/components/ui/StatusPage";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import type { ApiResult } from "@/lib/api";
 import { formatCurrency } from "@/lib/currency-format";
-import type { CataloguePage, PublicVehicle } from "@/lib/vehicles/contracts";
+import { fuelLabel, type CataloguePage, type PublicVehicle } from "@/lib/vehicles/contracts";
 import { catalogueDefaults, catalogueHref } from "@/lib/vehicles/query";
+import { vehicleTitle } from "@/lib/vehicles/vehicle-title";
 import styles from "./LandingFeaturedVehicles.module.css";
 import layout from "./VehicleLayout.module.css";
 
@@ -33,10 +34,6 @@ const SHELL_VEHICLE: PublicVehicle = {
   publishedAt: "2024-01-01T00:00:00Z",
 };
 
-function vehicleName(vehicle: PublicVehicle) {
-  return `${vehicle.manufactureYear} ${vehicle.make} ${vehicle.model} ${vehicle.trim}`;
-}
-
 function coverUrl(vehicle: PublicVehicle) {
   return vehicle.coverPhotoId ? `/api/vehicles/${vehicle.id}/photos/${vehicle.coverPhotoId}` : null;
 }
@@ -52,7 +49,7 @@ function RailCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: b
       data-shell={shell || undefined}
       tabIndex={shell ? -1 : undefined}
       aria-hidden={shell || undefined}
-      aria-label={shell ? undefined : `View details for ${vehicleName(vehicle)}`}
+      aria-label={shell ? undefined : `View details for ${vehicleTitle(vehicle)}`}
     >
       <span className={styles.railPhoto}>
         {photoUrl && (
@@ -67,7 +64,7 @@ function RailCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: b
         )}
       </span>
       <span className={styles.railText}>
-        <span className={styles.railName}>{vehicleName(vehicle)}</span>
+        <span className={styles.railName}>{vehicleTitle(vehicle)}</span>
         <span className={styles.railMeta}>
           {vehicle.mileageKilometres.toLocaleString("en-MY")} km · {vehicle.branchName}
         </span>
@@ -82,7 +79,7 @@ function RailCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: b
 
 function LeadCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: boolean }) {
   const photoUrl = coverUrl(vehicle);
-  const fuel = vehicle.fuel === "PlugInHybrid" ? "Plug-in hybrid" : vehicle.fuel;
+  const fuel = fuelLabel(vehicle.fuel);
 
   return (
     <Link
@@ -92,12 +89,12 @@ function LeadCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: b
       data-shell={shell || undefined}
       tabIndex={shell ? -1 : undefined}
       aria-hidden={shell || undefined}
-      aria-label={shell ? undefined : `View details for ${vehicleName(vehicle)}`}
+      aria-label={shell ? undefined : `View details for ${vehicleTitle(vehicle)}`}
     >
       {photoUrl && (
         <Image
           src={photoUrl}
-          alt={`${vehicleName(vehicle)}, cover photograph`}
+          alt={`${vehicleTitle(vehicle)}, cover photograph`}
           fill
           unoptimized
           priority
@@ -108,7 +105,7 @@ function LeadCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: b
       <span className={styles.banner}> Newest listing</span>
       <div className={styles.leadBody}>
         <span className={styles.leadPrice}>{formatCurrency(vehicle.vehiclePrice)}</span>
-        <h3 className={styles.leadName}>{vehicleName(vehicle)}</h3>
+        <h3 className={styles.leadName}>{vehicleTitle(vehicle)}</h3>
         <span>
           {vehicle.mileageKilometres.toLocaleString("en-MY")} km · {vehicle.transmission} · {fuel} ·{" "}
           {vehicle.branchName}

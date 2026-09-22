@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { categoryTitle } from "@/lib/guide/inspection-rules";
 import { label } from "@/lib/inspection/contracts";
+import { summariseInspectionAreas } from "@/lib/vehicles/inspection-summary";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 
 type ChecklistPoint = PublicVehicleDetail["checklist"]["points"][number];
@@ -32,25 +34,24 @@ export function useVehicleInspection(checklist: PublicVehicleDetail["checklist"]
     const text = [
       point.code,
       point.description,
-      label(point.category),
+      categoryTitle(point.category),
       point.severity && label(point.severity),
       point.kind && label(point.kind),
     ].join(" ");
     return text.toLocaleLowerCase("en-MY").includes(query);
   }
 
-  const categories = Array.from(new Set(checklist.points.map((point) => point.category)));
-  const areas: InspectionArea[] = categories.flatMap((category) => {
-    const inArea = checklist.points.filter((point) => point.category === category);
-    const points = inArea.filter(matches);
+  const areas: InspectionArea[] = summariseInspectionAreas(checklist.points).flatMap((summary) => {
+    const { category } = summary;
+    const points = checklist.points.filter((point) => point.category === category).filter(matches);
     if (points.length === 0) {
       return [];
     }
     return [
       {
         category,
-        total: inArea.length,
-        findingCount: inArea.filter((point) => point.kind === "Finding").length,
+        total: summary.total,
+        findingCount: summary.findingCount,
         points,
         open: filtering || opened.has(category),
       },

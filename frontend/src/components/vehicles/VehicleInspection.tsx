@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { useVehicleInspection } from "@/hooks/use-vehicle-inspection";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDate } from "@/lib/date-format";
+import { categoryTitle } from "@/lib/guide/inspection-rules";
 import { inspectionCategoryIcons, label } from "@/lib/inspection/contracts";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import layout from "./VehicleLayout.module.css";
@@ -87,7 +88,7 @@ export function VehicleInspection({ checklist }: { checklist: PublicVehicleDetai
                     <Icon name={inspectionCategoryIcons[area.category] ?? "inspection"} />
                   </span>
                   <span className={styles.areaName}>
-                    {label(area.category)}
+                    {categoryTitle(area.category)}
                     <small>
                       {area.total} checkpoints ·{" "}
                       <span data-tone={area.findingCount > 0 ? "finding" : undefined}>

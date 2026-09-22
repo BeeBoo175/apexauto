@@ -6,6 +6,7 @@ import { ACCOUNT_PAGE_SIZE } from "@/lib/pagination";
 import type { SearchParams } from "@/lib/query";
 import type { HistoryFilters } from "@/lib/intake/list-query";
 import { providerPaymentAddress } from "./payment-address";
+import { vehicleTitle } from "./vehicle-title";
 import { parseCustomerReservation, type CustomerReservationReceipt } from "./customer-reservation";
 
 export const customerReservationStates = {
@@ -221,5 +222,5 @@ export function accountReservationPage(params: SearchParams) {
 }
 
 export function reservationVehicleName(item: AccountReservation) {
-  return `${item.manufactureYear} ${item.make} ${item.model} ${item.trim}`;
+  return vehicleTitle(item);
 }

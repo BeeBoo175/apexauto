@@ -585,7 +585,7 @@ test("catalogue pills and pagination slots summarize active criteria and bounded
     "Make: Honda",
     "Model: City",
     "Under RM 60,000.00",
-    "Plug In Hybrid",
+    "Plug-in hybrid",
     "Showroom: Glenmarie",
   ]);
   expect(pills[0].without).toMatchObject({ make: "", model: "" });

@@ -17,6 +17,7 @@ import { DEFAULT_TERM_YEARS, defaultMonthlyEstimate } from "@/lib/vehicles/finan
 import { RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
 import type { CustomerVehicleAccess } from "@/lib/vehicles/customer-access";
+import { vehicleTitle } from "@/lib/vehicles/vehicle-title";
 import { VehicleReservation } from "./VehicleReservation";
 import { VehicleTestDrive } from "./VehicleTestDrive";
 import { VehicleDetailGallery } from "./VehicleDetailGallery";
@@ -53,9 +54,7 @@ export function VehicleDetail({
   const [reserved, setReserved] = useState(false);
   const price = promo.accepted?.price ?? snapshot?.price;
   const listing = snapshot?.listing;
-  const name = listing
-    ? `${listing.manufactureYear} ${listing.make} ${listing.model} ${listing.trim}`
-    : "Vehicle details";
+  const name = listing ? vehicleTitle(listing) : "Vehicle details";
 
   const monthly = price ? defaultMonthlyEstimate(price.total) : null;
 

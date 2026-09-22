@@ -22,6 +22,9 @@ export function parseGradeList(value: string): VehicleGrade[] | null {
 }
 
 export function fuelLabel(value: string) {
+  if (value === "PlugInHybrid") {
+    return "Plug-in hybrid";
+  }
   return value.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
 

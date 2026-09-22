@@ -2,8 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import { formatMalaysianDate } from "@/lib/date-format";
-import { inspectionCategoryTitles } from "@/lib/guide/inspection-rules";
+import { categoryTitle, inspectionCategoryTitles } from "@/lib/guide/inspection-rules";
+import { summariseInspectionAreas } from "@/lib/vehicles/inspection-summary";
 import type { PublicVehicleDetail } from "@/lib/vehicles/public-detail";
+import { vehicleTitle } from "@/lib/vehicles/vehicle-title";
 import styles from "./LandingInspectionRecord.module.css";
 import layout from "./VehicleLayout.module.css";
 
@@ -15,33 +17,14 @@ interface AreaSummary {
   notFitted: number;
 }
 
-function categoryTitle(category: string) {
-  const titles: Record<string, string> = inspectionCategoryTitles;
-  return titles[category] ?? category;
-}
-
 function summariseAreas(points: PublicVehicleDetail["checklist"]["points"]): AreaSummary[] {
-  const areas = new Map<string, AreaSummary>();
-
-  for (const point of points) {
-    const area = areas.get(point.category) ?? {
-      code: point.code.split("-")[0],
-      label: categoryTitle(point.category),
-      total: 0,
-      passed: 0,
-      notFitted: 0,
-    };
-    area.total += 1;
-    if (point.kind === "NotFitted") {
-      area.notFitted += 1;
-    }
-    if (point.kind === null) {
-      area.passed += 1;
-    }
-    areas.set(point.category, area);
-  }
-
-  return [...areas.values()];
+  return summariseInspectionAreas(points).map((area) => ({
+    code: area.code,
+    label: categoryTitle(area.category),
+    total: area.total,
+    passed: area.passed,
+    notFitted: area.notFitted,
+  }));
 }
 
 // Exceptions go under the area name, so the score column stays one short figure and every row lines up.
@@ -82,9 +65,7 @@ export function LandingInspectionRecord({
 
   const listing = detail?.listing ?? null;
   const checklist = detail?.checklist ?? null;
-  const name = listing
-    ? `${listing.manufactureYear} ${listing.make} ${listing.model} ${listing.trim}`
-    : "0000 Make Model Trim";
+  const name = listing ? vehicleTitle(listing) : "0000 Make Model Trim";
   const areas = checklist ? summariseAreas(checklist.points) : SHELL_AREAS;
   const signed = checklist ? formatMalaysianDate(checklist.signedAt) : "00 Month 0000";
   const grade = checklist ? checklist.grade : "A";

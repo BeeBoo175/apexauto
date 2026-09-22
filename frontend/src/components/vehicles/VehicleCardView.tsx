@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Icon } from "@/components/ui/Icon";
-import type { PublicVehicle } from "@/lib/vehicles/contracts";
+import { fuelLabel, type PublicVehicle } from "@/lib/vehicles/contracts";
 import styles from "./VehicleCardView.module.css";
 
 type CardVehicle = Pick<
@@ -103,7 +103,7 @@ export function VehicleCardView({
           </div>
           <div>
             <dt>Fuel</dt>
-            <dd>{vehicle.fuel === "PlugInHybrid" ? "Plug-in hybrid" : vehicle.fuel}</dd>
+            <dd>{fuelLabel(vehicle.fuel)}</dd>
           </div>
         </dl>
       </div>
