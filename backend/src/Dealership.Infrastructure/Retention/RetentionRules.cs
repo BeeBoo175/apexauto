@@ -129,6 +129,7 @@ internal static class RetentionRules
 
     // Money of the customer is owed while a refund is not completed, or a deposit was paid unmatched or after a
     // release and no completed refund returned it.
+    // The deposit part is the SQL twin of the refunds query in CustomerClosureBlockers and must change with it.
     private static string MoneyOwed(string customer) =>
         $"(EXISTS (SELECT 1 FROM \"ReservationRefunds\" f WHERE f.\"CustomerId\" = {customer} AND f.\"State\" <> 'Completed') OR " +
         "EXISTS (SELECT 1 FROM \"ReservationDepositPayments\" p JOIN \"ReservationDepositRequests\" q ON q.\"Id\" = p.\"RequestId\" " +
