@@ -85,9 +85,8 @@ export function useSettingsClientEntry(parameters: SearchParams, selection: Sett
     const list = promos?.data ?? warranties?.data ?? null;
     // A missing settings record (404) still opens the workspace, so its Promos and Warranties sections stay reachable
     // and the Settings section can say the record is not set up; any other failed read keeps the retry notice.
-    const recordUnavailable =
-      (section === "settings" && !settings?.data && settings?.status !== 404) ||
-      (section === "retention" && !retention?.data && retention?.status !== 404);
+    const record = section === "settings" ? settings : retention;
+    const recordUnavailable = isRecordSection(section) && !record?.data && record?.status !== 404;
     const listUnavailable =
       !isRecordSection(section) &&
       (!list || list.page !== page || list.pageSize !== filters.pageSize);

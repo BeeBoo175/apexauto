@@ -18,23 +18,22 @@ import {
   requireJsonRequest,
 } from "@/lib/server/http/staff-relay";
 import { hasSettingsAccess, warrantyGrades } from "./settings";
-import { parseRetentionHoldChange, wrapRetentionHolds } from "./retention-holds";
+import { holdsPath, parseRetentionHoldChange, wrapRetentionHolds } from "./retention-holds";
 
-export type SettingsResource = "settings" | "promos" | "warranties" | "retention";
+export type SettingsResource =
+  "settings" | "promos" | "warranties" | "retention" | "retentionHolds";
 
 const upstream: Record<SettingsResource, string> = {
   settings: "/api/staff/settings",
   retention: "/api/staff/settings/retention",
+  retentionHolds: holdsPath,
   promos: "/api/staff/promos",
   warranties: "/api/staff/warranties",
 };
 
 const listKeys = ["page", "pageSize", "search", "view", "sort", "direction"];
 // The browser uses one neutral column-filter vocabulary; each upstream resource names its own columns.
-const columnKeys: Record<
-  Exclude<SettingsResource, "settings" | "retention">,
-  Record<string, string>
-> = {
+const columnKeys: Record<"promos" | "warranties", Record<string, string>> = {
   promos: {
     text: "code",
     minimum: "minimumDiscount",
@@ -54,6 +53,11 @@ const columnKeys: Record<
   },
 };
 type Body = Record<string, unknown>;
+
+// Only these resources are lists; every other resource is one record that takes no list query.
+function isListResource(resource: SettingsResource): resource is keyof typeof columnKeys {
+  return resource in columnKeys;
+}
 
 async function settingsActor(signal: AbortSignal) {
   const actor = await confirmedActor(signal);
@@ -80,7 +84,7 @@ export async function relaySettingsRead<T>(
     }
     const source = new URL(request.url).searchParams;
     const allowed = new URLSearchParams();
-    if (id === null && resource !== "settings" && resource !== "retention") {
+    if (id === null && isListResource(resource)) {
       const listed = allowedQuery(source, listKeys);
       listed.forEach((value, key) => allowed.set(key, value));
       for (const [key, upstreamKey] of Object.entries(columnKeys[resource])) {
@@ -238,53 +242,19 @@ export function shapeRetention(body: Body) {
   };
 }
 
-const holdsUpstream = "/api/staff/retention-holds";
-
-export async function relayRetentionHolds(request: Request) {
-  try {
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
-    const current = await settingsActor(signal);
-    if (current.denied) {
-      return current.denied;
-    }
-    const result = await privateApiRead(holdsUpstream, wrapRetentionHolds, signal);
-    return apiJson({ ...result, actor: current.actor });
-  } catch (error) {
-    return apiError(error);
-  }
+export function relayRetentionHolds(request: Request) {
+  return relaySettingsRead(request, "retentionHolds", wrapRetentionHolds);
 }
 
-export async function relayRetentionHoldChange(request: Request) {
-  try {
-    requireSameOrigin(request);
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(API_DEADLINE_MS)]);
-    const token = await sessionToken();
-    if (!token) {
-      throw new HttpError(401, "Sign in to continue.");
-    }
-    const current = await settingsActor(signal);
-    if (current.denied) {
-      return current.denied;
-    }
-    requireJsonRequest(request);
-    const body = await readBoundedJson(request.body, signal, 8 * 1024);
-    const forwarded = isRecord(body) ? shapeRetentionHold(body) : null;
-    if (!forwarded) {
-      throw new HttpError(400, "Provide a reservation number, a future date and a reason.");
-    }
-    const result = await requestApiJson(holdsUpstream, parseRetentionHoldChange, {
-      token,
-      signal,
-      method: "PUT",
-      body: forwarded,
-    });
-    return apiJson({ ...result, actor: current.actor });
-  } catch (error) {
-    if (error instanceof SyntaxError) {
-      return apiError(new HttpError(400, "Provide valid JSON details."));
-    }
-    return apiError(error);
-  }
+export function relayRetentionHoldChange(request: Request) {
+  return relaySettingsWrite(
+    request,
+    "retentionHolds",
+    "PUT",
+    null,
+    shapeRetentionHold,
+    parseRetentionHoldChange,
+  );
 }
 
 function shapeRetentionHold(body: Body) {

@@ -48,6 +48,26 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
   const { busy, ready, begin, isCurrent, end, cancel } = useBoundedRead();
   const toast = useToast();
 
+  // A record section comes from provisioning, so a confirmed 404 is a state of its own, not a failed read.
+  // Returns null when a newer read superseded this one.
+  async function readRecordSection<T>(
+    path: string,
+    parser: (value: unknown) => T | null,
+    attempt: NonNullable<ReturnType<typeof begin>>,
+  ) {
+    const result = await privateApiFetch(path, parser, { signal: attempt.signal });
+    if (!isCurrent(attempt)) {
+      return null;
+    }
+    if (result.status === 404) {
+      return { record: null, missing: true };
+    }
+    if (result.status !== 200 || !result.data) {
+      throw new Error("Settings unavailable");
+    }
+    return { record: result.data, missing: false };
+  }
+
   // Reads one section; every failure keeps the last confirmed content and filters on screen. A confirmed read
   // returns the location it shows so the caller can write the address.
   async function open(
@@ -72,33 +92,19 @@ export function useSettingsWorkspace(entry: SettingsEntry) {
       const path = sectionPath(next, nextFilters, nextPage);
       const options = { signal: attempt.signal };
       if (next === "settings") {
-        const result = await privateApiFetch(path, parseSettings, options);
-        if (!isCurrent(attempt)) {
-          return false;
-        }
-        if (result.status === 404) {
-          setSettings(null);
-          setSettingsMissing(true);
-        } else if (result.status !== 200 || !result.data) {
-          throw new Error("Settings unavailable");
-        } else {
-          setSettings(result.data);
-          setSettingsMissing(false);
-        }
-      } else if (next === "retention") {
-        const result = await privateApiFetch(path, parseRetentionSettings, options);
-        if (!isCurrent(attempt)) {
+        const read = await readRecordSection(path, parseSettings, attempt);
+        if (!read) {
           return null;
         }
-        if (result.status === 404) {
-          setRetention(null);
-          setRetentionMissing(true);
-        } else if (result.status !== 200 || !result.data) {
-          throw new Error("Settings unavailable");
-        } else {
-          setRetention(result.data);
-          setRetentionMissing(false);
+        setSettings(read.record);
+        setSettingsMissing(read.missing);
+      } else if (next === "retention") {
+        const read = await readRecordSection(path, parseRetentionSettings, attempt);
+        if (!read) {
+          return null;
         }
+        setRetention(read.record);
+        setRetentionMissing(read.missing);
       } else {
         const result =
           next === "promos"

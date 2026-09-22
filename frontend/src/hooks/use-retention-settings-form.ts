@@ -11,10 +11,13 @@ import {
   type RetentionDraft,
   type RetentionSettings,
 } from "@/lib/settings/retention";
+import { emptyListFilters, sectionPath } from "@/lib/settings/settings";
 import { useEditGuard } from "./use-edit-guard";
 import { useSettingsSave } from "./use-settings-save";
 
-const retentionPath = "/api/staff/settings/retention";
+function retentionPath() {
+  return sectionPath("retention", emptyListFilters);
+}
 
 export function useRetentionSettingsForm({
   settings,
@@ -71,7 +74,7 @@ export function useRetentionSettingsForm({
     if (!values || !changed || (shortened && !shorteningConfirmed)) {
       return;
     }
-    const saved = await saver.save(retentionPath, "PUT", {
+    const saved = await saver.save(retentionPath(), "PUT", {
       ...values,
       expectedVersion: settings.version,
       shorteningConfirmed: shortened,
@@ -85,7 +88,7 @@ export function useRetentionSettingsForm({
   }
 
   async function reload() {
-    const latest = await saver.reload(retentionPath);
+    const latest = await saver.reload(retentionPath());
     if (latest.status === "loaded") {
       setShorteningConfirmed(false);
       onDraft(null);
