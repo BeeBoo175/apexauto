@@ -128,6 +128,7 @@ test("a pending payment carries only the provider payment address", () => {
     trim: "V",
     manufactureYear: 2022,
     expiresAt: "2026-10-30T01:15:00Z",
+    bookedByStaff: false,
     paymentUrl: "https://www.billplz-sandbox.com/bills/abc123",
   };
   const parse = (change: object) =>
@@ -135,6 +136,9 @@ test("a pending payment carries only the provider payment address", () => {
 
   expect(parse({})?.pendingPayment?.paymentUrl).toBe(pendingPayment.paymentUrl);
   expect(parse({ paymentUrl: null })?.pendingPayment?.paymentUrl).toBeNull();
+  expect(parse({ bookedByStaff: true })?.pendingPayment?.bookedByStaff).toBe(true);
+  expect(parse({ bookedByStaff: undefined })).toBeNull();
+  expect(parse({ bookedByStaff: "yes" })).toBeNull();
   expect(parse({ paymentUrl: "https://evil.example.com/bills/abc123" })).toBeNull();
   expect(parse({ paymentUrl: "http://www.billplz-sandbox.com/bills/abc123" })).toBeNull();
 });

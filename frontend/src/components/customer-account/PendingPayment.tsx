@@ -51,6 +51,12 @@ export function PendingPayment({
           {item.branchName} · The {formatCurrency(RESERVATION_DEPOSIT, "RM")} deposit has not been
           paid, so this car is held for you but not yet reserved.
         </p>
+        {item.bookedByStaff ? (
+          <p className={styles.help}>
+            Our sales team requested this deposit for you. Pay from the link we emailed, or contact
+            the showroom to change it.
+          </p>
+        ) : null}
         <div className={styles.deadline}>
           <HoldCountdown until={item.expiresAt} label="left to pay before the hold is released" />
         </div>
@@ -61,9 +67,11 @@ export function PendingPayment({
             Continue to payment
           </a>
         ) : null}
-        <Button variant="ghost" disabled={disabled || command.busy} onClick={() => void giveUp()}>
-          Cancel this payment
-        </Button>
+        {item.bookedByStaff ? null : (
+          <Button variant="ghost" disabled={disabled || command.busy} onClick={() => void giveUp()}>
+            Cancel this payment
+          </Button>
+        )}
       </div>
     </article>
   );

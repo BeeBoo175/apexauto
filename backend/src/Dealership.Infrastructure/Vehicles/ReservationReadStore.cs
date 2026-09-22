@@ -67,18 +67,19 @@ public sealed class ReservationReadStore(DealershipDbContext database, TimeProvi
             new(actor, Array.AsReadOnly(items), total, page, ReservationHistory.PageSize, active, pending));
     }
 
-    // Only a bill the customer opened themselves: a request staff made is paid from the mailed link instead.
+    // Includes a request staff made: it holds the car just as a self-service one does and blocks any other reservation.
     private async Task<PendingPaymentItem?> PendingPaymentAsync(Guid customerId, CancellationToken cancellationToken)
     {
         var now = clock.GetUtcNow();
         return await (from request in database.ReservationDepositRequests.AsNoTracking()
                           .Where(ReservationDepositRequest.PendingAt(now))
-                          .Where(item => item.CustomerId == customerId && item.BookedByStaffId == null)
+                          .Where(item => item.CustomerId == customerId)
                       join branch in database.Branches on request.BranchId equals branch.Id
                       join vehicle in database.Vehicles on request.VehicleId equals vehicle.Id
                       orderby request.CreatedAt
                       select new PendingPaymentItem(request.Id, request.VehicleId, branch.Name, vehicle.Make, vehicle.Model,
                           vehicle.Trim, vehicle.ManufactureYear, request.ExpiresAt,
+                          request.BookedByStaffId != null,
                           database.ReservationDepositPayments
                               .Where(payment => payment.RequestId == request.Id)
                               .Select(payment => payment.BillUrl)

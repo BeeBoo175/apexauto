@@ -23,7 +23,8 @@ public static class ReservationHistory
 
 // A car the customer is paying the deposit for: held for them, but not reserved until the payment is confirmed.
 public sealed record PendingPaymentItem(Guid RequestId, Guid VehicleId, string BranchName, string Make, string Model,
-    string Trim, int ManufactureYear, DateTimeOffset ExpiresAt, string? PaymentUrl);
+    string Trim, int ManufactureYear, DateTimeOffset ExpiresAt, bool BookedByStaff,
+    string? PaymentUrl);
 
 public sealed record ReservationHistoryPage(CurrentActor Actor, IReadOnlyList<ReservationHistoryItem> Items,
     int Total, int Page, int PageSize, ReservationHistoryItem? Active, PendingPaymentItem? PendingPayment = null);

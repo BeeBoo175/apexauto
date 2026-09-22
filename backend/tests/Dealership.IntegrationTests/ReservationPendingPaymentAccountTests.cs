@@ -32,6 +32,7 @@ public sealed class ReservationPendingPaymentAccountTests(IntakePhotoFixture fix
         var bill = await scenario.Database.ReservationDepositPayments.AsNoTracking()
             .SingleAsync(payment => payment.RequestId == requestId);
         Assert.Equal(bill.BillUrl, account.History.PendingPayment.PaymentUrl);
+        Assert.False(account.History.PendingPayment.BookedByStaff);
 
         // The customer can give it up, and the car is free again.
         var cancelled = await client.PostAsync($"/api/account/pending-payments/{requestId}/cancellations", null);

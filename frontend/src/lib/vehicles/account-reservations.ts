@@ -51,6 +51,7 @@ export interface PendingPayment {
   trim: string;
   manufactureYear: number;
   expiresAt: string;
+  bookedByStaff: boolean;
   paymentUrl: string | null;
 }
 
@@ -72,7 +73,8 @@ function parsePendingPayment(value: unknown): PendingPayment | null {
     !isUuid(value.vehicleId) ||
     !texts.every((text) => typeof text === "string" && text.trim().length > 0) ||
     !Number.isSafeInteger(value.manufactureYear) ||
-    !isUtcInstant(value.expiresAt)
+    !isUtcInstant(value.expiresAt) ||
+    typeof value.bookedByStaff !== "boolean"
   ) {
     return null;
   }
@@ -85,6 +87,7 @@ function parsePendingPayment(value: unknown): PendingPayment | null {
     trim: String(value.trim),
     manufactureYear: Number(value.manufactureYear),
     expiresAt: value.expiresAt,
+    bookedByStaff: value.bookedByStaff,
     paymentUrl,
   };
 }
