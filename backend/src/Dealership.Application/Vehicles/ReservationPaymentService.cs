@@ -1,3 +1,4 @@
+using Dealership.Application.Accounts;
 using Dealership.Domain.Vehicles;
 
 namespace Dealership.Application.Vehicles;
@@ -92,6 +93,86 @@ public sealed class ReservationPaymentService(IReservationDepositRequestStore re
         }
 
         return new(payment is null ? DepositPaymentStatus.PaymentRequired : DepositPaymentStatus.Waiting);
+    }
+
+    // Staff cancel a deposit request; a bill that turns out to be paid keeps the reservation instead.
+    public async Task<ReservationStatus> CancelAsync(Guid requestId, AssistingStaff staff,
+        CancellationToken cancellationToken)
+    {
+        var access = await deposits.CanCancelAsync(requestId, staff, cancellationToken);
+        if (access != ReservationStatus.Succeeded)
+        {
+            return access;
+        }
+
+        return await CancelRequestAsync(requestId, () => deposits.CancelAsync(requestId, staff, cancellationToken),
+            cancellationToken);
+    }
+
+    // A customer cancels a payment they opened; a bill that turns out to be paid keeps the reservation instead.
+    public async Task<ReservationStatus> CancelOwnAsync(Guid customerId, Guid requestId,
+        CancellationToken cancellationToken)
+    {
+        var access = await deposits.CanCancelOwnAsync(customerId, requestId, cancellationToken);
+        if (access != ReservationStatus.Succeeded)
+        {
+            return access;
+        }
+
+        return await CancelRequestAsync(requestId, () => deposits.CancelOwnAsync(customerId, requestId, cancellationToken),
+            cancellationToken);
+    }
+
+    // The bill is settled before the request is cancelled: a cancelled request can no longer be confirmed, so a payment
+    // that is only found afterwards would be refunded while the car is already released.
+    private async Task<ReservationStatus> CancelRequestAsync(Guid requestId, Func<Task<ReservationStatus>> cancel,
+        CancellationToken cancellationToken)
+    {
+        if (await KeepPaidDepositAsync(requestId, cancellationToken))
+        {
+            return ReservationStatus.DepositAlreadyPaid;
+        }
+
+        var cancelled = await cancel();
+        if (cancelled == ReservationStatus.Succeeded)
+        {
+            await ReleaseBillAsync(requestId, cancellationToken);
+        }
+
+        return cancelled;
+    }
+
+    // True when the deposit was paid, so the request is confirmed into its reservation. An unpaid bill is deleted here;
+    // when the provider cannot delete it, it is asked whether the bill was paid, and an unreachable provider leaves the
+    // cancellation to go ahead with the bill released later.
+    private async Task<bool> KeepPaidDepositAsync(Guid requestId, CancellationToken cancellationToken)
+    {
+        var payment = await payments.FindByRequestAsync(requestId, cancellationToken);
+        if (payment is { State: DepositPaymentState.Paid })
+        {
+            return true;
+        }
+
+        if (payment is not { State: DepositPaymentState.Pending, BillDeletedAt: null })
+        {
+            return false;
+        }
+
+        if (await gateway.DeleteBillAsync(payment.BillId, cancellationToken))
+        {
+            await payments.MarkBillDeletedAsync(requestId, clock.GetUtcNow(), cancellationToken);
+            return false;
+        }
+
+        var notice = await gateway.FindBillAsync(payment.BillId, cancellationToken);
+        if (notice is not { Paid: true })
+        {
+            return false;
+        }
+
+        await RecordPaymentAsync(payment.BillId, notice.PaidAmountSen, notice.PaidAt, cancellationToken);
+        var settled = await payments.FindByRequestAsync(requestId, cancellationToken);
+        return settled is { State: DepositPaymentState.Paid };
     }
 
     // A cancelled or lapsed request no longer holds the car, so its unpaid bill is removed instead of staying payable.

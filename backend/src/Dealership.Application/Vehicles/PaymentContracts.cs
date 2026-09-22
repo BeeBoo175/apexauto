@@ -41,6 +41,10 @@ public interface IPaymentGateway
     // when the provider refused or could not be reached, so the bill may still be payable.
     Task<bool> DeleteBillAsync(string billId, CancellationToken cancellationToken);
 
+    // What the provider currently says about a bill, read by asking it. Null when it could not be reached, so a null
+    // answer must never be taken as unpaid.
+    Task<PaymentNotice?> FindBillAsync(string billId, CancellationToken cancellationToken);
+
     // The provider's message, from its server callback or the customer's signed return, with the signature checked
     // and the provider's field names translated; null when the signature is invalid or the message is unreadable.
     PaymentNotice? ReadNotice(IReadOnlyDictionary<string, string> fields);

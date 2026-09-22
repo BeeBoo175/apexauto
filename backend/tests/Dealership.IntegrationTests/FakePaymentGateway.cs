@@ -29,7 +29,16 @@ internal sealed class FakePaymentGateway(string signatureKey, bool enabled = tru
     public Task<bool> DeleteBillAsync(string billId, CancellationToken cancellationToken)
     {
         _deleted.Add(billId);
-        return Task.FromResult(!DeleteFails);
+        return Task.FromResult(!DeleteFails && !PaidAtProvider.Contains(billId));
+    }
+
+    // The bills the provider reports as paid although its callback has not reached the API yet.
+    public HashSet<string> PaidAtProvider { get; } = [];
+
+    public Task<PaymentNotice?> FindBillAsync(string billId, CancellationToken cancellationToken)
+    {
+        var paid = PaidAtProvider.Contains(billId);
+        return Task.FromResult<PaymentNotice?>(new PaymentNotice(billId, paid, null, null));
     }
 
     public PaymentNotice? ReadNotice(IReadOnlyDictionary<string, string> fields)

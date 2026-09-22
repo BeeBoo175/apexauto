@@ -17,7 +17,9 @@ public enum ReservationStatus
     PromoUnavailable,
     Unavailable,
     // A deposit request that was cancelled or whose 24 hours have passed.
-    DepositRequestLapsed
+    DepositRequestLapsed,
+    // The deposit's bill was paid before the cancellation, so the reservation stays.
+    DepositAlreadyPaid
 }
 
 public sealed record ReservationResult(ReservationStatus Status, Reservation? Reservation = null);

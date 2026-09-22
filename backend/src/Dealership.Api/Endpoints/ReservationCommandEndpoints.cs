@@ -53,8 +53,7 @@ public static class ReservationCommandEndpoints
     }
 
     private static async Task<IResult> CancelDepositRequestAsync(Guid requestId, HttpContext context,
-        ReservationDepositRequestService deposits, ReservationPaymentService payments,
-        IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
+        ReservationPaymentService payments, IStaffAssistanceQuery assistance, CancellationToken cancellationToken)
     {
         return await BoundedCommand.RunAsync(async deadline =>
         {
@@ -64,41 +63,37 @@ public static class ReservationCommandEndpoints
                 return Results.Forbid();
             }
 
-            var cancelled = await deposits.CancelAsync(requestId, staff, deadline);
-            if (cancelled == ReservationStatus.Succeeded)
-            {
-                await payments.ReleaseBillAsync(requestId, deadline);
-            }
-
+            var cancelled = await payments.CancelAsync(requestId, staff, deadline);
             return cancelled switch
             {
                 ReservationStatus.Succeeded => Results.Ok(new ReservationDepositRequestCancellationReceipt(requestId)),
                 ReservationStatus.Forbidden => Results.Forbid(),
                 ReservationStatus.NotFound => Results.NotFound(),
+                ReservationStatus.DepositAlreadyPaid => AlreadyPaid(),
                 _ => Results.Problem(statusCode: 409, title: "The deposit request is no longer pending.")
             };
         }, Unconfirmed, cancellationToken);
     }
 
     private static async Task<IResult> CancelOwnPaymentAsync(Guid requestId, HttpContext context,
-        ReservationDepositRequestService deposits, ReservationPaymentService payments, CancellationToken cancellationToken)
+        ReservationPaymentService payments, CancellationToken cancellationToken)
     {
         return await BoundedCommand.RunAsync(async deadline =>
         {
-            var cancelled = await deposits.CancelOwnAsync(ActorId(context), requestId, deadline);
-            if (cancelled == ReservationStatus.Succeeded)
-            {
-                await payments.ReleaseBillAsync(requestId, deadline);
-            }
-
+            var cancelled = await payments.CancelOwnAsync(ActorId(context), requestId, deadline);
             return cancelled switch
             {
                 ReservationStatus.Succeeded => Results.Ok(new ReservationDepositRequestCancellationReceipt(requestId)),
                 ReservationStatus.NotFound => Results.NotFound(),
+                ReservationStatus.DepositAlreadyPaid => AlreadyPaid(),
                 _ => Results.Problem(statusCode: 409, title: "The payment is no longer pending.")
             };
         }, Unconfirmed, cancellationToken);
     }
+
+    private static IResult AlreadyPaid() => Results.Problem(statusCode: 409,
+        title: "The deposit was already paid, so the reservation stays.",
+        extensions: new Dictionary<string, object?> { ["code"] = "deposit-already-paid" });
 
     private static async Task<IResult> ConfirmDepositAsync(HttpContext context, ReservationPaymentService payments,
         CancellationToken cancellationToken)

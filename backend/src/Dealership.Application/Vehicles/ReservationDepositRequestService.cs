@@ -159,7 +159,7 @@ public sealed class ReservationDepositRequestService(IReservationStore reservati
     }
 
     // Staff release a car they asked a deposit for, within the branch limits that let them ask.
-    public async Task<ReservationStatus> CancelAsync(Guid requestId, AssistingStaff staff,
+    public async Task<ReservationStatus> CanCancelAsync(Guid requestId, AssistingStaff staff,
         CancellationToken cancellationToken)
     {
         var request = requestId == Guid.Empty ? null : await requests.FindAsync(requestId, cancellationToken);
@@ -168,10 +168,19 @@ public sealed class ReservationDepositRequestService(IReservationStore reservati
             return ReservationStatus.NotFound;
         }
 
-        if (!staff.CanActAt(request.BranchId))
+        return staff.CanActAt(request.BranchId) ? ReservationStatus.Succeeded : ReservationStatus.Forbidden;
+    }
+
+    public async Task<ReservationStatus> CancelAsync(Guid requestId, AssistingStaff staff,
+        CancellationToken cancellationToken)
+    {
+        var access = await CanCancelAsync(requestId, staff, cancellationToken);
+        if (access != ReservationStatus.Succeeded)
         {
-            return ReservationStatus.Forbidden;
+            return access;
         }
+
+        var request = (await requests.FindAsync(requestId, cancellationToken))!;
 
         // Repeating a cancellation is harmless; a confirmed or lapsed request has nothing left to release.
         if (request.CancelledAt is not null)
@@ -185,15 +194,25 @@ public sealed class ReservationDepositRequestService(IReservationStore reservati
     }
 
     // A customer gives up a payment they opened themselves; a request staff made for them is not theirs to cancel.
-    public async Task<ReservationStatus> CancelOwnAsync(Guid customerId, Guid requestId,
+    public async Task<ReservationStatus> CanCancelOwnAsync(Guid customerId, Guid requestId,
         CancellationToken cancellationToken)
     {
         var request = requestId == Guid.Empty ? null : await requests.FindAsync(requestId, cancellationToken);
-        if (request is null || request.CustomerId != customerId || request.BookedByStaffId is not null)
+        return request is null || request.CustomerId != customerId || request.BookedByStaffId is not null
+            ? ReservationStatus.NotFound
+            : ReservationStatus.Succeeded;
+    }
+
+    public async Task<ReservationStatus> CancelOwnAsync(Guid customerId, Guid requestId,
+        CancellationToken cancellationToken)
+    {
+        var access = await CanCancelOwnAsync(customerId, requestId, cancellationToken);
+        if (access != ReservationStatus.Succeeded)
         {
-            return ReservationStatus.NotFound;
+            return access;
         }
 
+        var request = (await requests.FindAsync(requestId, cancellationToken))!;
         if (request.CancelledAt is not null)
         {
             return ReservationStatus.Succeeded;

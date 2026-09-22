@@ -2,6 +2,7 @@ using System.Globalization;
 using Dealership.Application.Vehicles;
 using Dealership.Infrastructure.Configuration;
 using Dealership.Infrastructure.Identity;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 
 namespace Dealership.Infrastructure.Vehicles;
@@ -56,6 +57,33 @@ public sealed class BillplzPaymentGateway(HttpClient client, IOptions<BillplzSet
         {
             // A refused or unreachable delete leaves the bill payable, which the caller must not assume away.
             return false;
+        }
+    }
+
+    public async Task<PaymentNotice?> FindBillAsync(string billId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var address = billplz.BillAddress($"bills/{Uri.EscapeDataString(billId)}");
+            using var response = await billplz.SendAsync(HttpMethod.Get, address, null, cancellationToken);
+            using var document = await BillplzClient.ReadAsync(response, cancellationToken);
+            var root = document.RootElement;
+            var paid = root.TryGetProperty("paid", out var state) && state.ValueKind == JsonValueKind.True;
+            int? paidAmount = root.TryGetProperty("paid_amount", out var amount) && amount.TryGetInt32(out var sen)
+                ? sen
+                : null;
+            var time = root.TryGetProperty("paid_at", out var stamp) && stamp.ValueKind == JsonValueKind.String
+                ? stamp.GetString()
+                : null;
+            DateTimeOffset? paidAt = DateTimeOffset.TryParse(time, CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal, out var parsed)
+                ? parsed.ToUniversalTime()
+                : null;
+            return new PaymentNotice(billId, paid, paidAmount, paidAt);
+        }
+        catch (PaymentGatewayException)
+        {
+            return null;
         }
     }
 
