@@ -3,13 +3,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api-browser";
 import { defaultIntakeDateWindow, validateIntakeDate } from "@/lib/intake/appointment-date";
+import { parseAppointmentPrefill } from "@/lib/intake/appointment-prefill";
 import { parseSlots } from "@/lib/intake/parse";
 import type { Branch } from "@/lib/branches";
 import type { Page } from "@/lib/api";
 import type { SlotOffer } from "@/lib/intake/contracts";
 import { readBranchChoices } from "@/lib/branch-choices";
 
-export function useSellerAppointment(initialBranches: Page<Branch>) {
+// `addressed` lets the seller address name a showroom and bay to preselect, as the showroom booking block links it.
+export function useSellerAppointment(initialBranches: Page<Branch>, addressed = false) {
   const [branches, setBranches] = useState(initialBranches);
   const [branchId, setBranchId] = useState("");
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
@@ -48,13 +50,17 @@ export function useSellerAppointment(initialBranches: Page<Branch>) {
     if (!branchId || !date || validateIntakeDate(date, dateWindow)) {
       return;
     }
+    await readSlots(branchId, date, "");
+  }
+  // `preselect` is a bay to keep chosen when the live offer still lists it.
+  async function readSlots(wantedBranch: string, wantedDate: string, preselect: string) {
     controller.current?.abort();
     const attempt = new AbortController();
     controller.current = attempt;
     setBusy(true);
     try {
       const result = await apiFetch(
-        `/api/intake/slots?branchId=${encodeURIComponent(branchId)}&date=${encodeURIComponent(date)}`,
+        `/api/intake/slots?branchId=${encodeURIComponent(wantedBranch)}&date=${encodeURIComponent(wantedDate)}`,
         parseSlots,
         { signal: attempt.signal },
       );
@@ -64,13 +70,14 @@ export function useSellerAppointment(initialBranches: Page<Branch>) {
       if (
         !result.data ||
         result.status !== 200 ||
-        result.data.branchId !== branchId ||
-        result.data.date !== date
+        result.data.branchId !== wantedBranch ||
+        result.data.date !== wantedDate
       ) {
         throw new Error(result.message);
       }
+      const stillOffered = result.data.slots.some((slot) => slot.startsAt === preselect);
       setOffer(result.data);
-      setStartsAt("");
+      setStartsAt(stillOffered ? preselect : "");
     } catch (error) {
       if (!attempt.signal.aborted) {
         toast.error(
@@ -86,6 +93,26 @@ export function useSellerAppointment(initialBranches: Page<Branch>) {
       }
     }
   }
+  useEffect(() => {
+    if (!addressed) {
+      return;
+    }
+    const prefill = parseAppointmentPrefill(window.location.search);
+    const known = initialBranches.items.find((branch) => branch.id === prefill?.branchId);
+    if (!prefill || !known) {
+      return;
+    }
+    queueMicrotask(() => {
+      selectBranch(known.id);
+      if (prefill.date && !validateIntakeDate(prefill.date, defaultIntakeDateWindow())) {
+        setDate(prefill.date);
+        void readSlots(known.id, prefill.date, prefill.startsAt ?? "");
+      }
+    });
+    // Read once on arrival; later choices belong to the form.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function loadBranches(page: number) {
     if (busy) {
       return;

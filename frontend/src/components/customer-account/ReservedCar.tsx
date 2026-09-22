@@ -106,8 +106,11 @@ export function ReservedCar({
         {/* Once our team handles the sale, changes are agreed with them rather than cancelled online. */}
         {item.isActive && !item.isHandled && (
           <div className={styles.heldActions}>
-            <Link href="/branches" className={buttonClassName("primary", "lg")}>
-              Book my showroom visit
+            <Link
+              href={`/branches?branchId=${item.receipt.branchId}`}
+              className={buttonClassName("primary", "lg")}
+            >
+              Plan your showroom visit
             </Link>
             <button
               type="button"

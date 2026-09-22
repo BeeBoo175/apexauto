@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useAddressParam } from "@/hooks/use-address-param";
 import { useShowroomOpenStatus } from "@/hooks/use-showroom-open-status";
 import { useShowroomStock } from "@/hooks/use-showroom-stock";
 import patterns from "@/components/layout/PublicPatterns.module.css";
@@ -26,19 +27,14 @@ const highlightedStatesByScope: Record<MapFocusScope, readonly string[]> = {
 
 export function ShowroomsWorkspace({
   showroomBranches,
-  initialBranchId,
 }: {
   showroomBranches: readonly ShowroomBranchInfo[];
-  initialBranchId?: string;
 }) {
-  const defaultBranch =
-    (initialBranchId &&
-      showroomBranches.find(
-        (b) =>
-          b.id === initialBranchId || b.shortLabel.toLowerCase() === initialBranchId.toLowerCase(),
-      )) ||
-    showroomBranches[0];
-  const [panelId, setPanelId] = useState(defaultBranch?.id ?? showroomBranches[0]?.id ?? "");
+  // The page is generated ahead of time, so a link's showroom is read from the address in the browser.
+  const addressedId = useAddressParam("branchId");
+  const [chosenId, setChosenId] = useState<string | null>(null);
+  const addressed = showroomBranches.find((branch) => branch.id === addressedId);
+  const panelId = chosenId ?? addressed?.id ?? showroomBranches[0]?.id ?? "";
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selangorFocused, setSelangorFocused] = useState(false);
   const [hoveredBranchId, setHoveredBranchId] = useState<string | null>(null);
@@ -66,7 +62,7 @@ export function ShowroomsWorkspace({
 
   // A panel opens its showroom and points the map at it.
   function openBranch(branch: ShowroomBranchInfo) {
-    setPanelId(branch.id);
+    setChosenId(branch.id);
     setSelectedId(branch.id);
     setSelangorFocused(false);
     setZoomIndex(0);
@@ -74,7 +70,7 @@ export function ShowroomsWorkspace({
 
   // A pin chooses a showroom too; pressing the focused pin again returns to the peninsula view.
   function chooseBranch(branch: ShowroomBranchInfo) {
-    setPanelId(branch.id);
+    setChosenId(branch.id);
     setSelangorFocused(false);
     setZoomIndex(0);
     setSelectedId(selectedId === branch.id ? null : branch.id);

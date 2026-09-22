@@ -107,7 +107,7 @@ export function LandingShowrooms({ branches, loading = false }: LandingShowrooms
                     </p>
                   </div>
                   <Link
-                    href={`/branches?branch=${showroom.id}`}
+                    href={`/branches?branchId=${showroom.id}`}
                     tabIndex={active && !loading ? undefined : -1}
                     className={styles.visit}
                   >

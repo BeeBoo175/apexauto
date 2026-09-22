@@ -42,7 +42,7 @@ export function VehicleShowroomSection({ showroom, branchName }: VehicleShowroom
             )}
           </div>
           <Link
-            href={showroom ? `/branches?branch=${showroom.id}` : "/branches"}
+            href={showroom ? `/branches?branchId=${showroom.id}` : "/branches"}
             className={landing.visit}
           >
             Plan a visit

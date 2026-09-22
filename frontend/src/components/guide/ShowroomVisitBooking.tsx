@@ -8,6 +8,7 @@ import { useShowroomSlots } from "@/hooks/use-showroom-slots";
 import { addCalendarDays, calendarDate, calendarDayLabel, calendarTime } from "@/lib/calendar";
 import type { ShowroomBranchInfo } from "@/lib/guide/showrooms";
 import { isSundayDate } from "@/lib/intake/appointment-date";
+import { sellerPrefillHref } from "@/lib/intake/appointment-prefill";
 import type { SlotOffer } from "@/lib/intake/contracts";
 import styles from "./ShowroomVisitBooking.module.css";
 
@@ -137,7 +138,7 @@ export function ShowroomVisitBooking({ showroom }: { showroom: ShowroomBranchInf
               {summary}
             </p>
             <Link
-              href="/sell"
+              href={chosen ? sellerPrefillHref(showroom.id, chosen.startsAt) : "/sell"}
               className={buttonClassName(
                 "primary",
                 "lg",

@@ -94,7 +94,7 @@ function SellerWorkflow({
   // Sales staff choose the customer they book for; everything below then belongs to that customer.
   const [customer, setCustomer] = useState<CustomerLookupRow | null>(null);
   const workflow = useSellerWorkflow(initial, customer?.id, !embedded);
-  const appointment = useSellerAppointment(initial.branches!);
+  const appointment = useSellerAppointment(initial.branches!, !embedded);
   const sellerPhotos = useSellerPhotos(workflow.receivePhoto, workflow.lockPhoto, customer?.id);
   const heading = useRef<HTMLHeadingElement>(null);
   const plateInput = useRef<HTMLInputElement>(null);

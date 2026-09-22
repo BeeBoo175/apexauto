@@ -54,7 +54,7 @@ export function SiteFooter() {
                   <Link href="/selling-guide">How selling works</Link>
                 </li>
                 <li>
-                  <Link href="/branches">Book an appraisal</Link>
+                  <Link href="/sell">Book an appraisal</Link>
                 </li>
               </ul>
             </div>
