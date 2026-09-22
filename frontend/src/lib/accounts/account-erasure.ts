@@ -1,8 +1,9 @@
-import type { ApiConflict } from "@/lib/api";
+import { codedConflicts } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { parseBlockers } from "./account-administration";
 import {
   parseClosurePreview,
+  passwordConfirmationMessages,
   type ClosureBlocker,
   type ClosurePreview,
   type RetainedCategory,
@@ -69,18 +70,12 @@ export function parseErasureRequest(value: unknown): ErasureDraft | null {
 }
 
 const conflictMessages: Record<string, string> = {
-  "wrong-password": "That password is not correct. Nothing was changed.",
+  ...passwordConfirmationMessages,
   blocked: "Open records still need resolving. Resolve them first, then try again.",
   protected:
     "This account cannot be erased: it is a published sample account, your own account or the last active Administrator.",
   conflict:
     "This operation was already used for a different action. Reopen the dialog and try again.",
-  "session-changed": "Your sign-in changed while you confirmed. Nothing was changed; try again.",
-  "retry-later": "The service was busy. Nothing was changed; confirm again in a moment.",
 };
 
-export function erasureConflict(code: unknown): ApiConflict | undefined {
-  return typeof code === "string" && Object.hasOwn(conflictMessages, code)
-    ? { code, message: conflictMessages[code] }
-    : undefined;
-}
+export const erasureConflict = codedConflicts(conflictMessages);

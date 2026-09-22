@@ -10,6 +10,16 @@ export interface ApiConflict {
   message: string;
 }
 
+// Builds the conflict parser for a code-to-message map; unknown codes yield undefined.
+export function codedConflicts(
+  messages: Record<string, string>,
+): (code: unknown) => ApiConflict | undefined {
+  return (code) =>
+    typeof code === "string" && Object.hasOwn(messages, code)
+      ? { code, message: messages[code] }
+      : undefined;
+}
+
 export interface Page<T> {
   items: T[];
   total: number;

@@ -1,3 +1,4 @@
+import { codedConflicts } from "@/lib/api";
 import { isRecord } from "./contracts";
 
 const conflictMessages: Record<string, string> = {
@@ -6,10 +7,10 @@ const conflictMessages: Record<string, string> = {
   unavailable: "This invitation link is no longer available. Ask an administrator for a new one.",
 };
 
+const parseConflict = codedConflicts(conflictMessages);
+
 export function staffActivationConflict(code: unknown) {
-  return typeof code === "string" && Object.hasOwn(conflictMessages, code)
-    ? conflictMessages[code]
-    : conflictMessages.unavailable;
+  return parseConflict(code)?.message ?? conflictMessages.unavailable;
 }
 
 // What the public activation page may show before an employee signs up: no email, id or contact.

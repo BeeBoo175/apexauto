@@ -1,3 +1,4 @@
+import { codedConflicts } from "@/lib/api";
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { staffAccountRoles } from "./staff-accounts";
 
@@ -63,8 +64,8 @@ const conflictMessages: Record<string, string> = {
   unavailable: "This invitation is no longer pending. Refresh the list.",
 };
 
+const parseConflict = codedConflicts(conflictMessages);
+
 export function staffInvitationConflict(code: unknown) {
-  return typeof code === "string" && Object.hasOwn(conflictMessages, code)
-    ? conflictMessages[code]
-    : conflictMessages.unavailable;
+  return parseConflict(code)?.message ?? conflictMessages.unavailable;
 }

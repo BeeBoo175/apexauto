@@ -1,4 +1,4 @@
-import type { ApiConflict } from "@/lib/api";
+import { codedConflicts } from "@/lib/api";
 import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 
 export const CUSTOMER_CLOSURE_PATH = "/api/account/closure";
@@ -92,20 +92,21 @@ export function parseClosureReceipt(value: unknown): ClosureReceipt | null {
     : null;
 }
 
-const conflictMessages: Record<string, string> = {
+// Outcomes every password-confirmed account closure or erasure can return.
+export const passwordConfirmationMessages = {
   "wrong-password": "That password is not correct. Nothing was changed.",
-  blocked: "Some records still need you. Resolve them first, then try again.",
-  "protected-sample":
-    "This is a published sample account and stays available to every visitor, so it cannot be closed.",
   "session-changed": "Your sign-in changed while you confirmed. Nothing was changed; try again.",
   "retry-later": "The service was busy. Nothing was changed; confirm again in a moment.",
 };
 
-export function closureConflict(code: unknown): ApiConflict | undefined {
-  return typeof code === "string" && Object.hasOwn(conflictMessages, code)
-    ? { code, message: conflictMessages[code] }
-    : undefined;
-}
+const conflictMessages: Record<string, string> = {
+  ...passwordConfirmationMessages,
+  blocked: "Some records still need you. Resolve them first, then try again.",
+  "protected-sample":
+    "This is a published sample account and stays available to every visitor, so it cannot be closed.",
+};
+
+export const closureConflict = codedConflicts(conflictMessages);
 
 // The closure body is exactly the operation id and the password, so a replay is byte-identical.
 export function parseClosureRequest(value: unknown): ClosureDraft | null {
