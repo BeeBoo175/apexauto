@@ -11,7 +11,9 @@ export function isCalendarDate(value: unknown): value is string {
   );
 }
 
-export function calendarDate(now = new Date(), timeZone = "Asia/Kuala_Lumpur") {
+export const MALAYSIA_TIME_ZONE = "Asia/Kuala_Lumpur";
+
+export function calendarDate(now = new Date(), timeZone = MALAYSIA_TIME_ZONE) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone,
     year: "numeric",

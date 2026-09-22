@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ShowroomsWorkspace } from "@/components/guide/ShowroomsDirectory";
+import { ShowroomsWorkspace } from "@/components/guide/ShowroomsWorkspace";
 import { StatusPage } from "@/components/ui/StatusPage";
 import { parsePage } from "@/lib/api";
 import { parseBranch } from "@/lib/branches";

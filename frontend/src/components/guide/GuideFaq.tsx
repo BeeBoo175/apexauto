@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { FaqEntry } from "@/lib/guide/faq-items";
-import styles from "./WarrantyFaq.module.css";
+import styles from "./GuideFaq.module.css";
 
 // The same entries as the main FAQ page, narrowed to the ones that concern pricing, grades and cover.
-export function WarrantyFaq({ entries }: { entries: readonly FaqEntry[] }) {
+export function GuideFaq({ entries }: { entries: readonly FaqEntry[] }) {
   return (
     <div className={styles.faq}>
       <h2 className={styles.heading}>Common questions</h2>

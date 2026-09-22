@@ -5,7 +5,13 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { buttonClassName } from "@/components/ui/Button";
 import { useShowroomSlots } from "@/hooks/use-showroom-slots";
-import { addCalendarDays, calendarDate, calendarDayLabel, calendarTime } from "@/lib/calendar";
+import {
+  MALAYSIA_TIME_ZONE,
+  addCalendarDays,
+  calendarDate,
+  calendarDayLabel,
+  calendarTime,
+} from "@/lib/calendar";
 import type { ShowroomBranchInfo } from "@/lib/guide/showrooms";
 import { isSundayDate } from "@/lib/intake/appointment-date";
 import { sellerPrefillHref } from "@/lib/intake/appointment-prefill";
@@ -15,7 +21,6 @@ import styles from "./ShowroomVisitBooking.module.css";
 const DAYS_OFFERED = 7;
 // The time chips drawn as placeholders while a day's bays load, so the row keeps its size.
 const SLOT_SHELLS = [0, 1, 2, 3, 4, 5, 6, 7];
-const SHOWROOM_TIME_ZONE = "Asia/Kuala_Lumpur";
 
 function offeredDays() {
   const days: string[] = [];
@@ -56,7 +61,7 @@ export function ShowroomVisitBooking({ showroom }: { showroom: ShowroomBranchInf
   const slots = shown?.slots ?? [];
   const chosen = offer?.slots.find((slot) => slot.startsAt === startsAt) ?? null;
   const summary = chosen
-    ? `${calendarDayLabel(shownDate)}, ${calendarTime(chosen.startsAt, SHOWROOM_TIME_ZONE)} at ${showroom.shortLabel}.`
+    ? `${calendarDayLabel(shownDate)}, ${calendarTime(chosen.startsAt, MALAYSIA_TIME_ZONE)} at ${showroom.shortLabel}.`
     : `Pick a day and a time at ${showroom.shortLabel}.`;
 
   return (
@@ -120,7 +125,7 @@ export function ShowroomVisitBooking({ showroom }: { showroom: ShowroomBranchInf
                         }
                       }}
                     >
-                      {calendarTime(slot.startsAt, SHOWROOM_TIME_ZONE)}
+                      {calendarTime(slot.startsAt, MALAYSIA_TIME_ZONE)}
                     </button>
                   ))}
                 </div>

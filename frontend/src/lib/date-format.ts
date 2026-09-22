@@ -1,3 +1,4 @@
+import { MALAYSIA_TIME_ZONE } from "@/lib/calendar";
 const malaysiaOffsetMs = 8 * 60 * 60 * 1000;
 
 // Malaysia local time is UTC+8 without daylight saving; stored timestamps remain UTC.
@@ -20,7 +21,7 @@ export function formatMalaysianDateTime(
   const date = typeof utcDate === "string" ? new Date(utcDate) : utcDate;
 
   const defaultOptions: Intl.DateTimeFormatOptions = {
-    timeZone: "Asia/Kuala_Lumpur",
+    timeZone: MALAYSIA_TIME_ZONE,
     year: "numeric",
     month: "short",
     day: "numeric",

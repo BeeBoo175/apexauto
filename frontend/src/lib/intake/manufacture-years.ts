@@ -1,8 +1,9 @@
+import { MALAYSIA_TIME_ZONE } from "@/lib/calendar";
 import type { TaxonomyTrim } from "./contracts";
 
 export function malaysianYear(now: Date) {
   const year = new Intl.DateTimeFormat("en-MY", {
-    timeZone: "Asia/Kuala_Lumpur",
+    timeZone: MALAYSIA_TIME_ZONE,
     year: "numeric",
   }).format(now);
   return Number(year);

@@ -4,7 +4,7 @@ import patterns from "@/components/layout/PublicPatterns.module.css";
 import { buttonClassName } from "@/components/ui/Button";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import { AboutOdometer } from "./AboutOdometer";
-import { Reveal } from "./AboutReveal";
+import { Reveal } from "./Reveal";
 import styles from "./AboutUs.module.css";
 
 // Everything below is a fictional company history for this demonstration site, set as of December 2026.

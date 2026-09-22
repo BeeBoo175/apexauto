@@ -5,7 +5,7 @@ import patterns from "@/components/layout/PublicPatterns.module.css";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import { sellingPageFaq } from "@/lib/guide/faq-items";
 import { SellingSteps, type SellingStep } from "./SellingSteps";
-import { WarrantyFaq } from "./WarrantyFaq";
+import { GuideFaq } from "./GuideFaq";
 import styles from "./SellingGuide.module.css";
 
 const VISIT_FACTS = [
@@ -159,7 +159,7 @@ export function SellingGuide() {
         aria-label="Questions about selling"
       >
         <div className={layout.content}>
-          <WarrantyFaq entries={sellingPageFaq} />
+          <GuideFaq entries={sellingPageFaq} />
         </div>
       </section>
     </>

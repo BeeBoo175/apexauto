@@ -12,7 +12,7 @@ import { useWorkCalendar } from "@/hooks/use-work-calendar";
 import { useGuardedAction } from "@/hooks/use-guarded-action";
 import type { WorkCalendarEntry } from "@/hooks/use-work-calendar-entry";
 import type { CurrentActor } from "@/lib/auth/actor";
-import { calendarDate } from "@/lib/calendar";
+import { MALAYSIA_TIME_ZONE, calendarDate } from "@/lib/calendar";
 import { workCalendarEvents, workItemHref } from "@/lib/staff/work-calendar-presentation";
 import { StaffCommandBar } from "./StaffPage";
 import { StaffNavigationContext, StaffPageEntranceContext } from "./StaffActorBoundary";
@@ -161,7 +161,7 @@ export function WorkCalendarWorkspace({
             confirmed={Boolean(scheduled.data)}
             today={calendarDate()}
             locale="en-MY"
-            timeZone="Asia/Kuala_Lumpur"
+            timeZone={MALAYSIA_TIME_ZONE}
             busy={pending.scheduled}
             fit
             toolbar={

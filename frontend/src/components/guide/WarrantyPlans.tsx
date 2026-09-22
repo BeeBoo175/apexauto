@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/Icon";
 import { formatWholeCurrency } from "@/lib/currency-format";
 import type { GuideWarranty, InspectionGradeTier } from "@/lib/guide/purchase-guide";
 import { isWarrantyPlanEligible, splitWarrantyName } from "@/lib/guide/warranty-plans";
+import { vehicleGrades } from "@/lib/vehicles/contracts";
 import styles from "./WarrantyPlans.module.css";
 
 type GradeFilter = "ALL" | InspectionGradeTier;
@@ -17,8 +18,6 @@ const gradeOptions: readonly { value: GradeFilter; label: string }[] = [
   { value: "B", label: "Grade B" },
   { value: "C", label: "Grade C" },
 ];
-
-const carGrades: readonly InspectionGradeTier[] = ["A", "B", "C"];
 
 // Every line comes from the live plan list: the first plan states its terms, the next ones what they add.
 function planFeatures(plan: GuideWarranty, previous: GuideWarranty | undefined) {
@@ -77,9 +76,11 @@ export function WarrantyPlans({ warranties }: { warranties: readonly GuideWarran
           // The cars this plan can cover: the chosen grade, or every grade the plan accepts.
           const coveredGrades =
             grade === "ALL"
-              ? carGrades.filter((carGrade) => isWarrantyPlanEligible(plan.minimumGrade, carGrade))
+              ? vehicleGrades.filter((carGrade) =>
+                  isWarrantyPlanEligible(plan.minimumGrade, carGrade),
+                )
               : [grade];
-          const coversEveryGrade = coveredGrades.length === carGrades.length;
+          const coversEveryGrade = coveredGrades.length === vehicleGrades.length;
           const carsHref = coversEveryGrade
             ? "/vehicles"
             : `/vehicles?grade=${coveredGrades.join(",")}`;
@@ -185,7 +186,7 @@ export function WarrantyPlans({ warranties }: { warranties: readonly GuideWarran
                 Eligible cars
               </th>
             </tr>
-            {carGrades.map((carGrade) => (
+            {vehicleGrades.map((carGrade) => (
               <tr key={carGrade}>
                 <th scope="row">Grade {carGrade} cars</th>
                 {warranties.map((plan) => {

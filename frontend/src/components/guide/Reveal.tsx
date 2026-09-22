@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { prefersReducedMotion } from "@/lib/motion";
-import styles from "./AboutReveal.module.css";
+import styles from "./Reveal.module.css";
 
 type RevealState = "visible" | "hidden" | "shown";
 

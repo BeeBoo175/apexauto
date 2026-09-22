@@ -4,7 +4,7 @@ import { buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { LiveVehicles } from "@/components/vehicles/LiveVehicles";
 import { buyingPageFaq } from "@/lib/guide/faq-items";
-import { WarrantyFaq } from "./WarrantyFaq";
+import { GuideFaq } from "./GuideFaq";
 import type { IconName } from "@/lib/icons";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
@@ -359,7 +359,7 @@ export function BuyingJourney() {
         aria-label="Questions about buying"
       >
         <div className={layout.content}>
-          <WarrantyFaq entries={buyingPageFaq} />
+          <GuideFaq entries={buyingPageFaq} />
         </div>
       </section>
     </>

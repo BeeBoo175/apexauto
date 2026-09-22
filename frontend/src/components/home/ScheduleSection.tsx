@@ -5,12 +5,11 @@ import { DashboardSection, type SectionState } from "@/components/staff/Dashboar
 import dashboard from "@/components/staff/DashboardSection.module.css";
 import { branchLabel } from "@/lib/branches";
 import { hourLabel } from "@/lib/calendar";
-import { calendarTime } from "@/lib/calendar";
+import { MALAYSIA_TIME_ZONE, calendarTime } from "@/lib/calendar";
 import type { ScheduledWork } from "@/lib/staff/work-calendar";
 import { workItemHref } from "@/lib/staff/work-calendar-presentation";
 import styles from "./Home.module.css";
 
-const timeZone = "Asia/Kuala_Lumpur";
 const malaysiaOffsetHours = 8;
 const calendarHref = "/dashboard/work-calendar";
 // Branch bookings run from the first slot to the last, so every hour between them shows even when it is free.
@@ -137,7 +136,7 @@ function HourRows({ items, showBranch }: { items: ScheduledWork[]; showBranch: b
                 >
                   <span className={styles.bookingTop}>
                     <span className={styles.bookingTime}>
-                      {calendarTime(item.startsAt, timeZone)}
+                      {calendarTime(item.startsAt, MALAYSIA_TIME_ZONE)}
                     </span>
                     {kindLabels[item.kind]}
                   </span>

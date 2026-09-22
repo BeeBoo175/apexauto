@@ -10,7 +10,7 @@ import type { GuideWarranty } from "@/lib/guide/purchase-guide";
 import { InspectionAreas } from "./InspectionAreas";
 import { InspectionGrades } from "./InspectionGrades";
 import styles from "./InspectionStandards.module.css";
-import { WarrantyFaq } from "./WarrantyFaq";
+import { GuideFaq } from "./GuideFaq";
 
 export function InspectionStandards({
   guide,
@@ -64,7 +64,7 @@ export function InspectionStandards({
         aria-label="Questions about inspection"
       >
         <div className={layout.content}>
-          <WarrantyFaq entries={faq} />
+          <GuideFaq entries={faq} />
         </div>
       </section>
     </>

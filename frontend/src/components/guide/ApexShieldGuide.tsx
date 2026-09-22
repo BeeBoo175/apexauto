@@ -3,7 +3,7 @@ import { LiveVehicles } from "@/components/vehicles/LiveVehicles";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import type { FaqEntry } from "@/lib/guide/faq-items";
 import type { GuideWarranty } from "@/lib/guide/purchase-guide";
-import { WarrantyFaq } from "./WarrantyFaq";
+import { GuideFaq } from "./GuideFaq";
 import { WarrantyPlans } from "./WarrantyPlans";
 import styles from "./ApexShieldGuide.module.css";
 
@@ -36,7 +36,7 @@ export function ApexShieldGuide({
 
       <section className={styles.faqBand} aria-label="Warranty questions">
         <div className={layout.content}>
-          <WarrantyFaq entries={faq} />
+          <GuideFaq entries={faq} />
         </div>
       </section>
 

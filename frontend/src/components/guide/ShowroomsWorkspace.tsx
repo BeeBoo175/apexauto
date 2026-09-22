@@ -15,7 +15,7 @@ import type { BranchRegionState, ShowroomBranchInfo } from "@/lib/guide/showroom
 import { catalogueDefaults, catalogueHref } from "@/lib/vehicles/query";
 import { MAX_MAP_ZOOM_INDEX, ShowroomMapStage } from "./ShowroomMapStage";
 import { ShowroomVisitBooking } from "./ShowroomVisitBooking";
-import styles from "./ShowroomsDirectory.module.css";
+import styles from "./ShowroomsWorkspace.module.css";
 
 type MapFocusScope = "ALL" | BranchRegionState;
 

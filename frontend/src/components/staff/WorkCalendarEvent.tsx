@@ -4,7 +4,7 @@ import { useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { CalendarEvent } from "@/components/ui/calendar/types";
 import type { ScheduledWork } from "@/lib/staff/work-calendar";
-import { calendarTime } from "@/lib/calendar";
+import { MALAYSIA_TIME_ZONE, calendarTime } from "@/lib/calendar";
 import { branchLabel } from "@/lib/branches";
 import { branchPosition } from "@/lib/staff/work-calendar-branch";
 import { workItemKind, workItemLabel } from "@/lib/staff/work-calendar-presentation";
@@ -29,7 +29,7 @@ interface EntryProps {
 function entryFacts({
   event,
   branchOrder,
-  timeZone = "Asia/Kuala_Lumpur",
+  timeZone = MALAYSIA_TIME_ZONE,
   locale = "en-MY",
 }: EntryProps) {
   const data = event.data;
