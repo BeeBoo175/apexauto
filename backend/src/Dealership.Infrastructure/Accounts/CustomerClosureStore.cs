@@ -46,99 +46,34 @@ public sealed class CustomerClosureStore(DealershipDbContext database,
             return new(ClosurePasswordOutcome.ProtectedSample);
         }
 
-        if (user.PasswordHash is null)
-        {
-            missingHash.Verify(passwords, password);
-            return new(ClosurePasswordOutcome.WrongPassword);
-        }
-
-        return passwords.VerifyHashedPassword(user, user.PasswordHash, password) == PasswordVerificationResult.Failed
-            ? new(ClosurePasswordOutcome.WrongPassword)
-            : new(ClosurePasswordOutcome.Verified, user.SecurityStamp);
+        return ClosurePasswords.Verify(user, password, passwords, missingHash);
     }
 
-    public async Task<IReadOnlyList<Guid>> UnreleasedBillRequestsAsync(Guid customerId,
-        CancellationToken cancellationToken)
-    {
-        return await (from payment in database.ReservationDepositPayments.AsNoTracking()
-                      join request in database.ReservationDepositRequests.AsNoTracking() on payment.RequestId equals request.Id
-                      where request.CustomerId == customerId && payment.State == DepositPaymentState.Pending &&
-                          payment.BillDeletedAt == null
-                      select payment.RequestId).ToListAsync(cancellationToken);
-    }
+    public Task<IReadOnlyList<Guid>> UnreleasedBillRequestsAsync(Guid customerId,
+        CancellationToken cancellationToken) =>
+        ClosureBillQuery.UnreleasedRequestsAsync(database, customerId, cancellationToken);
 
-    public async Task<CustomerClosureResult> CloseAsync(Guid customerId, Guid operationId, string verifiedSecurityStamp,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var result = await CloseLockedAsync(customerId, operationId, verifiedSecurityStamp, cancellationToken);
-            if (result.Receipt is { FileRemovalPending: true })
-            {
-                cleanup.Request();
-            }
-
-            return result;
-        }
-        catch (Exception failure) when (ClosureLocks.IsLockConflict(failure))
-        {
-            database.ChangeTracker.Clear();
-            return new(CustomerClosureStatus.RetryLater);
-        }
-    }
+    public Task<CustomerClosureResult> CloseAsync(Guid customerId, Guid operationId, string verifiedSecurityStamp,
+        CancellationToken cancellationToken) =>
+        ClosureLocks.RunGuardedAsync(database, cleanup,
+            () => CloseLockedAsync(customerId, operationId, verifiedSecurityStamp, cancellationToken),
+            result => result.Receipt, new CustomerClosureResult(CustomerClosureStatus.RetryLater));
 
     private async Task<CustomerClosureResult> CloseLockedAsync(Guid customerId, Guid operationId,
         string verifiedSecurityStamp, CancellationToken cancellationToken)
     {
-        await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        await ClosureLocks.LockOwnerAsync(database, customerId, cancellationToken);
-
-        // A replay must match both the kind and the target, never just the operation id.
-        var receipt = await database.AccountEvents.AsNoTracking().SingleOrDefaultAsync(item => item.Id == operationId &&
-            item.TargetId == customerId && item.Kind == AccountEventKind.Erased, cancellationToken);
-        if (receipt is not null)
+        // The customer is their own actor, so the target row lock is the only actor lock and carries the stamp.
+        var actor = new CustomerErasureActor(customerId, null, null, null, verifiedSecurityStamp);
+        var run = await CustomerErasureCommand.RunAsync(database, customerId, operationId, actor, cancellationToken);
+        return run.Outcome switch
         {
-            return await ClosedAsync(customerId, receipt.Id, receipt.RecordedAt, cancellationToken);
-        }
-
-        if (await database.AccountEvents.AsNoTracking().AnyAsync(item => item.Id == operationId, cancellationToken))
-        {
-            return new(CustomerClosureStatus.Conflict);
-        }
-
-        var user = await database.Users.FromSqlInterpolated(
-            $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {customerId} FOR UPDATE").AsNoTracking()
-            .SingleOrDefaultAsync(cancellationToken);
-        if (user is not { Role: AccountRoles.Customer, ClosedAt: null })
-        {
-            return new(CustomerClosureStatus.Forbidden);
-        }
-
-        if (user.SecurityStamp != verifiedSecurityStamp)
-        {
-            return new(CustomerClosureStatus.SessionChanged);
-        }
-
-        await ClosureLocks.LockObligationsAsync(database, customerId, cancellationToken);
-        var now = await database.DatabaseNowAsync(cancellationToken);
-        var blockers = await CustomerClosureBlockers.ReadAsync(database, customerId, now, cancellationToken);
-        if (blockers.Count > 0)
-        {
-            return new(CustomerClosureStatus.Blocked, blockers);
-        }
-
-        var profile = await database.CustomerProfiles.FromSqlInterpolated(
-            $"SELECT * FROM \"CustomerProfiles\" WHERE \"UserId\" = {customerId} FOR UPDATE")
-            .SingleAsync(cancellationToken);
-        if (SampleAccountProtection.IsProtectedCustomer(profile.RegistrationKey))
-        {
-            return new(CustomerClosureStatus.ProtectedSample);
-        }
-
-        await CustomerErasure.ApplyAsync(database, customerId, profile, operationId, customerId, null,
-            UtcTime.TruncateToMicroseconds(now), cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return await ClosedAsync(customerId, operationId, UtcTime.TruncateToMicroseconds(now), cancellationToken);
+            CustomerErasureOutcome.Done => await ClosedAsync(customerId, run.ReceiptId, run.RecordedAt, cancellationToken),
+            CustomerErasureOutcome.Blocked => new(CustomerClosureStatus.Blocked, run.Blockers),
+            CustomerErasureOutcome.Conflict => new(CustomerClosureStatus.Conflict),
+            CustomerErasureOutcome.SessionChanged => new(CustomerClosureStatus.SessionChanged),
+            CustomerErasureOutcome.ProtectedSample => new(CustomerClosureStatus.ProtectedSample),
+            _ => new(CustomerClosureStatus.Forbidden)
+        };
     }
 
     // The receipt says pending while any picture of the customer still waits for its object to be deleted.

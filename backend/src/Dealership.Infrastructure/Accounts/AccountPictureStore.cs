@@ -60,7 +60,7 @@ public sealed class AccountPictureStore(DealershipDbContext database, TimeProvid
         CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        await LockOwnerCommandsAsync(userId, cancellationToken);
+        await AccountPictureLocks.LockOwnerAsync(database, userId, cancellationToken);
 
         if (!await LockUserAsync(userId, cancellationToken))
         {
@@ -107,7 +107,7 @@ public sealed class AccountPictureStore(DealershipDbContext database, TimeProvid
         CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);
-        await LockOwnerCommandsAsync(userId, cancellationToken);
+        await AccountPictureLocks.LockOwnerAsync(database, userId, cancellationToken);
 
         if (!await LockUserAsync(userId, cancellationToken))
         {
@@ -198,13 +198,6 @@ public sealed class AccountPictureStore(DealershipDbContext database, TimeProvid
         return await database.AccountPictures.FromSqlInterpolated(
             $"SELECT * FROM \"AccountPictures\" WHERE \"Id\" = {pictureId} AND \"UserId\" = {userId} FOR UPDATE")
             .SingleOrDefaultAsync(cancellationToken);
-    }
-
-    // Promotion and removal of one account's pictures serialize here before any row lock, in the same order.
-    private async Task LockOwnerCommandsAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        await database.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT pg_advisory_xact_lock(hashtextextended({"account-picture:" + userId}, 0))", cancellationToken);
     }
 
     // A shared user lock lets pictures proceed together while excluding a command that rewrites the account row.

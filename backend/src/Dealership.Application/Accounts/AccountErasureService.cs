@@ -29,11 +29,11 @@ public sealed class AccountErasureService(IAccountErasureStore store, Reservatio
         AccountErasureRequest request, CancellationToken cancellationToken) =>
         EraseAsync(administratorId, staffId, request, staff: true, cancellationToken);
 
-    private async Task<AccountErasureResult> EraseAsync(Guid administratorId, Guid customerId,
+    private async Task<AccountErasureResult> EraseAsync(Guid administratorId, Guid targetId,
         AccountErasureRequest request, bool staff, CancellationToken cancellationToken)
     {
         var reason = request.Reason?.Trim();
-        if (administratorId == Guid.Empty || customerId == Guid.Empty || request.OperationId == Guid.Empty ||
+        if (administratorId == Guid.Empty || targetId == Guid.Empty || request.OperationId == Guid.Empty ||
             string.IsNullOrEmpty(request.Password) || !AccountEvent.IsValidReason(reason))
         {
             return new(AccountErasureStatus.Invalid);
@@ -45,13 +45,13 @@ public sealed class AccountErasureService(IAccountErasureStore store, Reservatio
         }
 
         // A repeated command returns its receipt even though the account is no longer open.
-        var applied = await store.FindReceiptAsync(administratorId, customerId, request.OperationId, cancellationToken);
+        var applied = await store.FindReceiptAsync(administratorId, targetId, request.OperationId, cancellationToken);
         if (applied is not null)
         {
             return applied;
         }
 
-        var preview = await store.PreviewAsync(administratorId, customerId, staff, cancellationToken);
+        var preview = await store.PreviewAsync(administratorId, targetId, staff, cancellationToken);
         if (preview is null)
         {
             return new(AccountErasureStatus.NotFound);
@@ -62,7 +62,7 @@ public sealed class AccountErasureService(IAccountErasureStore store, Reservatio
             return new(AccountErasureStatus.Blocked, null, preview.StaffBlockers);
         }
 
-        if (preview.CustomerBlockers.Any(item => item.Type != ClosureBlockerTypes.DepositBill))
+        if (ClosureBills.HasBlockingObligation(preview.CustomerBlockers))
         {
             return new(AccountErasureStatus.Blocked, preview.CustomerBlockers);
         }
@@ -78,16 +78,13 @@ public sealed class AccountErasureService(IAccountErasureStore store, Reservatio
         var confirmed = request with { Reason = reason };
         if (staff)
         {
-            return await store.EraseStaffAsync(administratorId, customerId, confirmed, password.SecurityStamp!,
+            return await store.EraseStaffAsync(administratorId, targetId, confirmed, password.SecurityStamp!,
                 cancellationToken);
         }
 
-        foreach (var requestId in await store.UnreleasedBillRequestsAsync(customerId, cancellationToken))
-        {
-            await payments.ReleaseBillAsync(requestId, cancellationToken);
-        }
+        await ClosureBills.ReleaseAsync(store, payments, targetId, cancellationToken);
 
-        return await store.EraseCustomerAsync(administratorId, customerId, confirmed, password.SecurityStamp!,
+        return await store.EraseCustomerAsync(administratorId, targetId, confirmed, password.SecurityStamp!,
             cancellationToken);
     }
 }

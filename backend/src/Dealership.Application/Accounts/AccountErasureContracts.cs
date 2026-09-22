@@ -33,7 +33,7 @@ public sealed record AccountErasureResult(AccountErasureStatus Status,
 public sealed record AccountErasurePreview(IReadOnlyList<ClosureBlocker> CustomerBlockers,
     IReadOnlyList<AccountBlocker> StaffBlockers);
 
-public interface IAccountErasureStore
+public interface IAccountErasureStore : IClosureBillStore
 {
     Task<bool> IsAdministratorAsync(Guid administratorId, CancellationToken cancellationToken);
 
@@ -47,8 +47,6 @@ public interface IAccountErasureStore
 
     Task<ClosurePasswordCheck> VerifyAdministratorPasswordAsync(Guid administratorId, string password,
         CancellationToken cancellationToken);
-
-    Task<IReadOnlyList<Guid>> UnreleasedBillRequestsAsync(Guid customerId, CancellationToken cancellationToken);
 
     Task<AccountErasureResult> EraseStaffAsync(Guid administratorId, Guid staffId, AccountErasureRequest request,
         string verifiedSecurityStamp, CancellationToken cancellationToken);

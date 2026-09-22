@@ -58,15 +58,12 @@ public enum ClosurePasswordOutcome
 // The result of hashing the password before any transaction; the stamp lets the locked command detect a changed session.
 public sealed record ClosurePasswordCheck(ClosurePasswordOutcome Outcome, string? SecurityStamp = null);
 
-public interface ICustomerClosureStore
+public interface ICustomerClosureStore : IClosureBillStore
 {
     // Null when the account is not an open customer.
     Task<IReadOnlyList<ClosureBlocker>?> BlockersAsync(Guid customerId, CancellationToken cancellationToken);
 
     Task<ClosurePasswordCheck> VerifyPasswordAsync(Guid customerId, string password, CancellationToken cancellationToken);
-
-    // Requests whose unpaid provider bill still exists and must be deleted before the account can close.
-    Task<IReadOnlyList<Guid>> UnreleasedBillRequestsAsync(Guid customerId, CancellationToken cancellationToken);
 
     // Rechecks every blocker under the closure locks and, when none remain, ends access and removes the customer's
     // personal data in one transaction. The operation id is the receipt, so a repeated command returns it unchanged.

@@ -29,7 +29,7 @@ public sealed class CustomerClosureService(ICustomerClosureStore store, Reservat
             return new(CustomerClosureStatus.Forbidden);
         }
 
-        if (blockers.Any(item => item.Type != ClosureBlockerTypes.DepositBill))
+        if (ClosureBills.HasBlockingObligation(blockers))
         {
             return new(CustomerClosureStatus.Blocked, blockers);
         }
@@ -45,11 +45,7 @@ public sealed class CustomerClosureService(ICustomerClosureStore store, Reservat
             });
         }
 
-        // The provider call stays outside the transaction; the locked command blocks if any bill survived.
-        foreach (var requestId in await store.UnreleasedBillRequestsAsync(customerId, cancellationToken))
-        {
-            await payments.ReleaseBillAsync(requestId, cancellationToken);
-        }
+        await ClosureBills.ReleaseAsync(store, payments, customerId, cancellationToken);
 
         return await store.CloseAsync(customerId, request.OperationId, password.SecurityStamp!, cancellationToken);
     }

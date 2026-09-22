@@ -1,4 +1,6 @@
+using Dealership.Application.Accounts;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Photos;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -41,10 +43,31 @@ internal static class ClosureLocks
     public static async Task LockOwnerAsync(DealershipDbContext database, Guid userId,
         CancellationToken cancellationToken)
     {
-        await database.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT pg_advisory_xact_lock(hashtextextended({"account-picture:" + userId}, 0))", cancellationToken);
+        await AccountPictureLocks.LockOwnerAsync(database, userId, cancellationToken);
         await database.Database.ExecuteSqlInterpolatedAsync(
             $"SELECT pg_advisory_xact_lock(hashtextextended({"account-closure:" + userId}, 0))", cancellationToken);
+    }
+
+    // Runs one locked closing command: a rolled-back lock conflict becomes a retry result, and a receipt that still
+    // waits for picture objects wakes the cleanup.
+    public static async Task<TResult> RunGuardedAsync<TResult>(DealershipDbContext database, PhotoCleanupSignal cleanup,
+        Func<Task<TResult>> locked, Func<TResult, CustomerClosureReceipt?> receiptOf, TResult retryLater)
+    {
+        try
+        {
+            var result = await locked();
+            if (receiptOf(result) is { FileRemovalPending: true })
+            {
+                cleanup.Request();
+            }
+
+            return result;
+        }
+        catch (Exception failure) when (IsLockConflict(failure))
+        {
+            database.ChangeTracker.Clear();
+            return retryLater;
+        }
     }
 
     public static bool IsLockConflict(Exception failure)
