@@ -169,7 +169,7 @@ export function AssistedIntakeForm({
                 ? "Four angles, up to 10 MiB each. They upload when you book."
                 : "Choose the customer before adding photos."}
             </p>
-            <div className={`${sell.uploadGrid} ${sell.photoField}`}>
+            <div className={sell.uploadGrid}>
               {photos.items.map((item) => (
                 <PhotoUpload
                   key={item.angle}

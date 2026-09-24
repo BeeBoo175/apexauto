@@ -377,10 +377,6 @@
   .icon {
     transition: none;
   }
-
-  .panel[data-loading] :is(.ghostTick, .ghostText, .ghostCode)::after {
-    animation: none;
-  }
 }
 
 /* The area's heading, summary and list fade in when the area changes; nothing moves the layout. */

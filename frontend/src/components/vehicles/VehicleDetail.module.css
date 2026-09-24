@@ -1,13 +1,4 @@
 ﻿.page {
-  --vehicle-purchase-background: var(--color-paper);
-  --vehicle-purchase-border: 1px solid var(--color-line);
-  --vehicle-purchase-radius: 8px;
-  --vehicle-purchase-padding: 24px;
-  --vehicle-purchase-mobile-padding: 20px;
-  --vehicle-total-background: transparent;
-  --vehicle-total-border: 1px solid var(--color-line-soft);
-  --vehicle-total-radius: 0;
-  --vehicle-total-padding: 14px 0 0;
   background: var(--color-canvas);
   color: var(--color-graphite);
 }

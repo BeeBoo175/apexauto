@@ -76,11 +76,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.tagLight {
-  background: var(--color-paper);
-  color: var(--color-graphite);
-}
-
 .sheet {
   overflow: hidden;
   border: 1px solid var(--color-line);

@@ -183,10 +183,6 @@ ul.figureList > li > :last-child {
   text-align: right;
 }
 
-.fallback {
-  color: var(--color-muted);
-}
-
 .timeline {
   display: grid;
   gap: 0;
