@@ -46,6 +46,39 @@ internal static class RetentionSql
         await transaction.RollbackAsync();
     }
 
+    // Runs the statement as the runtime role and returns the refusal. A statement the database accepted, or an UPDATE or
+    // DELETE that matched no row, fails the test: the probe would not have exercised any rule.
+    internal static async Task<PostgresException> RuntimeRefusalAsync(string connectionString, string sql)
+    {
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand(sql, connection);
+        try
+        {
+            var affected = await command.ExecuteNonQueryAsync();
+            Assert.Fail(affected == 0
+                ? $"The statement matched no row, so it tested nothing: {sql}"
+                : $"The database accepted: {sql}");
+            throw new InvalidOperationException("Unreachable.");
+        }
+        catch (PostgresException failure)
+        {
+            return failure;
+        }
+    }
+
+    // Expects the refusal to carry the SQL state and to name the guard: the violated constraint, or for a plain
+    // statement refusal the message text.
+    internal static async Task ExpectRuntimeRefusalAsync(string connectionString, string sql, string sqlState,
+        string guard)
+    {
+        var failure = await RuntimeRefusalAsync(connectionString, sql);
+        Assert.True(failure.SqlState == sqlState && (failure.ConstraintName == guard ||
+                failure.MessageText.Contains(guard, StringComparison.Ordinal)),
+            $"Expected {sqlState} from {guard} but got {failure.SqlState} ({failure.ConstraintName}): " +
+            $"{failure.MessageText} for {sql}");
+    }
+
     // The SQL state of the refusal, or null when the database accepted the statement.
     internal static async Task<string?> RuntimeFailureAsync(string connectionString, string sql)
     {

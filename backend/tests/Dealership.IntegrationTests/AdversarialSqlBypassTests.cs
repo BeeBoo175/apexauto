@@ -4,6 +4,7 @@ using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using static Dealership.IntegrationTests.RetentionSql;
 
 namespace Dealership.IntegrationTests;
 
@@ -58,38 +59,48 @@ public sealed class AdversarialSqlBypassTests(IntakePhotoFixture fixture) : ICla
             (await world.EraseCustomerAsync(admin, customerId, Guid.NewGuid(), AdversarialWorld.AdministratorPassword)).Status);
         var before = await SnapshotAsync(customerId);
 
-        var probes = new (string Name, string Sql)[]
+        const string closed = "CK_Users_Closed";
+        const string customerErased = "CK_CustomerProfiles_Erased";
+        const string receiptImmutable = "CK_AccountEvents_Immutable";
+        var probes = new (string Sql, string Guard)[]
         {
-            ("clear the closed marker", $"UPDATE \"AspNetUsers\" SET \"ClosedAt\" = NULL WHERE \"Id\" = '{customerId}'"),
-            ("move the closed marker", $"UPDATE \"AspNetUsers\" SET \"ClosedAt\" = \"ClosedAt\" + interval '1 day' WHERE \"Id\" = '{customerId}'"),
-            ("reactivate", $"UPDATE \"AspNetUsers\" SET \"IsActive\" = true WHERE \"Id\" = '{customerId}'"),
-            ("restore a password", $"UPDATE \"AspNetUsers\" SET \"PasswordHash\" = 'AQAAAAEAACcQAAAA' WHERE \"Id\" = '{customerId}'"),
-            ("restore the email", $"UPDATE \"AspNetUsers\" SET \"Email\" = '{registration.Email}' WHERE \"Id\" = '{customerId}'"),
-            ("restore the email and its normal form", $"UPDATE \"AspNetUsers\" SET \"Email\" = '{registration.Email}', " +
-                $"\"NormalizedEmail\" = '{registration.Email!.ToUpperInvariant()}' WHERE \"Id\" = '{customerId}'"),
-            ("reopen the whole account in one statement", $"UPDATE \"AspNetUsers\" SET \"ClosedAt\" = NULL, \"IsActive\" = true, " +
+            ($"UPDATE \"AspNetUsers\" SET \"ClosedAt\" = NULL WHERE \"Id\" = '{customerId}'", closed),
+            ($"UPDATE \"AspNetUsers\" SET \"ClosedAt\" = \"ClosedAt\" + interval '1 day' WHERE \"Id\" = '{customerId}'", closed),
+            ($"UPDATE \"AspNetUsers\" SET \"IsActive\" = true WHERE \"Id\" = '{customerId}'", closed),
+            ($"UPDATE \"AspNetUsers\" SET \"PasswordHash\" = 'AQAAAAEAACcQAAAA' WHERE \"Id\" = '{customerId}'", closed),
+            ($"UPDATE \"AspNetUsers\" SET \"Email\" = '{registration.Email}' WHERE \"Id\" = '{customerId}'", closed),
+            ($"UPDATE \"AspNetUsers\" SET \"Email\" = '{registration.Email}', " +
+                $"\"NormalizedEmail\" = '{registration.Email!.ToUpperInvariant()}' WHERE \"Id\" = '{customerId}'", closed),
+            // The username fits its 30-character column, so the closed-account guard is what refuses the statement.
+            ($"UPDATE \"AspNetUsers\" SET \"ClosedAt\" = NULL, \"IsActive\" = true, " +
                 $"\"Email\" = '{registration.Email}', \"NormalizedEmail\" = '{registration.Email.ToUpperInvariant()}', " +
                 $"\"UserName\" = '{registration.Email}', \"NormalizedUserName\" = '{registration.Email.ToUpperInvariant()}', " +
-                $"\"AccountUsername\" = 'revived.{Guid.NewGuid():N}', \"PasswordHash\" = 'AQAAAAEAACcQAAAA' WHERE \"Id\" = '{customerId}'"),
-            ("clear the erased marker", $"UPDATE \"CustomerProfiles\" SET \"ErasedAt\" = NULL WHERE \"UserId\" = '{customerId}'"),
-            ("restore the NRIC", $"UPDATE \"CustomerProfiles\" SET \"Nric\" = '{registration.Nric}' WHERE \"UserId\" = '{customerId}'"),
-            ("restore every profile detail", $"UPDATE \"CustomerProfiles\" SET \"ErasedAt\" = NULL, \"Nric\" = '{registration.Nric}', " +
+                $"\"AccountUsername\" = 'revived.{Guid.NewGuid().ToString("N")[..12]}', \"PasswordHash\" = 'AQAAAAEAACcQAAAA' " +
+                $"WHERE \"Id\" = '{customerId}'", closed),
+            ($"UPDATE \"CustomerProfiles\" SET \"ErasedAt\" = NULL WHERE \"UserId\" = '{customerId}'", customerErased),
+            ($"UPDATE \"CustomerProfiles\" SET \"Nric\" = '{registration.Nric}' WHERE \"UserId\" = '{customerId}'", customerErased),
+            ($"UPDATE \"CustomerProfiles\" SET \"ErasedAt\" = NULL, \"Nric\" = '{registration.Nric}', " +
                 $"\"LegalName\" = '{registration.LegalName}', \"Mobile\" = '0123456789', " +
-                $"\"ResidentialAddress\" = '18 Jalan Melati, Petaling Jaya' WHERE \"UserId\" = '{customerId}'"),
-            ("rewrite the receipt reason", $"UPDATE \"AccountEvents\" SET \"Reason\" = 'rewritten' WHERE \"TargetId\" = '{customerId}'"),
-            ("clear the receipt marker", $"UPDATE \"AccountEvents\" SET \"MinimizedAt\" = NULL WHERE \"TargetId\" = '{customerId}'"),
-            ("change the receipt actor", $"UPDATE \"AccountEvents\" SET \"ActorId\" = '{customerId}' WHERE \"TargetId\" = '{customerId}'"),
-            ("change the receipt target", $"UPDATE \"AccountEvents\" SET \"TargetId\" = '{admin}' WHERE \"TargetId\" = '{customerId}'"),
-            ("change the receipt kind", $"UPDATE \"AccountEvents\" SET \"Kind\" = 'Suspended' WHERE \"TargetId\" = '{customerId}'"),
-            ("delete the receipt", $"DELETE FROM \"AccountEvents\" WHERE \"TargetId\" = '{customerId}'")
+                $"\"ResidentialAddress\" = '18 Jalan Melati, Petaling Jaya' WHERE \"UserId\" = '{customerId}'", customerErased),
+            ($"UPDATE \"AccountEvents\" SET \"Reason\" = 'rewritten' WHERE \"TargetId\" = '{customerId}'", receiptImmutable),
+            ($"UPDATE \"AccountEvents\" SET \"MinimizedAt\" = NULL WHERE \"TargetId\" = '{customerId}'", receiptImmutable),
+            ($"UPDATE \"AccountEvents\" SET \"ActorId\" = '{customerId}' WHERE \"TargetId\" = '{customerId}'", receiptImmutable),
+            ($"UPDATE \"AccountEvents\" SET \"TargetId\" = '{admin}' WHERE \"TargetId\" = '{customerId}'", receiptImmutable),
+            ($"UPDATE \"AccountEvents\" SET \"Kind\" = 'Suspended' WHERE \"TargetId\" = '{customerId}'", receiptImmutable)
         };
 
-        foreach (var (name, sql) in probes)
+        foreach (var (sql, guard) in probes)
         {
-            var state = await FailureOrNullAsync(sql);
-            Assert.True(state is not null, $"The database accepted: {name}");
+            await ExpectRuntimeRefusalAsync(fixture.Database.RuntimeConnectionString, sql,
+                PostgresErrorCodes.CheckViolation, guard);
             Assert.Equal(before, await SnapshotAsync(customerId));
         }
+
+        // The runtime role has no DELETE privilege on the receipts at all.
+        await ExpectRuntimeRefusalAsync(fixture.Database.RuntimeConnectionString,
+            $"DELETE FROM \"AccountEvents\" WHERE \"TargetId\" = '{customerId}'",
+            PostgresErrorCodes.InsufficientPrivilege, "permission denied for table AccountEvents");
+        Assert.Equal(before, await SnapshotAsync(customerId));
     }
 
     [Fact]
@@ -103,18 +114,20 @@ public sealed class AdversarialSqlBypassTests(IntakePhotoFixture fixture) : ICla
             (await world.EraseStaffAsync(admin, peer, Guid.NewGuid(), AdversarialWorld.AdministratorPassword)).Status);
         var before = await SnapshotAsync(peer);
 
-        var probes = new[]
+        var probes = new (string Sql, string Guard)[]
         {
-            $"UPDATE \"StaffProfiles\" SET \"ErasedAt\" = NULL WHERE \"UserId\" = '{peer}'",
-            $"UPDATE \"StaffProfiles\" SET \"Name\" = 'Amir Hakim' WHERE \"UserId\" = '{peer}'",
-            $"UPDATE \"StaffProfiles\" SET \"ErasedAt\" = NULL, \"Name\" = 'Amir Hakim', \"Mobile\" = '0123456789' WHERE \"UserId\" = '{peer}'",
-            $"UPDATE \"AspNetUsers\" SET \"ClosedAt\" = NULL, \"IsActive\" = true WHERE \"Id\" = '{peer}'",
-            $"UPDATE \"AccountEvents\" SET \"TargetId\" = '{admin}' WHERE \"TargetId\" = '{peer}'"
+            ($"UPDATE \"StaffProfiles\" SET \"ErasedAt\" = NULL WHERE \"UserId\" = '{peer}'", "CK_StaffProfiles_Erased"),
+            ($"UPDATE \"StaffProfiles\" SET \"Name\" = 'Amir Hakim' WHERE \"UserId\" = '{peer}'", "CK_StaffProfiles_Erased"),
+            ($"UPDATE \"StaffProfiles\" SET \"ErasedAt\" = NULL, \"Name\" = 'Amir Hakim', \"Mobile\" = '0123456789' WHERE \"UserId\" = '{peer}'",
+                "CK_StaffProfiles_Erased"),
+            ($"UPDATE \"AspNetUsers\" SET \"ClosedAt\" = NULL, \"IsActive\" = true WHERE \"Id\" = '{peer}'", "CK_Users_Closed"),
+            ($"UPDATE \"AccountEvents\" SET \"TargetId\" = '{admin}' WHERE \"TargetId\" = '{peer}'", "CK_AccountEvents_Immutable")
         };
 
-        foreach (var sql in probes)
+        foreach (var (sql, guard) in probes)
         {
-            Assert.True(await FailureOrNullAsync(sql) is not null, $"The database accepted: {sql}");
+            await ExpectRuntimeRefusalAsync(fixture.Database.RuntimeConnectionString, sql,
+                PostgresErrorCodes.CheckViolation, guard);
             Assert.Equal(before, await SnapshotAsync(peer));
         }
     }
@@ -136,13 +149,17 @@ public sealed class AdversarialSqlBypassTests(IntakePhotoFixture fixture) : ICla
             return true;
         });
 
-        Assert.NotNull(await FailureOrNullAsync(
-            $"UPDATE \"AccountEvents\" SET \"Reason\" = NULL, \"MinimizedAt\" = now() WHERE \"TargetId\" = '{openId}'"));
-        Assert.NotNull(await FailureOrNullAsync(
-            $"UPDATE \"AccountEvents\" SET \"Reason\" = 'rewritten' WHERE \"TargetId\" = '{openId}'"));
-        Assert.NotNull(await FailureOrNullAsync(
+        var runtime = fixture.Database.RuntimeConnectionString;
+        await ExpectRuntimeRefusalAsync(runtime,
+            $"UPDATE \"AccountEvents\" SET \"Reason\" = NULL, \"MinimizedAt\" = now() WHERE \"TargetId\" = '{openId}'",
+            PostgresErrorCodes.CheckViolation, "CK_AccountEvents_Immutable");
+        await ExpectRuntimeRefusalAsync(runtime,
+            $"UPDATE \"AccountEvents\" SET \"Reason\" = 'rewritten' WHERE \"TargetId\" = '{openId}'",
+            PostgresErrorCodes.CheckViolation, "CK_AccountEvents_Immutable");
+        await ExpectRuntimeRefusalAsync(runtime,
             $"INSERT INTO \"AccountEvents\" (\"Id\", \"TargetId\", \"ActorId\", \"Kind\", \"RecordedAt\", \"MinimizedAt\") " +
-            $"VALUES ('{Guid.NewGuid()}', '{openId}', '{admin}', 'Erased', now(), now())"));
+            $"VALUES ('{Guid.NewGuid()}', '{openId}', '{admin}', 'Erased', now(), now())",
+            PostgresErrorCodes.CheckViolation, "CK_AccountEvents_ErasedTarget");
         Assert.True(await world.IsOpenAsync(openId));
         Assert.Equal(0, await world.ErasedEventCountAsync(openId));
     }
@@ -174,28 +191,7 @@ public sealed class AdversarialSqlBypassTests(IntakePhotoFixture fixture) : ICla
         await command.ExecuteScalarAsync();
     }
 
-    private async Task<string> FailureAsync(string sql)
-    {
-        var state = await FailureOrNullAsync(sql);
-        Assert.NotNull(state);
-        return state;
-    }
-
-    // The SQL state of the refusal, or null when the database accepted the statement.
-    private async Task<string?> FailureOrNullAsync(string sql)
-    {
-        await using var connection = new NpgsqlConnection(fixture.Database.RuntimeConnectionString);
-        await connection.OpenAsync();
-        await using var command = new NpgsqlCommand(sql, connection);
-        try
-        {
-            var affected = await command.ExecuteNonQueryAsync();
-            // An UPDATE that matched no row changed nothing, so it is not a bypass.
-            return sql.StartsWith("UPDATE", StringComparison.Ordinal) && affected == 0 ? "no-rows" : null;
-        }
-        catch (PostgresException failure)
-        {
-            return failure.SqlState;
-        }
-    }
+    // The SQL state of the refusal; a statement the database accepted, or an UPDATE or DELETE that matched no row, fails the test.
+    private async Task<string> FailureAsync(string sql) =>
+        (await RuntimeRefusalAsync(fixture.Database.RuntimeConnectionString, sql)).SqlState;
 }

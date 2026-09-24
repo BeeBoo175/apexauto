@@ -91,16 +91,26 @@ public sealed class AdversarialSaleDisposalTests(IntakePhotoFixture fixture) : I
             new(Guid.NewGuid(), 1, "Customer withdrew"), default)).Status);
         var administrator = await ReservationTestData.ProvisionAsync(world.Services, null, AccountRoles.Administrator);
 
-        foreach (var saleId in new[] { delivered.SaleId, held.Id })
+        foreach (var (saleId, finalGuard) in new[] { (delivered.SaleId, "CK_SalesOrders_DeliveredImmutable"), (held.Id, "CK_SalesOrders_Immutable") })
         {
             var hold = $"\"RetentionHoldUntil\" = now() + interval '1 year', \"RetentionHoldReason\" = 'Dispute', " +
                 $"\"RetentionHoldById\" = '{administrator}'";
-            Assert.NotNull(await FailureAsync($"UPDATE \"SalesOrders\" SET \"ClaimedAt\" = \"ClaimedAt\" + interval '1 second' WHERE \"Id\" = '{saleId}'"));
-            Assert.NotNull(await FailureAsync($"UPDATE \"SalesOrders\" SET \"Version\" = \"Version\" + 1 WHERE \"Id\" = '{saleId}'"));
-            Assert.NotNull(await FailureAsync($"UPDATE \"SalesOrders\" SET \"Status\" = 'Open' WHERE \"Id\" = '{saleId}'"));
-            Assert.NotNull(await FailureAsync($"UPDATE \"SalesOrders\" SET {hold}, \"CustomerId\" = '{administrator}' WHERE \"Id\" = '{saleId}'"));
-            Assert.NotNull(await FailureAsync($"UPDATE \"SalesOrders\" SET {hold}, \"Version\" = \"Version\" + 1 WHERE \"Id\" = '{saleId}'"));
-            Assert.NotNull(await FailureAsync($"UPDATE \"SalesOrders\" SET \"RetentionHoldUntil\" = now() + interval '1 year' WHERE \"Id\" = '{saleId}'"));
+            var probes = new (string Assignments, string Guard)[]
+            {
+                ("\"ClaimedAt\" = \"ClaimedAt\" + interval '1 second'", finalGuard),
+                ("\"Version\" = \"Version\" + 1", finalGuard),
+                ("\"Status\" = 'Open'", finalGuard),
+                ($"\"CustomerId\" = '{administrator}'", finalGuard),
+                ($"{hold}, \"Version\" = \"Version\" + 1", finalGuard),
+                ("\"RetentionHoldUntil\" = now() + interval '1 year'", "CK_SalesOrders_Hold")
+            };
+            foreach (var (assignments, guard) in probes)
+            {
+                await ExpectRuntimeRefusalAsync(fixture.Database.RuntimeConnectionString,
+                    $"UPDATE \"SalesOrders\" SET {assignments} WHERE \"Id\" = '{saleId}'",
+                    PostgresErrorCodes.CheckViolation, guard);
+            }
+
             Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, await FailureAsync($"DELETE FROM \"SalesOrders\" WHERE \"Id\" = '{saleId}'"));
             Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, await FailureAsync("TRUNCATE \"SalesOrders\""));
 

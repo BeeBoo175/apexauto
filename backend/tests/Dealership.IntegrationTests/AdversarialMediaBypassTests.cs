@@ -33,25 +33,28 @@ public sealed class AdversarialMediaBypassTests(IntakePhotoFixture fixture) : IC
             "SELECT a.\"PhotoId\" AS \"Value\" FROM \"AppointmentPhotos\" a JOIN \"AppointmentCheckIns\" k " +
             "ON k.\"AppointmentId\" = a.\"AppointmentId\" LIMIT 1").FirstAsync();
 
-        var probes = new[]
+        // Real photographs that no signed inspection or checked-in appointment holds, so only the reason rule can refuse them.
+        var unsignedInspectionPhoto = Guid.NewGuid();
+        var unattachedPhoto = Guid.NewGuid();
+        await using var owner = new NpgsqlConnection(fixture.Database.ConnectionString);
+        await owner.OpenAsync();
+        await CloneInspectionPhotoAsync(owner, inspectionPhoto, unsignedInspectionPhoto);
+        await CloneIntakePhotoAsync(owner, checkInPhoto, unattachedPhoto);
+
+        var probes = new (string Sql, string Guard)[]
         {
-            $"INSERT INTO \"InspectionPhotoRemovals\" (\"PhotoId\", \"Reason\", \"EligibleAt\", \"RequestedAt\", \"Attempts\", \"NextAttemptAt\") " +
-                $"VALUES ('{inspectionPhoto}', 'UnattachedExpired', now(), now(), 0, now())",
-            $"INSERT INTO \"InspectionPhotoRemovals\" (\"PhotoId\", \"Reason\", \"EligibleAt\", \"RequestedAt\", \"Attempts\", \"NextAttemptAt\") " +
-                $"VALUES ('{inspectionPhoto}', 'OwnerErased', now(), now(), 0, now())",
-            $"INSERT INTO \"InspectionPhotoRemovals\" (\"PhotoId\", \"Reason\", \"EligibleAt\", \"RequestedAt\", \"Attempts\", \"NextAttemptAt\") " +
-                $"VALUES ('{Guid.NewGuid()}', 'RetentionExpired', now(), now(), 0, now())",
-            $"INSERT INTO \"PhotoRemovals\" (\"PhotoId\", \"Reason\", \"EligibleAt\", \"RequestedAt\", \"Attempts\", \"NextAttemptAt\") " +
-                $"VALUES ('{checkInPhoto}', 'UnattachedExpired', now(), now(), 0, now())",
-            $"INSERT INTO \"PhotoRemovals\" (\"PhotoId\", \"Reason\", \"EligibleAt\", \"RequestedAt\", \"Attempts\", \"NextAttemptAt\") " +
-                $"VALUES ('{checkInPhoto}', 'OwnerErased', now(), now(), 0, now())",
-            $"INSERT INTO \"PhotoRemovals\" (\"PhotoId\", \"Reason\", \"EligibleAt\", \"RequestedAt\", \"Attempts\", \"NextAttemptAt\") " +
-                $"VALUES ('{Guid.NewGuid()}', 'RetentionExpired', now(), now(), 0, now())"
+            (RemovalSql("InspectionPhotoRemovals", inspectionPhoto, "UnattachedExpired"), "CK_InspectionPhotoRemovals_Eligibility"),
+            (RemovalSql("InspectionPhotoRemovals", inspectionPhoto, "OwnerErased"), "CK_InspectionPhotoRemovals_Eligibility"),
+            (RemovalSql("InspectionPhotoRemovals", unsignedInspectionPhoto, "RetentionExpired"), "CK_InspectionPhotoRemovals_Eligibility"),
+            (RemovalSql("PhotoRemovals", checkInPhoto, "UnattachedExpired"), "CK_PhotoRemovals_CheckedIn"),
+            (RemovalSql("PhotoRemovals", checkInPhoto, "OwnerErased"), "CK_PhotoRemovals_CheckedIn"),
+            (RemovalSql("PhotoRemovals", unattachedPhoto, "RetentionExpired"), "CK_PhotoRemovals_Eligibility")
         };
 
-        foreach (var sql in probes)
+        foreach (var (sql, guard) in probes)
         {
-            Assert.NotNull(await FailureAsync(sql));
+            await ExpectRuntimeRefusalAsync(fixture.Database.RuntimeConnectionString, sql,
+                PostgresErrorCodes.CheckViolation, guard);
         }
 
         Assert.Equal(0, await CountAsync(database, "InspectionPhotoRemovals"));
@@ -64,6 +67,51 @@ public sealed class AdversarialMediaBypassTests(IntakePhotoFixture fixture) : IC
     private static Task<int> CountAsync(DealershipDbContext database, string table) => table == "PhotoRemovals"
         ? database.Database.SqlQueryRaw<int>("SELECT count(*)::int AS \"Value\" FROM \"PhotoRemovals\"").SingleAsync()
         : database.Database.SqlQueryRaw<int>("SELECT count(*)::int AS \"Value\" FROM \"InspectionPhotoRemovals\"").SingleAsync();
+
+    // The owner role copies a photograph row without the guard triggers, which only protect the runtime role's inserts.
+    private static async Task CloneInspectionPhotoAsync(NpgsqlConnection owner, Guid source, Guid clone)
+    {
+        await ExecuteAsync(owner, "ALTER TABLE \"InspectionPhotos\" DISABLE TRIGGER USER");
+        try
+        {
+            await ExecuteAsync(owner, $"""
+                INSERT INTO "InspectionPhotos" ("Id", "InspectionId", "BranchId", "ActorId", "AssignmentVersion",
+                    "PointCode", "ObjectKey", "ContentType", "Bytes", "Sha256", "Width", "Height",
+                    "CreatedAt", "ExpiresAt", "AvailableAt")
+                SELECT '{clone}', "InspectionId", "BranchId", "ActorId", "AssignmentVersion", "PointCode",
+                    'inspection/photos/{clone:N}', "ContentType", "Bytes", "Sha256", "Width", "Height",
+                    "CreatedAt", "ExpiresAt", "AvailableAt"
+                FROM "InspectionPhotos" WHERE "Id" = '{source}'
+                """);
+        }
+        finally
+        {
+            await ExecuteAsync(owner, "ALTER TABLE \"InspectionPhotos\" ENABLE TRIGGER USER");
+        }
+    }
+
+    private static async Task CloneIntakePhotoAsync(NpgsqlConnection owner, Guid source, Guid clone)
+    {
+        await ExecuteAsync(owner, "ALTER TABLE \"IntakePhotos\" DISABLE TRIGGER USER");
+        try
+        {
+            await ExecuteAsync(owner, $"""
+                INSERT INTO "IntakePhotos" ("Id", "OwnerId", "Angle", "ObjectKey", "ContentType", "Bytes", "Sha256",
+                    "Width", "Height", "CreatedAt", "ExpiresAt", "AvailableAt")
+                SELECT '{clone}', "OwnerId", "Angle", 'intake/photos/{clone:N}', "ContentType", "Bytes", "Sha256",
+                    "Width", "Height", "CreatedAt", "ExpiresAt", "AvailableAt"
+                FROM "IntakePhotos" WHERE "Id" = '{source}'
+                """);
+        }
+        finally
+        {
+            await ExecuteAsync(owner, "ALTER TABLE \"IntakePhotos\" ENABLE TRIGGER USER");
+        }
+    }
+
+    private static string RemovalSql(string table, Guid photoId, string reason) =>
+        $"INSERT INTO \"{table}\" (\"PhotoId\", \"Reason\", \"EligibleAt\", \"RequestedAt\", \"Attempts\", \"NextAttemptAt\") " +
+        $"VALUES ('{photoId}', '{reason}', now(), now(), 0, now())";
 
     // The SQL state of the refusal, or null when the database accepted the statement.
     private Task<string?> FailureAsync(string sql) => RuntimeFailureAsync(fixture.Database.RuntimeConnectionString, sql);
