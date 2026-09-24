@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Npgsql;
 using static Dealership.IntegrationTests.ReservationTestData;
 using static Dealership.IntegrationTests.RetentionMinimizationTests;
+using static Dealership.IntegrationTests.RetentionSql;
 
 namespace Dealership.IntegrationTests;
 
@@ -76,12 +77,8 @@ public sealed class RetentionMediaDisposalTests(IntakePhotoFixture fixture) : IC
     // The owner role ages the records the deadline reads, because the runtime role cannot rewrite history.
     private static async Task AgeAsync(NpgsqlConnection owner, string age)
     {
-        await ExecuteAsync(owner, "ALTER TABLE \"InspectionSignedRevisions\" DISABLE TRIGGER USER");
-        await ExecuteAsync(owner, $"UPDATE \"InspectionSignedRevisions\" SET \"SignedAt\" = \"SignedAt\" - interval '{age}'");
-        await ExecuteAsync(owner, "ALTER TABLE \"InspectionSignedRevisions\" ENABLE TRIGGER USER");
-        await ExecuteAsync(owner, "ALTER TABLE \"AppointmentCheckIns\" DISABLE TRIGGER USER");
-        await ExecuteAsync(owner, $"UPDATE \"AppointmentCheckIns\" SET \"CheckedInAt\" = \"CheckedInAt\" - interval '{age}'");
-        await ExecuteAsync(owner, "ALTER TABLE \"AppointmentCheckIns\" ENABLE TRIGGER USER");
+        await AgeTableAsync(owner, "InspectionSignedRevisions", $"\"SignedAt\" = \"SignedAt\" - interval '{age}'");
+        await AgeTableAsync(owner, "AppointmentCheckIns", $"\"CheckedInAt\" = \"CheckedInAt\" - interval '{age}'");
     }
 
     private static async Task<int> RemovalCountAsync(DealershipDbContext database)

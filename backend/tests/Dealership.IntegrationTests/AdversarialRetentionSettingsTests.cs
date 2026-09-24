@@ -245,7 +245,7 @@ public sealed class AdversarialRetentionSettingsTests(IntakePhotoFixture fixture
             "ALTER TABLE \"RetentionSettings\" ENABLE TRIGGER USER"
         })
         {
-            await RetentionMinimizationTests.ExecuteAsync(owner, sql);
+            await RetentionSql.ExecuteAsync(owner, sql);
         }
     }
 

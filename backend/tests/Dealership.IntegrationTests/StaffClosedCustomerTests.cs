@@ -7,6 +7,7 @@ using Dealership.Application.Vehicles;
 using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using static Dealership.IntegrationTests.ClosedCustomerAssertions;
 
 namespace Dealership.IntegrationTests;
 
@@ -64,26 +65,11 @@ public sealed class StaffClosedCustomerTests(IntakePhotoFixture fixture) : IClas
         await AssertClosedAsync(testDrive);
     }
 
-    private static async Task AssertClosedAsync(HttpResponseMessage response)
-    {
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
-        Assert.Contains("customer-closed", body);
-    }
-
     private static async Task<HttpResponseMessage> SendAsync(HttpClient client, HttpMethod method, string path,
         Guid customerId, HttpContent content)
     {
         using var message = new HttpRequestMessage(method, path) { Content = content };
         message.Headers.Add("X-On-Behalf-Of", customerId.ToString());
         return await client.SendAsync(message);
-    }
-
-    private static async Task LoginAsync(HttpClient client, string email)
-    {
-        var response = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(Guid.NewGuid(), email, "Password123!"));
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var session = (await response.Content.ReadFromJsonAsync<LoginSession>())!;
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
     }
 }

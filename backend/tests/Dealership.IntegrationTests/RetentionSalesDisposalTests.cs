@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using static Dealership.IntegrationTests.ReservationTestData;
 using static Dealership.IntegrationTests.RetentionMinimizationTests;
+using static Dealership.IntegrationTests.RetentionSql;
 
 namespace Dealership.IntegrationTests;
 
@@ -64,18 +65,13 @@ public sealed class RetentionSalesDisposalTests(IntakePhotoFixture fixture) : IC
 
     private static async Task AgeAsync(NpgsqlConnection owner, string age)
     {
-        await ExecuteAsync(owner, "ALTER TABLE \"Reservations\" DISABLE TRIGGER reservation_update_guard");
-        await ExecuteAsync(owner, "UPDATE \"Reservations\" SET " +
-            $"\"CreatedAt\" = now() - interval '{age}' - interval '3 days', \"ExpiresAt\" = now() - interval '{age}' - interval '1 day'");
-        await ExecuteAsync(owner, "ALTER TABLE \"Reservations\" ENABLE TRIGGER reservation_update_guard");
+        await AgeTableAsync(owner, "Reservations",
+            $"\"CreatedAt\" = now() - interval '{age}' - interval '3 days', \"ExpiresAt\" = now() - interval '{age}' - interval '1 day'",
+            "reservation_update_guard");
         // The release receipt is part of the chain anchor, so it ages with the reservation.
-        await ExecuteAsync(owner, "ALTER TABLE \"ReservationReleases\" DISABLE TRIGGER USER");
-        await ExecuteAsync(owner, $"UPDATE \"ReservationReleases\" SET \"RecordedAt\" = now() - interval '{age}'");
-        await ExecuteAsync(owner, "ALTER TABLE \"ReservationReleases\" ENABLE TRIGGER USER");
+        await AgeTableAsync(owner, "ReservationReleases", $"\"RecordedAt\" = now() - interval '{age}'");
         // The sale opened with the reservation records events too; they age with it.
-        await ExecuteAsync(owner, "ALTER TABLE \"SalesOrderEvents\" DISABLE TRIGGER USER");
-        await ExecuteAsync(owner, $"UPDATE \"SalesOrderEvents\" SET \"RecordedAt\" = now() - interval '{age}'");
-        await ExecuteAsync(owner, "ALTER TABLE \"SalesOrderEvents\" ENABLE TRIGGER USER");
+        await AgeTableAsync(owner, "SalesOrderEvents", $"\"RecordedAt\" = now() - interval '{age}'");
     }
 
     private static async Task<string?> EmailAsync(DealershipDbContext database)

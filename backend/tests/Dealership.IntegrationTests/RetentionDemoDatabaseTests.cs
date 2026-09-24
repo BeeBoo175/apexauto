@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using static Dealership.IntegrationTests.RetentionMinimizationTests;
+using static Dealership.IntegrationTests.RetentionSql;
 
 namespace Dealership.IntegrationTests;
 
@@ -92,9 +93,7 @@ public sealed class RetentionDemoDatabaseTests(IntakePhotoFixture fixture) : ICl
             ("ReservationReleases", Shift("RecordedAt"))
         })
         {
-            await ExecuteAsync(owner, $"ALTER TABLE \"{statement.Table}\" DISABLE TRIGGER USER");
-            await ExecuteAsync(owner, $"UPDATE \"{statement.Table}\" SET {statement.Set}");
-            await ExecuteAsync(owner, $"ALTER TABLE \"{statement.Table}\" ENABLE TRIGGER USER");
+            await AgeTableAsync(owner, statement.Table, statement.Set);
         }
     }
 

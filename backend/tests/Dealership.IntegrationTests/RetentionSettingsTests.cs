@@ -7,6 +7,7 @@ using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using static Dealership.IntegrationTests.RetentionSql;
 
 namespace Dealership.IntegrationTests;
 
@@ -102,10 +103,4 @@ public sealed class RetentionSettingsTests(IntakePhotoFixture fixture) : IClassF
         return body.RootElement.GetProperty("code").GetString();
     }
 
-    private static async Task<string> FailureAsync(DealershipDbContext database, string sql)
-    {
-        var exception = await Assert.ThrowsAnyAsync<Exception>(() => database.Database.ExecuteSqlRawAsync(sql));
-        var postgres = exception as PostgresException ?? exception.InnerException as PostgresException;
-        return Assert.IsType<PostgresException>(postgres).SqlState;
-    }
 }

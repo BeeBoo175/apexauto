@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using static Dealership.IntegrationTests.ReservationTestData;
+using static Dealership.IntegrationTests.RetentionSql;
 
 namespace Dealership.IntegrationTests;
 
@@ -65,13 +66,6 @@ public sealed class ReservationBuyerMinimizationTests(IntakePhotoFixture fixture
     private DealershipDbContext NewContext() => new(new DbContextOptionsBuilder<DealershipDbContext>()
         .UseNpgsql(fixture.Database.RuntimeConnectionString).Options);
 
-    private static async Task ExpectCheckViolationAsync(DealershipDbContext database,
-        string sql, Guid id)
-    {
-        await using var transaction = await database.Database.BeginTransactionAsync();
-        var failure = await Assert.ThrowsAnyAsync<Exception>(() => database.Database.ExecuteSqlRawAsync(sql, id));
-        var postgres = Assert.IsType<PostgresException>(failure is DbUpdateException ? failure.InnerException : failure);
-        Assert.Equal(PostgresErrorCodes.CheckViolation, postgres.SqlState);
-        await transaction.RollbackAsync();
-    }
+    private static Task ExpectCheckViolationAsync(DealershipDbContext database, string sql, Guid id) =>
+        ExpectFailureAsync(database, PostgresErrorCodes.CheckViolation, sql, id);
 }

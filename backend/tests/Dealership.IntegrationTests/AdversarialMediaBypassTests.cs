@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using static Dealership.IntegrationTests.ReservationTestData;
+using static Dealership.IntegrationTests.RetentionSql;
 
 namespace Dealership.IntegrationTests;
 
@@ -65,19 +66,5 @@ public sealed class AdversarialMediaBypassTests(IntakePhotoFixture fixture) : IC
         : database.Database.SqlQueryRaw<int>("SELECT count(*)::int AS \"Value\" FROM \"InspectionPhotoRemovals\"").SingleAsync();
 
     // The SQL state of the refusal, or null when the database accepted the statement.
-    private async Task<string?> FailureAsync(string sql)
-    {
-        await using var connection = new NpgsqlConnection(fixture.Database.RuntimeConnectionString);
-        await connection.OpenAsync();
-        await using var command = new NpgsqlCommand(sql, connection);
-        try
-        {
-            await command.ExecuteNonQueryAsync();
-            return null;
-        }
-        catch (PostgresException failure)
-        {
-            return failure.SqlState;
-        }
-    }
+    private Task<string?> FailureAsync(string sql) => RuntimeFailureAsync(fixture.Database.RuntimeConnectionString, sql);
 }

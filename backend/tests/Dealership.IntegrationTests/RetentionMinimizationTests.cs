@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using static Dealership.IntegrationTests.RetentionSql;
 
 // The helpers below build SQL from fixed timestamp fragments, never from request data.
 #pragma warning disable EF1003
@@ -309,19 +310,6 @@ public sealed class RetentionMinimizationTests(IntakePhotoFixture fixture) : ICl
             "\"ExpiresAt\", \"TokenNonce\", \"SentAt\", \"DeliveryAttempts\", \"NextDeliveryAt\") " +
             $"VALUES ({{0}}, 'invitee.{id:N}@example.invalid', 'Administrator', 'Invited Person', '0123456789', {{1}}, " +
             $"{created}, {expires}, {{2}}, ARRAY[]::timestamptz[], 0, {created})", id, invitedBy, Guid.NewGuid());
-    }
-
-    internal static async Task<string> FailureAsync(DealershipDbContext database, string sql, params object[] values)
-    {
-        var exception = await Assert.ThrowsAnyAsync<Exception>(() => database.Database.ExecuteSqlRawAsync(sql, values));
-        var postgres = exception as PostgresException ?? exception.InnerException as PostgresException;
-        return Assert.IsType<PostgresException>(postgres).SqlState;
-    }
-
-    internal static async Task ExecuteAsync(NpgsqlConnection connection, string sql)
-    {
-        await using var command = new NpgsqlCommand(sql, connection);
-        await command.ExecuteNonQueryAsync();
     }
 
     private sealed class RetentionIds

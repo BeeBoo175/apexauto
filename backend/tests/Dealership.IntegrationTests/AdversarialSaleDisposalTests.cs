@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using static Dealership.IntegrationTests.RetentionMinimizationTests;
+using static Dealership.IntegrationTests.RetentionSql;
 
 namespace Dealership.IntegrationTests;
 
@@ -252,15 +253,9 @@ public sealed class AdversarialSaleDisposalTests(IntakePhotoFixture fixture) : I
     // The owner role ages every record the deadline reads, because the runtime role cannot rewrite history.
     private static async Task AgeAsync(NpgsqlConnection owner, string age)
     {
-        await ExecuteAsync(owner, "ALTER TABLE \"SalesOrders\" DISABLE TRIGGER USER");
-        await ExecuteAsync(owner, "UPDATE \"SalesOrders\" SET " + AgeColumns.Replace("{0}", age, StringComparison.Ordinal));
-        await ExecuteAsync(owner, "ALTER TABLE \"SalesOrders\" ENABLE TRIGGER USER");
-        await ExecuteAsync(owner, "ALTER TABLE \"SalesOrderEvents\" DISABLE TRIGGER USER");
-        await ExecuteAsync(owner, $"UPDATE \"SalesOrderEvents\" SET \"RecordedAt\" = \"RecordedAt\" - ({age})");
-        await ExecuteAsync(owner, "ALTER TABLE \"SalesOrderEvents\" ENABLE TRIGGER USER");
-        await ExecuteAsync(owner, "ALTER TABLE \"SaleDocumentCorrections\" DISABLE TRIGGER USER");
-        await ExecuteAsync(owner, $"UPDATE \"SaleDocumentCorrections\" SET \"RecordedAt\" = \"RecordedAt\" - ({age})");
-        await ExecuteAsync(owner, "ALTER TABLE \"SaleDocumentCorrections\" ENABLE TRIGGER USER");
+        await AgeTableAsync(owner, "SalesOrders", AgeColumns.Replace("{0}", age, StringComparison.Ordinal));
+        await AgeTableAsync(owner, "SalesOrderEvents", $"\"RecordedAt\" = \"RecordedAt\" - ({age})");
+        await AgeTableAsync(owner, "SaleDocumentCorrections", $"\"RecordedAt\" = \"RecordedAt\" - ({age})");
     }
 
     private static async Task<bool> RemovedAsync(DealershipDbContext database, Guid saleId)
@@ -275,21 +270,7 @@ public sealed class AdversarialSaleDisposalTests(IntakePhotoFixture fixture) : I
         await database.SalesOrders.AsNoTracking().AnyAsync(item => item.Id == saleId && item.RetentionHoldUntil != null);
 
     // The SQL state of the refusal, or null when the database accepted the statement.
-    private async Task<string?> FailureAsync(string sql)
-    {
-        await using var connection = new NpgsqlConnection(fixture.Database.RuntimeConnectionString);
-        await connection.OpenAsync();
-        await using var command = new NpgsqlCommand(sql, connection);
-        try
-        {
-            await command.ExecuteNonQueryAsync();
-            return null;
-        }
-        catch (PostgresException failure)
-        {
-            return failure.SqlState;
-        }
-    }
+    private Task<string?> FailureAsync(string sql) => RuntimeFailureAsync(fixture.Database.RuntimeConnectionString, sql);
 
     private DealershipDbContext NewContext() => new(new DbContextOptionsBuilder<DealershipDbContext>()
         .UseNpgsql(fixture.Database.RuntimeConnectionString).Options);

@@ -3,6 +3,7 @@ using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using static Dealership.IntegrationTests.RetentionSql;
 
 namespace Dealership.IntegrationTests;
 
@@ -112,15 +113,5 @@ public sealed class AccountErasureSchemaTests(IntakePhotoFixture fixture) : ICla
     {
         var normalized = email.ToUpperInvariant();
         return database.Users.Where(user => user.NormalizedEmail == normalized).Select(user => user.Id).SingleAsync();
-    }
-
-    private static async Task ExpectFailureAsync(DealershipDbContext database, string sqlState, string sql,
-        params object[] arguments)
-    {
-        await using var transaction = await database.Database.BeginTransactionAsync();
-        var failure = await Assert.ThrowsAnyAsync<Exception>(() => database.Database.ExecuteSqlRawAsync(sql, arguments));
-        var postgres = Assert.IsType<PostgresException>(failure is DbUpdateException ? failure.InnerException : failure);
-        Assert.Equal(sqlState, postgres.SqlState);
-        await transaction.RollbackAsync();
     }
 }

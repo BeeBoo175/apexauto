@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using static Dealership.IntegrationTests.RetentionMinimizationTests;
+using static Dealership.IntegrationTests.RetentionSql;
 
 namespace Dealership.IntegrationTests;
 
@@ -158,15 +159,9 @@ public sealed class RetentionSaleDocumentsTests(IntakePhotoFixture fixture) : IC
     // The owner role ages every record the deadline reads, because the runtime role cannot rewrite history.
     private static async Task AgeAsync(NpgsqlConnection owner, string age)
     {
-        await ExecuteAsync(owner, "ALTER TABLE \"SalesOrders\" DISABLE TRIGGER USER");
-        await ExecuteAsync(owner, "UPDATE \"SalesOrders\" SET " + string.Format(AgeColumns, age));
-        await ExecuteAsync(owner, "ALTER TABLE \"SalesOrders\" ENABLE TRIGGER USER");
-        await ExecuteAsync(owner, "ALTER TABLE \"SalesOrderEvents\" DISABLE TRIGGER USER");
-        await ExecuteAsync(owner, $"UPDATE \"SalesOrderEvents\" SET \"RecordedAt\" = \"RecordedAt\" - interval '{age}'");
-        await ExecuteAsync(owner, "ALTER TABLE \"SalesOrderEvents\" ENABLE TRIGGER USER");
-        await ExecuteAsync(owner, "ALTER TABLE \"SaleDocumentCorrections\" DISABLE TRIGGER USER");
-        await ExecuteAsync(owner, $"UPDATE \"SaleDocumentCorrections\" SET \"RecordedAt\" = \"RecordedAt\" - interval '{age}'");
-        await ExecuteAsync(owner, "ALTER TABLE \"SaleDocumentCorrections\" ENABLE TRIGGER USER");
+        await AgeTableAsync(owner, "SalesOrders", string.Format(AgeColumns, age));
+        await AgeTableAsync(owner, "SalesOrderEvents", $"\"RecordedAt\" = \"RecordedAt\" - interval '{age}'");
+        await AgeTableAsync(owner, "SaleDocumentCorrections", $"\"RecordedAt\" = \"RecordedAt\" - interval '{age}'");
     }
 
     private static async Task<bool> RemovedAsync(DealershipDbContext database, Guid saleId)
