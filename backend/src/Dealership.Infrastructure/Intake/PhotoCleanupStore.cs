@@ -6,12 +6,12 @@ using Microsoft.Extensions.Options;
 
 namespace Dealership.Infrastructure.Intake;
 
-public sealed class PhotoCleanupStore(DealershipDbContext database, TimeProvider clock, IOptions<PhotoCleanupSettings> settings)
+public sealed class PhotoCleanupStore(DealershipDbContext database, IOptions<PhotoCleanupSettings> settings)
     : IPhotoCleanupSource
 {
     public async Task<IReadOnlyList<Guid>> GetCandidatesAsync(CancellationToken cancellationToken)
     {
-        var now = clock.GetUtcNow();
+        var now = await database.DatabaseNowAsync(cancellationToken);
         var eligible = database.IntakePhotos.Where(photo =>
             !database.PhotoRemovals.Any(removal => removal.PhotoId == photo.Id) &&
             ((!database.AppointmentPhotos.Any(link => link.PhotoId == photo.Id) && photo.ExpiresAt <= now) ||
@@ -65,14 +65,11 @@ public sealed class PhotoCleanupStore(DealershipDbContext database, TimeProvider
             database.PhotoRemovals.Add(removal);
         }
 
-        removal.Attempts = Math.Min(removal.Attempts, int.MaxValue - 1) + 1;
-        removal.ClaimId = Guid.NewGuid();
-        removal.ClaimExpiresAt = now.AddMinutes(1);
-        removal.NextAttemptAt = now.AddMinutes(Math.Min(30, Math.Pow(2, Math.Min(removal.Attempts - 1, 5))));
+        var claimId = removal.StartAttempt(now);
         await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         database.Entry(removal).State = EntityState.Detached;
-        return new PhotoDeletionClaim(photo, removal.ClaimId.Value);
+        return new PhotoDeletionClaim(photo, claimId);
     }
 
     public async Task MarkDeletedAsync(Guid photoId, Guid claimId, CancellationToken cancellationToken)

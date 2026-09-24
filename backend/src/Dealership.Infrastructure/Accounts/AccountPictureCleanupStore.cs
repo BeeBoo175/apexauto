@@ -61,13 +61,10 @@ public sealed class AccountPictureCleanupStore(DealershipDbContext database, IOp
                 database.AccountPictureRemovals.Add(removal);
             }
 
-            removal.Attempts = Math.Min(removal.Attempts, int.MaxValue - 1) + 1;
-            removal.ClaimId = Guid.NewGuid();
-            removal.ClaimExpiresAt = now.AddMinutes(1);
-            removal.NextAttemptAt = now.AddMinutes(Math.Min(30, Math.Pow(2, Math.Min(removal.Attempts - 1, 5))));
+            var claimId = removal.StartAttempt(now);
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            return new PhotoDeletionClaim(picture, removal.ClaimId.Value);
+            return new PhotoDeletionClaim(picture, claimId);
         }
         finally
         {

@@ -1,6 +1,6 @@
 namespace Dealership.Infrastructure.Photos;
 
-// Technical limits shared by the account picture and listing upload cleanup; the existing IntakePhotos
+// Technical limits shared by every photo cleanup store; the existing IntakePhotos
 // CleanupEnabled flag still controls whether the worker runs at all.
 public sealed class PhotoCleanupSettings
 {

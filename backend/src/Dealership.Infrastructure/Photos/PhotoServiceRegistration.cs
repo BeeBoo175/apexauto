@@ -28,7 +28,7 @@ public static class PhotoServiceRegistration
         services.AddSingleton(provider =>
         {
             var lifetime = TimeSpan.FromHours(provider.GetRequiredService<IOptions<IntakePhotoSettings>>().Value.UnsubmittedLifetimeHours);
-            return new IntakePhotoPolicy(TimeSpan.FromTicks(lifetime.Ticks - lifetime.Ticks % 10));
+            return new IntakePhotoPolicy(PhotoLifetime.Round(lifetime));
         });
         services.AddOptions<PhotoCleanupSettings>().Bind(configuration.GetSection("PhotoCleanup"))
             .Validate(settings => double.IsFinite(settings.PendingUploadLifetimeHours) &&
@@ -40,7 +40,7 @@ public static class PhotoServiceRegistration
         services.AddSingleton(provider =>
         {
             var lifetime = TimeSpan.FromHours(provider.GetRequiredService<IOptions<PhotoCleanupSettings>>().Value.PendingUploadLifetimeHours);
-            return new AccountPicturePolicy(TimeSpan.FromTicks(lifetime.Ticks - lifetime.Ticks % 10));
+            return new AccountPicturePolicy(PhotoLifetime.Round(lifetime));
         });
         services.AddSingleton<IPhotoImageValidator, PhotoImageValidator>();
         services.AddSingleton(provider => new InspectionPhotoPolicy(
