@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.Sales;
 using static Dealership.Api.Endpoints.HttpContextActor;
 
@@ -8,12 +9,7 @@ public static class SaleCommandEndpoints
     public static void MapSaleCommandEndpoints(this WebApplication app)
     {
         app.MapSaleDocumentCorrectionEndpoints();
-        var routes = app.MapGroup("/api/staff/sales/{id:guid}").RequireAuthorization();
-        routes.AddEndpointFilter(async (context, next) =>
-        {
-            context.HttpContext.Response.Headers.CacheControl = "no-store";
-            return await next(context);
-        });
+        var routes = app.MapGroup("/api/staff/sales/{id:guid}").RequireAuthorization().NoStore();
         routes.MapPost("/claims", (Guid id, HttpContext context, SaleHandlingService sales, CancellationToken token) =>
             RunAsync<SaleCommandRequest>(context, (actor, request, deadline) =>
                 sales.ClaimAsync(actor, id, request, deadline), token));

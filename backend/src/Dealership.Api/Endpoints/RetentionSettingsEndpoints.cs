@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.Accounts;
 using static Dealership.Api.Endpoints.HttpContextActor;
 
@@ -7,12 +8,7 @@ public static class RetentionSettingsEndpoints
 {
     public static void MapRetentionSettingsEndpoints(this WebApplication app)
     {
-        var routes = app.MapGroup("/api/staff/settings/retention").RequireAuthorization();
-        routes.AddEndpointFilter(async (context, next) =>
-        {
-            context.HttpContext.Response.Headers.CacheControl = "no-store";
-            return await next(context);
-        });
+        var routes = app.MapGroup("/api/staff/settings/retention").RequireAuthorization().NoStore();
         routes.MapGet("", ReadAsync);
         routes.MapPut("", UpdateAsync);
     }
@@ -20,39 +16,25 @@ public static class RetentionSettingsEndpoints
     private static async Task<IResult> ReadAsync(HttpContext context, RetentionSettingsService settings,
         CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
-        {
-            return Map(await settings.ReadAsync(ActorId(context), deadline.Token));
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Results.Problem(statusCode: 503, title: "Retention settings are temporarily unavailable.");
-        }
+        return await BoundedRead.RunAsync(async token => Map(await settings.ReadAsync(ActorId(context), token)),
+            "Retention settings are temporarily unavailable.", cancellationToken);
     }
 
     private static async Task<IResult> UpdateAsync(HttpContext context, RetentionSettingsService settings,
         CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
             var (request, error) = await JsonRequestReader.ReadAsync<RetentionSettingsUpdateRequest>(context.Request,
-                deadline.Token);
+                deadline);
             if (error is not null)
             {
                 return error;
             }
 
-            return Map(await settings.UpdateAsync(ActorId(context), request!, deadline.Token));
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Results.Problem(statusCode: 503,
-                title: "The retention change is unconfirmed; reload the settings before retrying.");
-        }
+            return Map(await settings.UpdateAsync(ActorId(context), request!, deadline));
+        }, () => Results.Problem(statusCode: 503,
+            title: "The retention change is unconfirmed; reload the settings before retrying."), cancellationToken);
     }
 
     private static IResult Map(RetentionSettingsResult result) => result.Status switch

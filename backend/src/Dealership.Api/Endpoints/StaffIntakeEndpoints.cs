@@ -1,3 +1,4 @@
+using Dealership.Api.Configuration;
 using Dealership.Application.Common;
 using Dealership.Application.Intake;
 using Dealership.Domain.Intake;
@@ -8,12 +9,7 @@ public static class StaffIntakeEndpoints
 {
     public static void MapStaffIntakeEndpoints(this WebApplication app)
     {
-        var staff = app.MapGroup("/api/staff/intake").RequireAuthorization();
-        staff.AddEndpointFilter(async (context, next) =>
-        {
-            context.HttpContext.Response.Headers.CacheControl = "no-store";
-            return await next(context);
-        });
+        var staff = app.MapGroup("/api/staff/intake").RequireAuthorization().NoStore();
         var routes = staff.MapGroup("/appointments");
         routes.MapGet("", ListAsync);
         routes.MapGet("/export", StaffIntakeExportEndpoint.ExportAsync);

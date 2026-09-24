@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Dealership.Api.Configuration;
 using Dealership.Application.Sales;
 using static Dealership.Api.Endpoints.HttpContextActor;
 
@@ -8,12 +9,7 @@ public static class SaleRetentionHoldEndpoints
 {
     public static void MapSaleRetentionHoldEndpoints(this WebApplication app)
     {
-        var routes = app.MapGroup("/api/staff/retention-holds").RequireAuthorization();
-        routes.AddEndpointFilter(async (context, next) =>
-        {
-            context.HttpContext.Response.Headers.CacheControl = "no-store";
-            return await next(context);
-        });
+        var routes = app.MapGroup("/api/staff/retention-holds").RequireAuthorization().NoStore();
         routes.MapGet("", ListAsync);
         routes.MapPut("", SetAsync);
     }
@@ -21,34 +17,26 @@ public static class SaleRetentionHoldEndpoints
     private static async Task<IResult> ListAsync(HttpContext context, SaleRetentionHoldService holds,
         CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedRead.RunAsync(async token =>
         {
-            var result = await holds.ListAsync(ActorId(context), deadline.Token);
+            var result = await holds.ListAsync(ActorId(context), token);
             return result.Status == SaleRetentionHoldStatus.Succeeded ? Results.Ok(result.Holds) : Results.Forbid();
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Results.Problem(statusCode: 503, title: "Preservation holds are temporarily unavailable.");
-        }
+        }, "Preservation holds are temporarily unavailable.", cancellationToken);
     }
 
     private static async Task<IResult> SetAsync(HttpContext context, SaleRetentionHoldService holds,
         CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        try
+        return await BoundedCommand.RunAsync(async deadline =>
         {
-            var (input, error) = await JsonRequestReader.ReadAsync<HoldInput>(context.Request, deadline.Token);
+            var (input, error) = await JsonRequestReader.ReadAsync<HoldInput>(context.Request, deadline);
             if (error is not null)
             {
                 return error;
             }
 
             var result = await holds.SetByNumberAsync(ActorId(context),
-                new(input!.ReservationNumber, input.Until, input.Reason), deadline.Token);
+                new(input!.ReservationNumber, input.Until, input.Reason), deadline);
             return result.Status switch
             {
                 SaleRetentionHoldStatus.Succeeded => Results.Ok(result.Hold),
@@ -57,12 +45,8 @@ public static class SaleRetentionHoldEndpoints
                 SaleRetentionHoldStatus.Forbidden => Results.Forbid(),
                 _ => Results.NotFound()
             };
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return Results.Problem(statusCode: 503,
-                title: "The hold change is unconfirmed; reload the holds before repeating it.");
-        }
+        }, () => Results.Problem(statusCode: 503,
+            title: "The hold change is unconfirmed; reload the holds before repeating it."), cancellationToken);
     }
 
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]

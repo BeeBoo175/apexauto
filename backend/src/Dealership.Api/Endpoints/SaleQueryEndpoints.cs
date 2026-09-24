@@ -9,12 +9,7 @@ public static class SaleQueryEndpoints
 {
     public static void MapSaleQueryEndpoints(this WebApplication app)
     {
-        var routes = app.MapGroup("/api/staff/sales").RequireAuthorization();
-        routes.AddEndpointFilter(async (context, next) =>
-        {
-            context.HttpContext.Response.Headers.CacheControl = "no-store";
-            return await next(context);
-        });
+        var routes = app.MapGroup("/api/staff/sales").RequireAuthorization().NoStore();
         routes.MapGet("", TableAsync);
         routes.MapGet("/queue", QueueAsync);
         app.MapGet("/api/sales/{id:guid}/inspection-report", (Guid id, HttpContext context, ISaleDocumentStore documents,

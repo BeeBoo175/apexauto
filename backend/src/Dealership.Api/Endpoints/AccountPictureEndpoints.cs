@@ -72,7 +72,9 @@ public static class AccountPictureEndpoints
     private static async Task<IResult> GetReceiptAsync(Guid pictureId, HttpContext context, AccountPictureService pictures,
         CancellationToken cancellationToken)
     {
-        return Map(await pictures.GetReceiptAsync(HttpContextActor.ActorId(context), pictureId, cancellationToken));
+        return await BoundedRead.RunAsync(async token =>
+            Map(await pictures.GetReceiptAsync(HttpContextActor.ActorId(context), pictureId, token)),
+            "Picture receipt is temporarily unavailable.", cancellationToken);
     }
 
     private static async Task<IResult> DownloadAsync(Guid id, HttpContext context, AccountPictureService pictures,
