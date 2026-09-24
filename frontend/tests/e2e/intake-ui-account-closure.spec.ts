@@ -37,7 +37,9 @@ test("a customer closes their own account and can no longer sign in", async ({ p
 
   await dialog.getByLabel("Your password").fill("Wrong-password-1");
   await dialog.getByRole("button", { name: "Close my account permanently" }).click();
-  await expect(dialog.getByText("This cannot be undone.")).toBeVisible();
+  await expect(
+    dialog.getByText("That password is not correct. Nothing was changed."),
+  ).toBeVisible();
   // A wrong password must not sign the browser out.
   expect((await context.cookies()).some((cookie) => cookie.name === "apexauto_token")).toBe(true);
 
@@ -52,5 +54,6 @@ test("a customer closes their own account and can no longer sign in", async ({ p
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByText(/Email or password is incorrect/)).toBeVisible();
   await expect(page).toHaveURL(/\/login/);
 });

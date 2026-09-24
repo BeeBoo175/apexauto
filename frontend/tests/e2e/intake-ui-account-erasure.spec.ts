@@ -42,7 +42,7 @@ test("an administrator erases a customer who cannot sign in", async ({ page, bro
   await erase.getByLabel("Reason", { exact: true }).fill("Journey erasure request");
   await erase.getByLabel("Your password", { exact: true }).fill("Wrong-password-1");
   await erase.getByRole("button", { name: "Erase permanently" }).click();
-  await expect(erase.getByText("This cannot be undone.")).toBeVisible();
+  await expect(erase.getByText("That password is not correct. Nothing was changed.")).toBeVisible();
   // A wrong password must not sign the Administrator out.
   expect((await page.context().cookies()).some((cookie) => cookie.name === "apexauto_token")).toBe(
     true,
