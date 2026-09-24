@@ -85,11 +85,18 @@ test("preservation hold lists and changes parse only complete rows", () => {
     until: "2030-01-31T15:59:59Z",
     reason: "Dispute under review",
   };
-  expect(parseRetentionHolds({ holds: [hold] })?.holds).toHaveLength(1);
-  expect(wrapRetentionHolds([hold])?.holds[0].reservationNumber).toBe("RSV-2026-000001");
-  expect(parseRetentionHolds({ holds: [{ ...hold, reason: "" }] })).toBeNull();
-  expect(parseRetentionHolds({ holds: [{ ...hold, saleId: "x" }] })).toBeNull();
+  expect(parseRetentionHolds({ holds: [hold], total: 1 })?.holds).toHaveLength(1);
+  expect(parseRetentionHolds({ holds: [hold], total: 250 })?.total).toBe(250);
+  expect(wrapRetentionHolds({ holds: [hold], total: 1 })?.holds[0].reservationNumber).toBe(
+    "RSV-2026-000001",
+  );
+  expect(parseRetentionHolds({ holds: [hold] })).toBeNull();
+  expect(parseRetentionHolds({ holds: [hold], total: 0 })).toBeNull();
+  expect(parseRetentionHolds({ holds: [hold], total: 1.5 })).toBeNull();
+  expect(parseRetentionHolds({ holds: [{ ...hold, reason: "" }], total: 1 })).toBeNull();
+  expect(parseRetentionHolds({ holds: [{ ...hold, saleId: "x" }], total: 1 })).toBeNull();
   expect(wrapRetentionHolds({})).toBeNull();
+  expect(wrapRetentionHolds([hold])).toBeNull();
   expect(parseRetentionHoldChange({ until: null })?.until).toBeNull();
   expect(parseRetentionHoldChange({ until: "tomorrow" })).toBeNull();
   expect(holdUntilInstant("2030-01-31")).toBe("2030-01-31T15:59:59.000Z");

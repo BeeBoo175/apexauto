@@ -10,6 +10,9 @@ namespace Dealership.Infrastructure.Sales;
 public sealed class SaleRetentionHoldStore(DealershipDbContext database, RetentionSignal retention)
     : ISaleRetentionHoldStore
 {
+    // The list shows the earliest holds; the result carries the total so a longer list is never silent.
+    private const int ListLimit = 100;
+
     public async Task<SaleRetentionHoldResult> SetByNumberAsync(Guid actorId, string reservationNumber,
         SaleRetentionHoldRequest request, CancellationToken cancellationToken)
     {
@@ -32,14 +35,17 @@ public sealed class SaleRetentionHoldStore(DealershipDbContext database, Retenti
             return new(SaleRetentionHoldStatus.Forbidden);
         }
 
-        var holds = await (from sale in database.SalesOrders.AsNoTracking()
-                           join reservation in database.Reservations.AsNoTracking() on sale.Id equals reservation.Id
-                           where sale.RetentionHoldUntil != null
-                           orderby sale.RetentionHoldUntil, reservation.Number
-                           select new SaleRetentionHoldRow(sale.Id, reservation.Number, sale.RetentionHoldUntil!.Value,
-                               sale.RetentionHoldReason!))
-            .Take(100).ToListAsync(cancellationToken);
-        return new(SaleRetentionHoldStatus.Succeeded, holds);
+        var heldSales = from sale in database.SalesOrders.AsNoTracking()
+                        join reservation in database.Reservations.AsNoTracking() on sale.Id equals reservation.Id
+                        where sale.RetentionHoldUntil != null
+                        select new { sale, reservation };
+        var total = await heldSales.CountAsync(cancellationToken);
+        var holds = await heldSales
+            .OrderBy(item => item.sale.RetentionHoldUntil).ThenBy(item => item.reservation.Number)
+            .Select(item => new SaleRetentionHoldRow(item.sale.Id, item.reservation.Number,
+                item.sale.RetentionHoldUntil!.Value, item.sale.RetentionHoldReason!))
+            .Take(ListLimit).ToListAsync(cancellationToken);
+        return new(SaleRetentionHoldStatus.Succeeded, holds, total);
     }
 
     private async Task<SaleRetentionHoldResult> SetForSaleAsync(Guid actorId, Guid saleId, SaleRetentionHoldRequest request,

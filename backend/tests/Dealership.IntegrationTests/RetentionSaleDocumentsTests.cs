@@ -65,6 +65,7 @@ public sealed class RetentionSaleDocumentsTests(IntakePhotoFixture fixture) : IC
         // The Administrator finds a hold by the reservation number and sees it in the list.
         var listed = await holds.ListAsync(administrator, default);
         Assert.Equal(number, Assert.Single(listed.Holds!, item => item.SaleId == delivered.SaleId).ReservationNumber);
+        Assert.Equal(listed.Holds!.Count, listed.Total);
         Assert.Equal(SaleRetentionHoldStatus.Forbidden, (await holds.ListAsync(world.Manager, default)).Status);
         Assert.Equal(SaleRetentionHoldStatus.NotFound, (await holds.SetByNumberAsync(administrator,
             new("RSV-0000-000000", until, "Dispute under review"), default)).Status);

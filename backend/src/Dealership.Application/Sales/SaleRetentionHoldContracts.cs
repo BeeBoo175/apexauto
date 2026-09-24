@@ -12,7 +12,7 @@ public sealed record SaleRetentionHoldByNumberRequest(string? ReservationNumber,
 public sealed record SaleRetentionHoldRow(Guid SaleId, string ReservationNumber, DateTimeOffset Until, string Reason);
 
 public sealed record SaleRetentionHoldListResult(SaleRetentionHoldStatus Status,
-    IReadOnlyList<SaleRetentionHoldRow>? Holds = null);
+    IReadOnlyList<SaleRetentionHoldRow>? Holds = null, int Total = 0);
 
 public enum SaleRetentionHoldStatus
 {

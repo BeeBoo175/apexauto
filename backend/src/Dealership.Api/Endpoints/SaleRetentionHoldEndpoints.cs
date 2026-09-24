@@ -20,7 +20,9 @@ public static class SaleRetentionHoldEndpoints
         return await BoundedRead.RunAsync(async token =>
         {
             var result = await holds.ListAsync(ActorId(context), token);
-            return result.Status == SaleRetentionHoldStatus.Succeeded ? Results.Ok(result.Holds) : Results.Forbid();
+            return result.Status == SaleRetentionHoldStatus.Succeeded
+                ? Results.Ok(new { holds = result.Holds, total = result.Total })
+                : Results.Forbid();
         }, "Preservation holds are temporarily unavailable.", cancellationToken);
     }
 

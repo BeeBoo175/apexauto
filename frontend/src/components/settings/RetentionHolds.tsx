@@ -85,6 +85,11 @@ export function RetentionHolds() {
           ))}
         </ul>
       )}
+      {holds.holds && holds.total > holds.holds.length && (
+        <p className={styles.hint}>
+          Showing the earliest {holds.holds.length} of {holds.total} holds.
+        </p>
+      )}
     </section>
   );
 }

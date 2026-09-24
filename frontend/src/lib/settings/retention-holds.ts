@@ -11,6 +11,7 @@ export interface RetentionHold {
 
 export interface RetentionHoldList {
   holds: RetentionHold[];
+  total: number;
 }
 
 export interface RetentionHoldChange {
@@ -40,8 +41,12 @@ export function parseRetentionHolds(value: unknown): RetentionHoldList | null {
   if (!items || items.length > 100) {
     return null;
   }
+  const total = isRecord(value) ? value.total : null;
+  if (typeof total !== "number" || !Number.isSafeInteger(total) || total < items.length) {
+    return null;
+  }
   const holds = items.map(parseHold);
-  return holds.every((hold) => hold !== null) ? { holds: holds as RetentionHold[] } : null;
+  return holds.every((hold) => hold !== null) ? { holds: holds as RetentionHold[], total } : null;
 }
 
 export function parseRetentionHoldChange(value: unknown): RetentionHoldChange | null {
@@ -51,9 +56,9 @@ export function parseRetentionHoldChange(value: unknown): RetentionHoldChange | 
   return { until: value.until };
 }
 
-// The upstream list is a bare array; wrap it for the relay.
+// The upstream list already carries its holds and total in one object; the relay validates it as is.
 export function wrapRetentionHolds(value: unknown): RetentionHoldList | null {
-  return Array.isArray(value) ? parseRetentionHolds({ holds: value }) : null;
+  return parseRetentionHolds(value);
 }
 
 export function validHoldDraft(draft: {

@@ -11,6 +11,7 @@ import {
   parseRetentionHolds,
   validHoldDraft,
   type RetentionHold,
+  type RetentionHoldList,
 } from "@/lib/settings/retention-holds";
 
 const emptyDraft = { reservationNumber: "", until: "", reason: "" };
@@ -23,13 +24,13 @@ export function useRetentionHolds() {
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState(emptyDraft);
   const inFlight = useRef(false);
-  const section = useSectionRead<RetentionHold[]>({
+  const section = useSectionRead<RetentionHoldList>({
     read: async (signal) => {
       const result = await privateApiFetch(holdsPath, parseRetentionHolds, { signal });
       if (result.status !== 200 || !result.data) {
         throw new Error(result.message);
       }
-      return result.data.holds;
+      return result.data;
     },
     key: "retention-holds",
     refreshes,
@@ -88,7 +89,8 @@ export function useRetentionHolds() {
   }
 
   return {
-    holds: section.data,
+    holds: section.data?.holds ?? null,
+    total: section.data?.total ?? 0,
     failed: section.failed,
     busy: busy || section.busy,
     draft,
