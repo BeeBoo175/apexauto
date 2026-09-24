@@ -1,16 +1,16 @@
-using Dealership.Infrastructure.Retention;
-using Dealership.Infrastructure.Photos;
-using Dealership.Infrastructure.Storage;
 using Dealership.Api.Configuration;
 using Dealership.Api.Endpoints;
 using Dealership.Application;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure;
 using Dealership.Infrastructure.Configuration;
-using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Identity;
-using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Intake;
+using Dealership.Infrastructure.Mail;
+using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Photos;
+using Dealership.Infrastructure.Retention;
+using Dealership.Infrastructure.Storage;
 using Dealership.Infrastructure.Vehicles;
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
@@ -122,7 +122,7 @@ if (!app.Environment.IsDevelopment() &&
 
 if (!app.Environment.IsDevelopment())
 {
-    await DatabasePrivilegeWarning.WarnAsync(app);
+    await RuntimePrivilegeCheck.WarnAsync(app.Services, app.Logger);
 }
 
 // Prepare missing-account verification before requests so cold initialization cannot become a login signal.
