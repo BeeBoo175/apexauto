@@ -23,7 +23,7 @@ public sealed class ReservationPendingPaymentAccountTests(IntakePhotoFixture fix
         var requestId = (await scenario.Database.ReservationDepositRequests.AsNoTracking().SingleAsync()).Id;
 
         // The unpaid bill is visible to the customer, who has no reservation yet.
-        var account = await new ReservationReadStore(scenario.Database)
+        var account = await new ReservationReadStore(scenario.Database, TimeProvider.System)
             .AccountAsync(scenario.Data.OwnerId, 1, CancellationToken.None);
         Assert.Equal(requestId, account.History!.PendingPayment!.RequestId);
         Assert.Null(account.History.Active);
@@ -37,7 +37,7 @@ public sealed class ReservationPendingPaymentAccountTests(IntakePhotoFixture fix
         // The customer can give it up, and the car is free again.
         var cancelled = await client.PostAsync($"/api/account/pending-payments/{requestId}/cancellations", null);
         Assert.Equal(HttpStatusCode.OK, cancelled.StatusCode);
-        var after = await new ReservationReadStore(scenario.Database)
+        var after = await new ReservationReadStore(scenario.Database, TimeProvider.System)
             .AccountAsync(scenario.Data.OwnerId, 1, CancellationToken.None);
         Assert.Null(after.History!.PendingPayment);
     }

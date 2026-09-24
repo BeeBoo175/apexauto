@@ -7,10 +7,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Vehicles;
 
-public sealed class ReservationReadStore(DealershipDbContext database, TimeProvider? clock = null) : IReservationReadStore
+public sealed class ReservationReadStore(DealershipDbContext database, TimeProvider clock) : IReservationReadStore
 {
-    private readonly TimeProvider clock = clock ?? TimeProvider.System;
-
     public async Task<ReservationHistoryResult> AccountAsync(Guid customerId, int page, CancellationToken cancellationToken,
         ListDateRange? dates = null, string? search = null)
     {

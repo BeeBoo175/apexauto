@@ -50,7 +50,7 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
             }
         }
 
-        var reads = new ReservationReadStore(database);
+        var reads = new ReservationReadStore(database, TimeProvider.System);
         foreach (var denied in new[] { manager, data.StaffId, technician, Guid.NewGuid() })
         {
             Assert.Equal(ReservationStatus.Forbidden,
@@ -113,7 +113,7 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         await clock.AdvanceAsync(final.ExpiresAt.AddTicks(-10));
         await using (var before = clock.CreateContext())
         {
-            var history = (await new ReservationReadStore(before).AccountAsync(data.OwnerId, 1, CancellationToken.None)).History!;
+            var history = (await new ReservationReadStore(before, TimeProvider.System).AccountAsync(data.OwnerId, 1, CancellationToken.None)).History!;
             Assert.True(Assert.Single(history.Items, item => item.Receipt.Id == final.Id).IsActive);
             Assert.False(await before.ReservationReleases.AnyAsync(item => item.ReservationId == final.Id));
         }
@@ -123,8 +123,8 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         await using var firstRead = clock.CreateContext();
         await using var secondRead = clock.CreateContext();
         var concurrent = await Task.WhenAll(
-            new ReservationReadStore(firstRead).AccountAsync(data.OwnerId, 1, CancellationToken.None),
-            new ReservationReadStore(secondRead).AccountAsync(data.OwnerId, 1, CancellationToken.None));
+            new ReservationReadStore(firstRead, TimeProvider.System).AccountAsync(data.OwnerId, 1, CancellationToken.None),
+            new ReservationReadStore(secondRead, TimeProvider.System).AccountAsync(data.OwnerId, 1, CancellationToken.None));
         Assert.All(concurrent, result => Assert.Equal(ReservationStatus.Succeeded, result.Status));
         var expired = Assert.Single(concurrent[0].History!.Items, item => item.Receipt.Id == final.Id);
         Assert.False(expired.IsActive);
@@ -136,22 +136,22 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal(1, await database.ReservationReleases.CountAsync(item => item.ReservationId == final.Id));
         Assert.Null(concurrent[0].History!.Active);
         await using var restarted = clock.CreateContext();
-        var again = (await new ReservationReadStore(restarted).AccountAsync(data.OwnerId, 1, CancellationToken.None)).History!;
+        var again = (await new ReservationReadStore(restarted, TimeProvider.System).AccountAsync(data.OwnerId, 1, CancellationToken.None)).History!;
         Assert.Equal(expired, Assert.Single(again.Items, item => item.Receipt.Id == final.Id));
         var malaysia = DealershipLocale.Malaysia;
         var finalDay = TimeZoneInfo.ConvertTime(final.CreatedAt, malaysia).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        var inRange = (await new ReservationReadStore(restarted).AccountAsync(data.OwnerId, 1, CancellationToken.None,
+        var inRange = (await new ReservationReadStore(restarted, TimeProvider.System).AccountAsync(data.OwnerId, 1, CancellationToken.None,
             ListDateRange.Parse(finalDay, finalDay))).History!;
         Assert.Contains(inRange.Items, item => item.Receipt.Id == final.Id);
         Assert.All(inRange.Items, item => Assert.Equal(finalDay,
             TimeZoneInfo.ConvertTime(item.Receipt.CreatedAt, malaysia).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
-        var outOfRange = (await new ReservationReadStore(restarted).AccountAsync(data.OwnerId, 1, CancellationToken.None,
+        var outOfRange = (await new ReservationReadStore(restarted, TimeProvider.System).AccountAsync(data.OwnerId, 1, CancellationToken.None,
             ListDateRange.Parse("2000-01-01", "2000-01-02"))).History!;
         Assert.Equal(0, outOfRange.Total);
-        var byNumber = (await new ReservationReadStore(restarted).AccountAsync(data.OwnerId, 1, CancellationToken.None,
+        var byNumber = (await new ReservationReadStore(restarted, TimeProvider.System).AccountAsync(data.OwnerId, 1, CancellationToken.None,
             search: final.Number.ToLowerInvariant())).History!;
         Assert.Equal(final.Id, Assert.Single(byNumber.Items).Receipt.Id);
-        Assert.Equal(0, (await new ReservationReadStore(restarted).AccountAsync(data.OwnerId, 1, CancellationToken.None,
+        Assert.Equal(0, (await new ReservationReadStore(restarted, TimeProvider.System).AccountAsync(data.OwnerId, 1, CancellationToken.None,
             search: "no such reservation")).History!.Total);
         Assert.Empty(outOfRange.Items);
         Assert.All(await database.Vehicles.ToArrayAsync(), vehicle => Assert.Equal(VehicleStatus.Available, vehicle.Status));
@@ -162,7 +162,7 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         var race = new AfterRead("FROM \"AspNetUsers\"", async () => await CancelAsync(clock, customerId, active.Id));
         await using (var database = NewContext(race))
         {
-            var result = await new ReservationReadStore(database).AccountAsync(customerId, activePage, CancellationToken.None);
+            var result = await new ReservationReadStore(database, TimeProvider.System).AccountAsync(customerId, activePage, CancellationToken.None);
             Assert.True(race.Invoked);
             Assert.Equal(ReservationStatus.Succeeded, result.Status);
             var item = Assert.Single(result.History!.Items, item => item.Receipt.Id == active.Id);
@@ -178,13 +178,13 @@ public sealed class ReservationReadTests(IntakePhotoFixture fixture) : IClassFix
         });
         await using (var database = NewContext(changedActor))
         {
-            var snapshot = await new ReservationReadStore(database).AccountAsync(customerId, 1, CancellationToken.None);
+            var snapshot = await new ReservationReadStore(database, TimeProvider.System).AccountAsync(customerId, 1, CancellationToken.None);
             Assert.True(changedActor.Invoked);
             Assert.Equal(ReservationStatus.Succeeded, snapshot.Status);
             Assert.Equal(51, snapshot.History!.Total);
             Assert.Equal(ReservationHistory.PageSize, snapshot.History.Items.Count);
             Assert.Equal(ReservationStatus.Forbidden,
-                (await new ReservationReadStore(database).AccountAsync(customerId, 1, CancellationToken.None)).Status);
+                (await new ReservationReadStore(database, TimeProvider.System).AccountAsync(customerId, 1, CancellationToken.None)).Status);
         }
 
         await using var restore = NewContext();

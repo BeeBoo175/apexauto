@@ -17,7 +17,7 @@ public sealed class ReservationStaffPendingPaymentAccountTests(IntakePhotoFixtur
         Assert.Equal(HttpStatusCode.OK, requested.StatusCode);
         var requestId = (await scenario.Database.ReservationDepositRequests.AsNoTracking().SingleAsync()).Id;
 
-        var account = await new ReservationReadStore(scenario.Database)
+        var account = await new ReservationReadStore(scenario.Database, TimeProvider.System)
             .AccountAsync(scenario.Data.OwnerId, 1, CancellationToken.None);
 
         Assert.Equal(requestId, account.History!.PendingPayment!.RequestId);
