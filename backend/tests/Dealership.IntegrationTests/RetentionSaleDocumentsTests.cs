@@ -34,8 +34,11 @@ public sealed class RetentionSaleDocumentsTests(IntakePhotoFixture fixture) : IC
         var administrator = await ReservationTestData.ProvisionAsync(world.Services, null, AccountRoles.Administrator);
         var holds = world.Services.GetRequiredService<SaleRetentionHoldService>();
         var until = DateTimeOffset.UtcNow.AddYears(1);
-        Assert.Equal(SaleRetentionHoldStatus.Forbidden, (await holds.SetAsync(world.Manager, delivered.SaleId,
-            new(until, "Dispute under review"), default)).Status);
+        await using var database = NewContext();
+        var number = await database.Reservations.AsNoTracking().Where(item => item.Id == delivered.SaleId)
+            .Select(item => item.Number).SingleAsync();
+        Assert.Equal(SaleRetentionHoldStatus.Forbidden, (await holds.SetByNumberAsync(world.Manager,
+            new(number, until, "Dispute under review"), default)).Status);
         foreach (var invalid in new SaleRetentionHoldRequest[]
         {
             new(DateTimeOffset.UtcNow.AddDays(-1), "Dispute under review"),
@@ -43,14 +46,13 @@ public sealed class RetentionSaleDocumentsTests(IntakePhotoFixture fixture) : IC
             new(until, " ")
         })
         {
-            Assert.Equal(SaleRetentionHoldStatus.Invalid, (await holds.SetAsync(administrator, delivered.SaleId,
-                invalid, default)).Status);
+            Assert.Equal(SaleRetentionHoldStatus.Invalid, (await holds.SetByNumberAsync(administrator,
+                new(number, invalid.Until, invalid.Reason), default)).Status);
         }
 
         // A hold changes only its own columns of a Delivered sale: the version stays, any other change still raises.
-        await using var database = NewContext();
         var before = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == delivered.SaleId);
-        var placed = await holds.SetAsync(administrator, delivered.SaleId, new(until, "Dispute under review"), default);
+        var placed = await holds.SetByNumberAsync(administrator, new(number, until, "Dispute under review"), default);
         Assert.Equal(SaleRetentionHoldStatus.Succeeded, placed.Status);
         var held = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == delivered.SaleId);
         Assert.Equal(before.Version, held.Version);
@@ -61,8 +63,6 @@ public sealed class RetentionSaleDocumentsTests(IntakePhotoFixture fixture) : IC
             delivered.SaleId + "'"));
 
         // The Administrator finds a hold by the reservation number and sees it in the list.
-        var number = await database.Reservations.AsNoTracking().Where(item => item.Id == delivered.SaleId)
-            .Select(item => item.Number).SingleAsync();
         var listed = await holds.ListAsync(administrator, default);
         Assert.Equal(number, Assert.Single(listed.Holds!, item => item.SaleId == delivered.SaleId).ReservationNumber);
         Assert.Equal(SaleRetentionHoldStatus.Forbidden, (await holds.ListAsync(world.Manager, default)).Status);

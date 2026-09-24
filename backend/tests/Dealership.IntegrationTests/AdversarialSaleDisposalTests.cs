@@ -121,8 +121,10 @@ public sealed class AdversarialSaleDisposalTests(IntakePhotoFixture fixture) : I
         await using var database = NewContext();
         var before = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == settled.SaleId);
 
-        var placed = await holds.SetAsync(administrator, settled.SaleId,
-            new(DateTimeOffset.UtcNow.AddYears(1), "Dispute under review"), default);
+        var number = await database.Reservations.AsNoTracking().Where(item => item.Id == settled.SaleId)
+            .Select(item => item.Number).SingleAsync();
+        var placed = await holds.SetByNumberAsync(administrator,
+            new(number, DateTimeOffset.UtcNow.AddYears(1), "Dispute under review"), default);
         Assert.True(placed.Status is SaleRetentionHoldStatus.Succeeded or SaleRetentionHoldStatus.Invalid, placed.Status.ToString());
         var after = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == settled.SaleId);
         Assert.Equal((before.Version, before.Status, before.BalancePayable), (after.Version, after.Status, after.BalancePayable));

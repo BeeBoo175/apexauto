@@ -22,7 +22,7 @@ public sealed class SaleRetentionHoldStore(DealershipDbContext database, Retenti
             .Select(item => (Guid?)item.Id).SingleOrDefaultAsync(cancellationToken);
         return saleId is null
             ? new(SaleRetentionHoldStatus.NotFound)
-            : await SetAsync(actorId, saleId.Value, request, cancellationToken);
+            : await SetForSaleAsync(actorId, saleId.Value, request, cancellationToken);
     }
 
     public async Task<SaleRetentionHoldListResult> ListAsync(Guid actorId, CancellationToken cancellationToken)
@@ -42,7 +42,7 @@ public sealed class SaleRetentionHoldStore(DealershipDbContext database, Retenti
         return new(SaleRetentionHoldStatus.Succeeded, holds);
     }
 
-    public async Task<SaleRetentionHoldResult> SetAsync(Guid actorId, Guid saleId, SaleRetentionHoldRequest request,
+    private async Task<SaleRetentionHoldResult> SetForSaleAsync(Guid actorId, Guid saleId, SaleRetentionHoldRequest request,
         CancellationToken cancellationToken)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(cancellationToken);

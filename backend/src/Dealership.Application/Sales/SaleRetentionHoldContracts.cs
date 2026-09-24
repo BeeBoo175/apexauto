@@ -26,9 +26,6 @@ public sealed record SaleRetentionHoldResult(SaleRetentionHoldStatus Status, Sal
 
 public interface ISaleRetentionHoldStore
 {
-    Task<SaleRetentionHoldResult> SetAsync(Guid actorId, Guid saleId, SaleRetentionHoldRequest request,
-        CancellationToken cancellationToken);
-
     Task<SaleRetentionHoldResult> SetByNumberAsync(Guid actorId, string reservationNumber,
         SaleRetentionHoldRequest request, CancellationToken cancellationToken);
 
