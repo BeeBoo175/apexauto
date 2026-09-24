@@ -120,10 +120,6 @@
   transform: rotate(180deg);
 }
 
-.navTrigger[aria-expanded="true"] .navCaret {
-  transform: rotate(180deg);
-}
-
 /* The panel hangs below the bar; the transparent ::before bridges the gap so hover is never lost. */
 .dropdown {
   position: absolute;

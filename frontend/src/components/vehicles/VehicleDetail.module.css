@@ -1,4 +1,5 @@
 ﻿.page {
+  padding-bottom: 48px;
   background: var(--color-canvas);
   color: var(--color-graphite);
 }
@@ -69,16 +70,9 @@
   min-width: 0;
 }
 
-.page {
-  padding-bottom: 48px;
-}
-
 @media (max-width: 1040px) {
   .listing {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .listing {
     gap: 24px;
   }
 

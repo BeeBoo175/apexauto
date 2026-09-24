@@ -85,6 +85,7 @@
   .page {
     padding-bottom: 48px;
   }
+
   .vehicles {
     grid-template-columns: minmax(0, 1fr);
   }

@@ -183,11 +183,8 @@
   max-width: 820px;
   height: auto;
   object-fit: contain;
-}
-
-/* The car slides in a short way from the right as the panel comes into view. Without scripts or with reduced motion it
-   simply sits in place. */
-.carImage {
+  /* The car slides in a short way from the right as the panel comes into view. Without scripts or with reduced motion it
+     simply sits in place. */
   transition:
     translate 1100ms cubic-bezier(0.16, 1, 0.3, 1),
     opacity 800ms ease-out;
@@ -265,7 +262,7 @@
     grid-template-columns: minmax(0, 1fr);
     row-gap: 0;
     min-height: 0;
-    padding: 40px var(--inset) 0;
+    padding: 40px var(--inset) 28px;
   }
 
   .copyCol {
@@ -275,10 +272,6 @@
   /* Stacked, the cutout has no room to sit beside the form, so it is dropped rather than cropped. */
   .visualCol {
     display: none;
-  }
-
-  .mainArea {
-    padding-bottom: 28px;
   }
 }
 

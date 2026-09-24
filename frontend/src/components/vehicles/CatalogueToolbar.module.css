@@ -75,6 +75,7 @@
     border-color: var(--color-graphite);
     background: var(--color-canvas);
   }
+
   .clearAllButton:hover:not(:disabled) {
     background: color-mix(in srgb, var(--color-signal) 8%, var(--color-paper));
   }
