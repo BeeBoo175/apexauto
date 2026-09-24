@@ -1,7 +1,7 @@
-using Dealership.Domain.Accounts;
 using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Common;
+using Dealership.Domain.Accounts;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 

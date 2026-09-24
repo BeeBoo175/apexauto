@@ -90,7 +90,7 @@ public sealed class AccountPictureStore(DealershipDbContext database, TimeProvid
 
         var now = await database.DatabaseNowAsync(cancellationToken);
 
-        if (picture.IsExpired(ReceiptTime()))
+        if (picture.IsExpired(now))
         {
             return new AccountPicturePreparation(AccountPictureStatus.NotFound);
         }
