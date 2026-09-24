@@ -2,6 +2,12 @@ import { useId } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { formatMalaysianDateTime } from "@/lib/date-format";
+import {
+  BOOKING_HORIZON_DAYS,
+  BOOKING_NOTICE_HOURS,
+  SHOWROOM_CLOSES_AT,
+  SHOWROOM_OPENS_AT,
+} from "@/lib/guide/visit-terms";
 import { useSellerAppointment } from "@/hooks/use-seller-appointment";
 import styles from "./Sell.module.css";
 
@@ -75,7 +81,8 @@ export function AppointmentFields({
           </p>
         )}
         <p id={dateHelpId} className={styles.help}>
-          Open Monday to Saturday, 09:00–18:00 MYT, within the next 30 days (2 hours’ notice).
+          Open Monday to Saturday, {SHOWROOM_OPENS_AT}–{SHOWROOM_CLOSES_AT} MYT, within the next{" "}
+          {BOOKING_HORIZON_DAYS} days ({BOOKING_NOTICE_HOURS} hours’ notice).
         </p>
       </div>
       <Button

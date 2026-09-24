@@ -13,6 +13,7 @@ import {
   calendarTime,
 } from "@/lib/calendar";
 import type { ShowroomBranchInfo } from "@/lib/guide/showrooms";
+import { BOOKING_NOTICE_LABEL } from "@/lib/guide/visit-terms";
 import { isSundayDate } from "@/lib/intake/appointment-date";
 import { sellerPrefillHref } from "@/lib/intake/appointment-prefill";
 import type { SlotOffer } from "@/lib/intake/contracts";
@@ -135,7 +136,8 @@ export function ShowroomVisitBooking({ showroom }: { showroom: ShowroomBranchInf
               )}
             </div>
             <p className={styles.note}>
-              Only bays still open are listed. Appraisals need at least two hours&apos; notice.
+              Only bays still open are listed. Appraisals need at least {BOOKING_NOTICE_LABEL}&apos;
+              notice.
             </p>
           </fieldset>
           <div className={styles.confirm}>

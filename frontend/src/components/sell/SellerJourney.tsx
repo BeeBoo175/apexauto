@@ -11,6 +11,7 @@ import { useSellerWorkflow } from "@/hooks/use-seller-workflow";
 import { useSellerAppointment } from "@/hooks/use-seller-appointment";
 import { useSellerPhotos } from "@/hooks/use-seller-photos";
 import { useInitialToast } from "@/hooks/use-initial-toast";
+import { INSPECTION_BAY_MINUTES } from "@/lib/guide/visit-terms";
 import type { SellerSnapshot } from "@/lib/intake/contracts";
 import type { CustomerLookupRow } from "@/lib/staff/assisted-customer";
 import { replaceUrlParams } from "@/lib/browser-url";
@@ -250,7 +251,8 @@ function SellerWorkflow({
                     `${formatCurrency(quote.minValuation, quote.currency)} – ${formatCurrency(quote.maxValuation, quote.currency)}`}
                 </p>
                 <p className={styles.valuationNote}>
-                  Final offer is confirmed on site after a 90-minute physical bay inspection.
+                  Final offer is confirmed on site after a {INSPECTION_BAY_MINUTES}-minute physical
+                  bay inspection.
                 </p>
               </div>
               <ul className={styles.valuationChecks} aria-label="What is included">
@@ -349,8 +351,8 @@ function SellerWorkflow({
               }}
             >
               <p className={styles.intro}>
-                Choose a showroom and 90-minute inspection bay. Availability is confirmed on
-                booking.
+                Choose a showroom and {INSPECTION_BAY_MINUTES}-minute inspection bay. Availability
+                is confirmed on booking.
               </p>
               <AppointmentFields selection={appointment} disabled={!ready || locked} />
               {workflow.freshQuote && (

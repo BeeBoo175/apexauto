@@ -3,6 +3,13 @@ import type { InspectionGradingPolicy } from "./inspection-points";
 import { guideServiceTax, sstPercentLabel, type PurchaseGuide } from "./purchase-guide";
 import { eligibleWarrantyLabel } from "./warranty-plans";
 import {
+  BOOKING_HORIZON_DAYS,
+  BOOKING_NOTICE_LABEL,
+  INSPECTION_BAY_MINUTES,
+  SHOWROOM_CLOSES_AT,
+  SHOWROOM_OPENS_AT,
+} from "./visit-terms";
+import {
   PAYMENT_WINDOW_MINUTES,
   RESERVATION_DEPOSIT,
   RESERVATION_HOLD_HOURS,
@@ -133,8 +140,7 @@ const sellingEntries: FaqEntry[] = [
     onSellingPage: true,
     category: "Selling & trade-in",
     question: "What do I need before booking a sell or trade-in slot?",
-    answer:
-      "Get an online price range, sign in, upload four exterior photos, then pick a 90-minute showroom bay at least two hours ahead and within the next 30 days.",
+    answer: `Get an online price range, sign in, upload four exterior photos, then pick a ${INSPECTION_BAY_MINUTES}-minute showroom bay at least ${BOOKING_NOTICE_LABEL} ahead and within the next ${BOOKING_HORIZON_DAYS} days.`,
     href: "/sell",
     linkLabel: "Start selling",
   },
@@ -143,8 +149,7 @@ const sellingEntries: FaqEntry[] = [
     onSellingPage: true,
     category: "Selling & trade-in",
     question: "Is the online price range an offer?",
-    answer:
-      "No. It is an indicative range from your make, model, year and mileage. The final offer is confirmed on site after the 90-minute bay inspection.",
+    answer: `No. It is an indicative range from your make, model, year and mileage. The final offer is confirmed on site after the ${INSPECTION_BAY_MINUTES}-minute bay inspection.`,
     href: "/selling-guide",
     linkLabel: "See how selling works",
   },
@@ -217,8 +222,7 @@ export function faqEntries(
       id: "branch-hours",
       category: "Branches & test drives",
       question: "Where are ApexAuto branches and when are they open?",
-      answer:
-        "Glenmarie, Petaling Jaya, and Bayan Lepas operate Monday to Saturday from 09:00 to 18:00 MYT.",
+      answer: `Glenmarie, Petaling Jaya, and Bayan Lepas operate Monday to Saturday from ${SHOWROOM_OPENS_AT} to ${SHOWROOM_CLOSES_AT} MYT.`,
       href: "/branches",
       linkLabel: "View branch details",
     },

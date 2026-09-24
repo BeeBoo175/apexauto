@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import { Select } from "@/components/ui/Input";
+import { INSPECTION_BAY_MINUTES } from "@/lib/guide/visit-terms";
 import type { Taxonomy } from "@/lib/intake/contracts";
 import { malaysianYear } from "@/lib/intake/manufacture-years";
 import styles from "./LandingSellPanel.module.css";
@@ -13,7 +14,7 @@ import layout from "./VehicleLayout.module.css";
 
 const STEPS = [
   { num: "01", title: "Instant online range" },
-  { num: "02", title: "90-minute showroom inspection" },
+  { num: "02", title: `${INSPECTION_BAY_MINUTES}-minute showroom inspection` },
   { num: "03", title: "Final offer on site" },
 ] as const;
 

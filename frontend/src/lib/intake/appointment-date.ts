@@ -1,6 +1,7 @@
 import { addCalendarDays, calendarDate, isCalendarDate } from "@/lib/calendar";
+import { BOOKING_HORIZON_DAYS } from "@/lib/guide/visit-terms";
 
-export const INTAKE_HORIZON_DAYS = 30;
+export const INTAKE_HORIZON_DAYS = BOOKING_HORIZON_DAYS;
 
 export interface IntakeDateWindow {
   firstDate: string;
@@ -30,7 +31,7 @@ export function validateIntakeDate(value: string, window: IntakeDateWindow): str
     return "Enter a valid calendar date.";
   }
   if (value < window.firstDate || value > window.lastDate) {
-    return "Choose a date from today up to 30 days ahead (Malaysia time).";
+    return `Choose a date from today up to ${INTAKE_HORIZON_DAYS} days ahead (Malaysia time).`;
   }
   if (isSundayDate(value)) {
     return "Showrooms are closed on Sundays. Choose Monday to Saturday.";

@@ -12,6 +12,7 @@ import { LiveVehicles } from "@/components/vehicles/LiveVehicles";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import { showroomPhoto } from "@/lib/guide/showroom-photos";
 import type { BranchRegionState, ShowroomBranchInfo } from "@/lib/guide/showrooms";
+import { SHOWROOM_CLOSES_AT, SHOWROOM_OPENS_AT } from "@/lib/guide/visit-terms";
 import { catalogueDefaults, catalogueHref } from "@/lib/vehicles/query";
 import { MAX_MAP_ZOOM_INDEX, ShowroomMapStage } from "./ShowroomMapStage";
 import { ShowroomVisitBooking } from "./ShowroomVisitBooking";
@@ -100,7 +101,8 @@ export function ShowroomsWorkspace({
           </h1>
           <p className={patterns.heroLede}>
             {showroomBranches.length} showrooms in Selangor and Penang, open Monday to Saturday from
-            09:00 to 18:00. Every car on the floor has a signed inspection record.
+            {SHOWROOM_OPENS_AT} to {SHOWROOM_CLOSES_AT}. Every car on the floor has a signed
+            inspection record.
           </p>
           <div className={patterns.heroActions}>
             <a href="#book-a-visit" className={buttonClassName("primary", "lg")}>
@@ -166,7 +168,7 @@ export function ShowroomsWorkspace({
                               aria-hidden="true"
                             />
                             <span className={styles.shell} aria-hidden="true">
-                              Open now, closes at 18:00
+                              Open now, closes at {SHOWROOM_CLOSES_AT}
                             </span>
                           </>
                         )}
@@ -175,7 +177,7 @@ export function ShowroomsWorkspace({
                         {branch.address}, {branch.city}, {branch.state}
                       </p>
                       <p className={styles.hours}>
-                        Mon – Sat, 09:00 – 18:00
+                        Mon – Sat, {SHOWROOM_OPENS_AT} – {SHOWROOM_CLOSES_AT}
                         {count !== undefined && ` • ${count} cars on the floor`}
                         {count === undefined && !ready && (
                           <>

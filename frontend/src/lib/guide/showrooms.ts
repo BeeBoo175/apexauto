@@ -1,4 +1,10 @@
 import type { Branch } from "@/lib/branches";
+import {
+  SHOWROOM_CLOSES_AT,
+  SHOWROOM_CLOSING_MINUTES,
+  SHOWROOM_OPENING_MINUTES,
+  SHOWROOM_OPENS_AT,
+} from "@/lib/guide/visit-terms";
 
 export type BranchRegionState = "Selangor" | "Pulau Pinang";
 
@@ -14,10 +20,8 @@ export interface ShowroomBranchInfo {
   lng: number;
 }
 
-export const SHOWROOM_OPERATING_HOURS = "Mon – Sat, 09:00 – 18:00 MYT";
+export const SHOWROOM_OPERATING_HOURS = `Mon – Sat, ${SHOWROOM_OPENS_AT} – ${SHOWROOM_CLOSES_AT} MYT`;
 
-const OPENING_MINUTES = 9 * 60;
-const CLOSING_MINUTES = 18 * 60;
 const MALAYSIA_OFFSET_MS = 8 * 60 * 60 * 1000;
 
 export interface ShowroomOpenStatus {
@@ -33,16 +37,16 @@ export function showroomOpenStatus(now: Date): ShowroomOpenStatus {
   const minutes = malaysia.getUTCHours() * 60 + malaysia.getUTCMinutes();
   const trading = weekday !== 0;
 
-  if (trading && minutes >= OPENING_MINUTES && minutes < CLOSING_MINUTES) {
-    return { open: true, label: "Open now, closes at 18:00" };
+  if (trading && minutes >= SHOWROOM_OPENING_MINUTES && minutes < SHOWROOM_CLOSING_MINUTES) {
+    return { open: true, label: `Open now, closes at ${SHOWROOM_CLOSES_AT}` };
   }
-  if (trading && minutes < OPENING_MINUTES) {
-    return { open: false, label: "Closed, opens today at 09:00" };
+  if (trading && minutes < SHOWROOM_OPENING_MINUTES) {
+    return { open: false, label: `Closed, opens today at ${SHOWROOM_OPENS_AT}` };
   }
   if (weekday >= 1 && weekday <= 5) {
-    return { open: false, label: "Closed, opens tomorrow at 09:00" };
+    return { open: false, label: `Closed, opens tomorrow at ${SHOWROOM_OPENS_AT}` };
   }
-  return { open: false, label: "Closed, opens Monday at 09:00" };
+  return { open: false, label: `Closed, opens Monday at ${SHOWROOM_OPENS_AT}` };
 }
 
 // Presentation details the branch record does not hold (D-07), keyed by the branch's stored short code so a

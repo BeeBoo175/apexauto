@@ -7,7 +7,12 @@ import patterns from "@/components/layout/PublicPatterns.module.css";
 import { useShowroomStock } from "@/hooks/use-showroom-stock";
 import type { Branch } from "@/lib/branches";
 import { showroomPhoto } from "@/lib/guide/showroom-photos";
-import { resolveShowrooms, type ShowroomBranchInfo } from "@/lib/guide/showrooms";
+import {
+  SHOWROOM_OPERATING_HOURS,
+  resolveShowrooms,
+  type ShowroomBranchInfo,
+} from "@/lib/guide/showrooms";
+import { SHOWROOM_CLOSES_AT, SHOWROOM_OPENS_AT } from "@/lib/guide/visit-terms";
 import styles from "./LandingShowrooms.module.css";
 import layout from "./VehicleLayout.module.css";
 
@@ -25,7 +30,7 @@ const SHELL_SHOWROOMS: ShowroomBranchInfo[] = [0, 1, 2].map((index) => ({
   address: "00 Street address line",
   city: "City",
   state: "Selangor",
-  hours: "Mon – Sat, 09:00 – 18:00 MYT",
+  hours: SHOWROOM_OPERATING_HOURS,
   lat: 0,
   lng: 0,
 }));
@@ -60,7 +65,7 @@ export function LandingShowrooms({ branches, loading = false }: LandingShowrooms
             Come visit us
           </h2>
           <p className={patterns.sectionSub}>
-            Open Mon–Sat, 09:00–18:00 for test drives and trade-ins.
+            Open Mon–Sat, {SHOWROOM_OPENS_AT}–{SHOWROOM_CLOSES_AT} for test drives and trade-ins.
           </p>
         </div>
 

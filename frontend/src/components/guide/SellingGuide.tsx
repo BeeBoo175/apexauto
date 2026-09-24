@@ -4,14 +4,25 @@ import { buttonClassName } from "@/components/ui/Button";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import { sellingPageFaq } from "@/lib/guide/faq-items";
+import {
+  BOOKING_HORIZON_DAYS,
+  BOOKING_NOTICE_HOURS,
+  BOOKING_NOTICE_LABEL,
+  INSPECTION_BAY_MINUTES,
+  SHOWROOM_CLOSES_AT,
+  SHOWROOM_OPENS_AT,
+} from "@/lib/guide/visit-terms";
 import { SellingSteps, type SellingStep } from "./SellingSteps";
 import { GuideFaq } from "./GuideFaq";
 import styles from "./SellingGuide.module.css";
 
 const VISIT_FACTS = [
-  { figure: "90 min", label: "Showroom bay" },
-  { figure: "Mon to Sat", label: "Open 09:00 to 18:00" },
-  { figure: "2 hours", label: "Book ahead, within 30 days" },
+  { figure: `${INSPECTION_BAY_MINUTES} min`, label: "Showroom bay" },
+  { figure: "Mon to Sat", label: `Open ${SHOWROOM_OPENS_AT} to ${SHOWROOM_CLOSES_AT}` },
+  {
+    figure: `${BOOKING_NOTICE_HOURS} hours`,
+    label: `Book ahead, within ${BOOKING_HORIZON_DAYS} days`,
+  },
   { figure: "On site", label: "Final offer confirmed" },
 ] as const;
 
@@ -71,10 +82,10 @@ const SELL_STEPS: readonly SellingStep[] = [
       alt: "A salesperson and a customer talk about a car in a showroom.",
       position: "50% 35%",
     },
-    text: "Pick a showroom and a 90-minute bay, Monday to Saturday between 09:00 and 18:00, at least two hours ahead and within the next 30 days.",
+    text: `Pick a showroom and a ${INSPECTION_BAY_MINUTES}-minute bay, Monday to Saturday between ${SHOWROOM_OPENS_AT} and ${SHOWROOM_CLOSES_AT}, at least ${BOOKING_NOTICE_LABEL} ahead and within the next ${BOOKING_HORIZON_DAYS} days.`,
     fieldsTitle: "What you pick",
     fields: ["Showroom", "Day", "Bay"],
-    note: "A 90-minute bay, booked two hours ahead.",
+    note: `A ${INSPECTION_BAY_MINUTES}-minute bay, booked ${BOOKING_NOTICE_LABEL} ahead.`,
   },
 ];
 
@@ -96,8 +107,8 @@ export function SellingGuide() {
             How selling works
           </h1>
           <p className={styles.lede}>
-            Four short steps online, then one 90-minute showroom visit. You see a price range before
-            you sign in, and the offer is confirmed on site.
+            Four short steps online, then one {INSPECTION_BAY_MINUTES}-minute showroom visit. You
+            see a price range before you sign in, and the offer is confirmed on site.
           </p>
           <Link href="/sell" prefetch={false} className={buttonClassName("primary", "lg")}>
             Start selling my car

@@ -4,6 +4,7 @@ import { StatusPage } from "@/components/ui/StatusPage";
 import { parsePage } from "@/lib/api";
 import { parseBranch } from "@/lib/branches";
 import { resolveShowrooms } from "@/lib/guide/showrooms";
+import { SHOWROOM_CLOSES_AT, SHOWROOM_OPENS_AT } from "@/lib/guide/visit-terms";
 import { requestApiJson } from "@/lib/server/http/api";
 
 // The showrooms and their opening hours change only with a release, so the page is generated ahead of time and
@@ -13,7 +14,7 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Our Showrooms — ApexAuto",
-  description: "Open Monday to Saturday, 09:00–18:00 MYT.",
+  description: `Open Monday to Saturday, ${SHOWROOM_OPENS_AT}–${SHOWROOM_CLOSES_AT} MYT.`,
 };
 
 export default async function BranchesPage() {
