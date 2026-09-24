@@ -1,4 +1,3 @@
-using Dealership.Domain.Accounts;
 using Dealership.Domain.TestDrives;
 using Dealership.Application.Accounts;
 using Dealership.Application.TestDrives;
@@ -27,6 +26,7 @@ internal static class StaffTestDriveRows
         var bookings = database.TestDriveBookings.AsNoTracking()
             .Where(booking => branchId == null || booking.BranchId == branchId);
         var handlers = StaffHandlerRows.Eligible(database);
+        var staff = PersonRows.Staff(database);
         return from booking in bookings
                join vehicle in database.Vehicles on booking.VehicleId equals vehicle.Id
                join branch in database.Branches on booking.BranchId equals branch.Id
@@ -54,11 +54,10 @@ internal static class StaffTestDriveRows
                    OwnershipVersion = assignment == null ? 0 : assignment.Version,
                    HandlerId = assignment == null ? null : assignment.HandlerId,
                    HandlerEmail = database.Users.Where(user => user.Id == assignment!.HandlerId).Select(user => user.Email).FirstOrDefault(),
-                   HandlerName = database.StaffProfiles.Where(profile => profile.UserId == assignment!.HandlerId)
-                       .Select(profile => profile.Name ?? PersonLabels.FormerEmployee).FirstOrDefault(),
-                   HandlerPictureId = database.AccountPictures
-                       .Where(AccountPicture.Current).Where(picture => picture.UserId == assignment!.HandlerId)
-                       .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
+                   HandlerName = staff.Where(person => person.UserId == assignment!.HandlerId)
+                       .Select(person => person.Name).FirstOrDefault(),
+                   HandlerPictureId = staff.Where(person => person.UserId == assignment!.HandlerId)
+                       .Select(person => person.PictureId).FirstOrDefault(),
                    HandlerEligible = handlers.Any(user => user.Id == assignment!.HandlerId &&
                        user.BranchId == booking.BranchId),
                    HandlerSuspended = database.Users.Any(user => user.Id == assignment!.HandlerId &&

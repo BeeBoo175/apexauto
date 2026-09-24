@@ -1,4 +1,3 @@
-using Dealership.Application.Accounts;
 using Dealership.Application.Inspections;
 using Dealership.Domain.Inspections;
 using Dealership.Infrastructure.Persistence;
@@ -36,9 +35,9 @@ internal static class InspectionDraftProjection
                 .OrderBy(photo => photo.PhotoId)
                 .Select(photo => new InspectionPhotoReference(photo.PhotoId, photo.PointCode))
                 .ToArrayAsync(cancellationToken);
-            var technician = await database.StaffProfiles.AsNoTracking()
-                .Where(profile => profile.UserId == draft.TechnicianId)
-                .Select(profile => profile.Name ?? PersonLabels.FormerEmployee).FirstOrDefaultAsync(cancellationToken);
+            var technician = await PersonRows.Staff(database)
+                .Where(person => person.UserId == draft.TechnicianId)
+                .Select(person => person.Name).FirstOrDefaultAsync(cancellationToken);
             draft = draft with
             {
                 LatestSave = latest?.Receipt(),

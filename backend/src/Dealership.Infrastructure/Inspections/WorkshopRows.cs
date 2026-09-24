@@ -1,4 +1,3 @@
-using Dealership.Domain.Accounts;
 using Dealership.Application.Accounts;
 using Dealership.Application.Inspections;
 using Dealership.Domain.Vehicles;
@@ -14,6 +13,7 @@ internal static class WorkshopRows
     {
         var branchId = actor.BranchId ?? selectedBranch;
         var covered = InspectionRepairAuthority.CoveredRequests(database);
+        var staff = PersonRows.Staff(database);
         return from vehicle in database.Vehicles.AsNoTracking()
                join branch in database.Branches.AsNoTracking() on vehicle.BranchId equals branch.Id
                join inspection in database.InspectionDrafts.AsNoTracking() on vehicle.Id equals inspection.VehicleId into inspections
@@ -42,14 +42,13 @@ internal static class WorkshopRows
                    VehicleStatus = vehicle.Status,
                    InspectionId = draft == null ? null : draft.Id,
                    TechnicianId = draft == null ? null : draft.TechnicianId,
-                   // The staff profile name is the display identity; the mirrored email is only a fallback.
-                   TechnicianIdentity = technician == null ? null : database.StaffProfiles
-                       .Where(profile => profile.UserId == technician.Id)
-                       .Select(profile => profile.Name).FirstOrDefault() ?? PersonLabels.FormerEmployee,
+                   TechnicianIdentity = technician == null ? null : staff
+                       .Where(person => person.UserId == technician.Id)
+                       .Select(person => person.Name).FirstOrDefault(),
                    TechnicianEmail = technician == null ? null : technician.Email,
-                   TechnicianPictureId = technician == null ? null : database.AccountPictures
-                       .Where(AccountPicture.Current).Where(picture => picture.UserId == technician.Id)
-                       .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
+                   TechnicianPictureId = technician == null ? null : staff
+                       .Where(person => person.UserId == technician.Id)
+                       .Select(person => person.PictureId).FirstOrDefault(),
                    Revision = draft == null ? null : draft.Revision,
                    IsSigned = draft != null && draft.IsSigned,
                    RequestId = request == null ? null : request.Id,

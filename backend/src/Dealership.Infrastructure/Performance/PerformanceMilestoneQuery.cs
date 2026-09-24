@@ -26,8 +26,8 @@ public sealed class PerformanceMilestoneQuery(DealershipDbContext database) : IP
         }
 
         var personId = query.PersonId;
-        var name = await database.StaffProfiles.AsNoTracking().Where(profile => profile.UserId == personId)
-            .Select(profile => profile.Name ?? PersonLabels.FormerEmployee).SingleOrDefaultAsync(cancellationToken);
+        var name = await PersonRows.Staff(database).Where(person => person.UserId == personId)
+            .Select(person => person.Name).SingleOrDefaultAsync(cancellationToken);
         if (name is null)
         {
             return new(PerformanceReadStatus.NotFound);

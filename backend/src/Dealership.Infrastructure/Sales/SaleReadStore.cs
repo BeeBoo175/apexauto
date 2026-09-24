@@ -123,12 +123,13 @@ public sealed class SaleReadStore(DealershipDbContext database) : ISaleReadStore
             return new(SaleResultStatus.Forbidden);
         }
 
+        var staff = PersonRows.Staff(database);
         var agents = await database.Users.AsNoTracking().Where(item =>
                 item.Role == AccountRoles.SalesAgent && item.BranchId == sale.BranchId && item.IsActive)
             .OrderBy(item => item.Email).ThenBy(item => item.Id)
             .Select(item => new SaleAgent(item.Id, item.Email ?? string.Empty,
-                database.StaffProfiles.Where(profile => profile.UserId == item.Id).Select(profile => profile.Name ?? PersonLabels.FormerEmployee)
-                    .FirstOrDefault() ?? string.Empty)).ToListAsync(cancellationToken);
+                staff.Where(person => person.UserId == item.Id).Select(person => person.Name)
+                    .FirstOrDefault()!)).ToListAsync(cancellationToken);
         return new(SaleResultStatus.Succeeded, agents);
     }
 

@@ -1,4 +1,3 @@
-using Dealership.Domain.Accounts;
 using Dealership.Application.Accounts;
 using Dealership.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -23,24 +22,20 @@ internal static class StaffHandlerRows
             return (null, null);
         }
 
-        var name = await database.StaffProfiles.AsNoTracking().Where(profile => profile.UserId == id)
-            .Select(profile => profile.Name ?? PersonLabels.FormerEmployee).FirstOrDefaultAsync(cancellationToken);
-        var pictureId = await database.AccountPictures.AsNoTracking()
-            .Where(AccountPicture.Current).Where(picture => picture.UserId == id)
-            .Select(picture => (Guid?)picture.Id).FirstOrDefaultAsync(cancellationToken);
-        return (name, pictureId);
+        var person = await PersonRows.Staff(database).Where(item => item.UserId == id)
+            .FirstOrDefaultAsync(cancellationToken);
+        return (person?.Name, person?.PictureId);
     }
 
     public static Task<StaffHandler[]> ReadAsync(DealershipDbContext database, Guid? branchId,
         CancellationToken cancellationToken)
     {
+        var staff = PersonRows.Staff(database);
         return Eligible(database).Where(user => user.BranchId == branchId)
             .OrderBy(user => user.Email).ThenBy(user => user.Id)
             .Select(user => new StaffHandler(user.Id, user.Email ?? string.Empty,
-                database.StaffProfiles.Where(profile => profile.UserId == user.Id)
-                    .Select(profile => profile.Name ?? PersonLabels.FormerEmployee).FirstOrDefault() ?? string.Empty,
-                database.AccountPictures.Where(AccountPicture.Current).Where(picture => picture.UserId == user.Id)
-                    .Select(picture => (Guid?)picture.Id).FirstOrDefault()))
+                staff.Where(person => person.UserId == user.Id).Select(person => person.Name).FirstOrDefault()!,
+                staff.Where(person => person.UserId == user.Id).Select(person => person.PictureId).FirstOrDefault()))
             .ToArrayAsync(cancellationToken);
     }
 }

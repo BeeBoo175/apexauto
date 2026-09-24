@@ -1,4 +1,3 @@
-using Dealership.Domain.Accounts;
 using System.Linq.Expressions;
 using Dealership.Application.Accounts;
 using Dealership.Application.Sales;
@@ -56,113 +55,116 @@ internal sealed class SaleRow
 
 internal static class SaleRows
 {
-    public static IQueryable<SaleRow> Project(DealershipDbContext database, IQueryable<SalesOrder> sales) =>
-        from sale in sales
-        join reservation in database.Reservations.AsNoTracking() on sale.Id equals reservation.Id
-        join vehicle in database.Vehicles.AsNoTracking() on sale.VehicleId equals vehicle.Id
-        join profile in database.CustomerProfiles.AsNoTracking() on sale.CustomerId equals profile.UserId
-        join customer in database.Users.AsNoTracking() on sale.CustomerId equals customer.Id
-        join branch in database.Branches.AsNoTracking() on sale.BranchId equals branch.Id
-        join handler in database.Users.AsNoTracking() on sale.AgentId equals handler.Id into handlers
-        from agent in handlers.DefaultIfEmpty()
-        select new SaleRow
-        {
-            Id = sale.Id,
-            ReservationNumber = reservation.Number,
-            OrderNumber = sale.OrderNumber,
-            Status = sale.Status,
-            BranchId = sale.BranchId,
-            Branch = branch.Name,
-            Plate = vehicle.RegistrationPlate,
-            Vin = vehicle.Vin,
-            Year = vehicle.ManufactureYear,
-            Make = vehicle.Make,
-            Model = vehicle.Model,
-            Trim = vehicle.Trim,
-            Customer = profile.LegalName ?? PersonLabels.FormerCustomer,
-            CustomerId = sale.CustomerId,
-            Mobile = profile.Mobile ?? string.Empty,
-            Email = customer.Email,
-            Promo = sale.PromoCode,
-            AgentId = sale.AgentId,
-            // The SQL left join returns a null email when no agent is assigned.
-            Agent = agent.Email,
-            AgentName = database.StaffProfiles.Where(profile => profile.UserId == sale.AgentId)
-                .Select(profile => profile.Name ?? PersonLabels.FormerEmployee).FirstOrDefault(),
-            AgentPictureId = database.AccountPictures
-                .Where(AccountPicture.Current).Where(picture => picture.UserId == sale.AgentId)
-                .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
-            AgentSuspended = agent.SuspendedAt != null,
-            CustomerSuspended = customer.SuspendedAt != null,
-            DueAt = sale.DueAt,
-            PausedSeconds = sale.PausedSeconds,
-            TotalHoldSeconds = (long)(reservation.ExpiresAt - reservation.CreatedAt).TotalSeconds,
-            ClaimedAt = sale.ClaimedAt,
-            NegotiatedDiscount = sale.NegotiatedDiscount,
-            DiscountLimitAtSubmit = sale.DiscountLimitAtSubmit,
-            BalancePayable = sale.BalancePayable,
-            SubmittedAt = sale.SubmittedAt,
-            DecidedAt = sale.DecidedAt,
-            SettledAt = sale.SettledAt,
-            ClosedAt = sale.ClosedAt,
-            UpdatedAt = sale.UpdatedAt,
-            Version = sale.Version
+    public static IQueryable<SaleRow> Project(DealershipDbContext database, IQueryable<SalesOrder> sales)
+    {
+        var people = PersonRows.Staff(database);
+        return from sale in sales
+            join reservation in database.Reservations.AsNoTracking() on sale.Id equals reservation.Id
+            join vehicle in database.Vehicles.AsNoTracking() on sale.VehicleId equals vehicle.Id
+            join profile in database.CustomerProfiles.AsNoTracking() on sale.CustomerId equals profile.UserId
+            join customer in database.Users.AsNoTracking() on sale.CustomerId equals customer.Id
+            join branch in database.Branches.AsNoTracking() on sale.BranchId equals branch.Id
+            join handler in database.Users.AsNoTracking() on sale.AgentId equals handler.Id into handlers
+            from agent in handlers.DefaultIfEmpty()
+            select new SaleRow
+            {
+                Id = sale.Id,
+                ReservationNumber = reservation.Number,
+                OrderNumber = sale.OrderNumber,
+                Status = sale.Status,
+                BranchId = sale.BranchId,
+                Branch = branch.Name,
+                Plate = vehicle.RegistrationPlate,
+                Vin = vehicle.Vin,
+                Year = vehicle.ManufactureYear,
+                Make = vehicle.Make,
+                Model = vehicle.Model,
+                Trim = vehicle.Trim,
+                Customer = profile.LegalName ?? PersonLabels.FormerCustomer,
+                CustomerId = sale.CustomerId,
+                Mobile = profile.Mobile ?? string.Empty,
+                Email = customer.Email,
+                Promo = sale.PromoCode,
+                AgentId = sale.AgentId,
+                // The SQL left join returns a null email when no agent is assigned.
+                Agent = agent.Email,
+                AgentName = people.Where(person => person.UserId == sale.AgentId).Select(person => person.Name).FirstOrDefault(),
+                AgentPictureId = people.Where(person => person.UserId == sale.AgentId)
+                    .Select(person => person.PictureId).FirstOrDefault(),
+                AgentSuspended = agent.SuspendedAt != null,
+                CustomerSuspended = customer.SuspendedAt != null,
+                DueAt = sale.DueAt,
+                PausedSeconds = sale.PausedSeconds,
+                TotalHoldSeconds = (long)(reservation.ExpiresAt - reservation.CreatedAt).TotalSeconds,
+                ClaimedAt = sale.ClaimedAt,
+                NegotiatedDiscount = sale.NegotiatedDiscount,
+                DiscountLimitAtSubmit = sale.DiscountLimitAtSubmit,
+                BalancePayable = sale.BalancePayable,
+                SubmittedAt = sale.SubmittedAt,
+                DecidedAt = sale.DecidedAt,
+                SettledAt = sale.SettledAt,
+                ClosedAt = sale.ClosedAt,
+                UpdatedAt = sale.UpdatedAt,
+                Version = sale.Version
         };
+    }
 
     // Deposit requests awaiting their customer, in the sale row shape so the table's search, column filters and sorting
     // apply unchanged: the booking staff member stands in as the agent and the request's lapse time as the due time.
     public static IQueryable<SaleRow> ProjectRequests(DealershipDbContext database,
-        IQueryable<ReservationDepositRequest> requests) =>
-        from request in requests
-        join vehicle in database.Vehicles.AsNoTracking() on request.VehicleId equals vehicle.Id
-        join branch in database.Branches.AsNoTracking() on request.BranchId equals branch.Id
-        join profile in database.CustomerProfiles.AsNoTracking() on request.CustomerId equals profile.UserId
-        join customer in database.Users.AsNoTracking() on request.CustomerId equals customer.Id
-        join staff in database.Users.AsNoTracking() on request.BookedByStaffId equals (Guid?)staff.Id
-        select new SaleRow
-        {
-            Id = request.Id,
-            ReservationNumber = (string?)null,
-            Status = SalesOrderStatus.Open,
-            BranchId = request.BranchId,
-            Branch = branch.Name,
-            Plate = vehicle.RegistrationPlate,
-            Vin = vehicle.Vin,
-            Year = vehicle.ManufactureYear,
-            Make = vehicle.Make,
-            Model = vehicle.Model,
-            Trim = vehicle.Trim,
-            Customer = profile.LegalName ?? PersonLabels.FormerCustomer,
-            CustomerId = request.CustomerId,
-            Mobile = profile.Mobile ?? string.Empty,
-            Email = customer.Email,
-            AgentId = request.BookedByStaffId,
-            Agent = staff.Email,
-            AgentName = database.StaffProfiles.Where(item => item.UserId == request.BookedByStaffId)
-                .Select(item => item.Name ?? PersonLabels.FormerEmployee).FirstOrDefault(),
-            AgentPictureId = database.AccountPictures
-                .Where(AccountPicture.Current).Where(picture => picture.UserId == request.BookedByStaffId)
-                .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
-            AgentSuspended = staff.SuspendedAt != null,
-            CustomerSuspended = customer.SuspendedAt != null,
-            Promo = (string?)null,
-            OrderNumber = (string?)null,
-            DueAt = request.ExpiresAt,
-            TotalHoldSeconds = (long)(request.ExpiresAt - request.CreatedAt).TotalSeconds,
-            PausedSeconds = (long?)null,
-            ClaimedAt = (DateTimeOffset?)null,
-            NegotiatedDiscount = 0m,
-            DiscountLimitAtSubmit = (decimal?)null,
-            BalancePayable = 0m,
-            SubmittedAt = (DateTimeOffset?)null,
-            DecidedAt = (DateTimeOffset?)null,
-            SettledAt = (DateTimeOffset?)null,
-            ClosedAt = (DateTimeOffset?)null,
-            UpdatedAt = request.CreatedAt,
-            Version = 1,
-            VehicleId = vehicle.Id,
-            IsDepositRequest = true
+        IQueryable<ReservationDepositRequest> requests)
+    {
+        var people = PersonRows.Staff(database);
+        return from request in requests
+            join vehicle in database.Vehicles.AsNoTracking() on request.VehicleId equals vehicle.Id
+            join branch in database.Branches.AsNoTracking() on request.BranchId equals branch.Id
+            join profile in database.CustomerProfiles.AsNoTracking() on request.CustomerId equals profile.UserId
+            join customer in database.Users.AsNoTracking() on request.CustomerId equals customer.Id
+            join staff in database.Users.AsNoTracking() on request.BookedByStaffId equals (Guid?)staff.Id
+            select new SaleRow
+            {
+                Id = request.Id,
+                ReservationNumber = (string?)null,
+                Status = SalesOrderStatus.Open,
+                BranchId = request.BranchId,
+                Branch = branch.Name,
+                Plate = vehicle.RegistrationPlate,
+                Vin = vehicle.Vin,
+                Year = vehicle.ManufactureYear,
+                Make = vehicle.Make,
+                Model = vehicle.Model,
+                Trim = vehicle.Trim,
+                Customer = profile.LegalName ?? PersonLabels.FormerCustomer,
+                CustomerId = request.CustomerId,
+                Mobile = profile.Mobile ?? string.Empty,
+                Email = customer.Email,
+                AgentId = request.BookedByStaffId,
+                Agent = staff.Email,
+                AgentName = people.Where(person => person.UserId == request.BookedByStaffId)
+                    .Select(person => person.Name).FirstOrDefault(),
+                AgentPictureId = people.Where(person => person.UserId == request.BookedByStaffId)
+                    .Select(person => person.PictureId).FirstOrDefault(),
+                AgentSuspended = staff.SuspendedAt != null,
+                CustomerSuspended = customer.SuspendedAt != null,
+                Promo = (string?)null,
+                OrderNumber = (string?)null,
+                DueAt = request.ExpiresAt,
+                TotalHoldSeconds = (long)(request.ExpiresAt - request.CreatedAt).TotalSeconds,
+                PausedSeconds = (long?)null,
+                ClaimedAt = (DateTimeOffset?)null,
+                NegotiatedDiscount = 0m,
+                DiscountLimitAtSubmit = (decimal?)null,
+                BalancePayable = 0m,
+                SubmittedAt = (DateTimeOffset?)null,
+                DecidedAt = (DateTimeOffset?)null,
+                SettledAt = (DateTimeOffset?)null,
+                ClosedAt = (DateTimeOffset?)null,
+                UpdatedAt = request.CreatedAt,
+                Version = 1,
+                VehicleId = vehicle.Id,
+                IsDepositRequest = true
         };
+    }
 
     // One box for the common lookups: numbers, car, customer and contact, promo and agent; branch for the group scope.
     public static IQueryable<SaleRow> Search(IQueryable<SaleRow> rows, string search, bool searchBranch)

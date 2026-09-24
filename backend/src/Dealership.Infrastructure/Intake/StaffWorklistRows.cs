@@ -1,4 +1,3 @@
-using Dealership.Domain.Accounts;
 using Dealership.Domain.Common;
 using System.Linq.Expressions;
 using Dealership.Application.Accounts;
@@ -107,6 +106,7 @@ internal static class StaffWorklistRows
         IQueryable<AppointmentFlags> rows, StaffWorklistQuery query, bool searchBranch)
     {
         var handlers = StaffHandlerRows.Eligible(database);
+        var staff = PersonRows.Staff(database);
         var records = rows.Join(database.Branches, row => row.Appointment.BranchId, branch => branch.Id,
                 (row, branch) => new { Row = row, BranchName = branch.Name })
             .Join(database.CustomerProfiles, row => row.Row.Appointment.OwnerId, customer => customer.UserId,
@@ -131,11 +131,10 @@ internal static class StaffWorklistRows
                     HandlerId = row.Row.HandlerId,
                     OwnershipVersion = row.Row.OwnershipVersion,
                     HandlerEmail = database.Users.Where(user => user.Id == row.Row.HandlerId).Select(user => user.Email).FirstOrDefault(),
-                    HandlerName = database.StaffProfiles.Where(profile => profile.UserId == row.Row.HandlerId)
-                        .Select(profile => profile.Name ?? PersonLabels.FormerEmployee).FirstOrDefault(),
-                    HandlerPictureId = database.AccountPictures
-                        .Where(AccountPicture.Current).Where(picture => picture.UserId == row.Row.HandlerId)
-                        .Select(picture => (Guid?)picture.Id).FirstOrDefault(),
+                    HandlerName = staff.Where(person => person.UserId == row.Row.HandlerId)
+                        .Select(person => person.Name).FirstOrDefault(),
+                    HandlerPictureId = staff.Where(person => person.UserId == row.Row.HandlerId)
+                        .Select(person => person.PictureId).FirstOrDefault(),
                     HandlerEligible = handlers.Any(user => user.Id == row.Row.HandlerId &&
                         user.BranchId == row.Row.Appointment.BranchId),
                     HandlerSuspended = database.Users.Any(user => user.Id == row.Row.HandlerId &&

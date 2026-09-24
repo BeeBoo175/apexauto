@@ -1,4 +1,3 @@
-using Dealership.Domain.Accounts;
 using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Common;
@@ -28,13 +27,12 @@ public sealed class InspectionAssignmentStore(DealershipDbContext database) : II
 
         var technicians = database.Users.AsNoTracking().Where(item => item.IsActive &&
             item.BranchId == actor.BranchId && item.Role == AccountRoles.WorkshopTechnician);
+        var staff = PersonRows.Staff(database);
         var total = await technicians.CountAsync(cancellationToken);
         var items = await technicians.OrderBy(item => item.UserName).ThenBy(item => item.Id)
             .Select(item => new InspectionTechnician(item.Id,
-                database.StaffProfiles.Where(profile => profile.UserId == item.Id)
-                    .Select(profile => profile.Name ?? PersonLabels.FormerEmployee).FirstOrDefault() ?? item.UserName!,
-                database.AccountPictures.Where(AccountPicture.Current).Where(picture => picture.UserId == item.Id)
-                    .Select(picture => (Guid?)picture.Id).FirstOrDefault()))
+                staff.Where(person => person.UserId == item.Id).Select(person => person.Name).FirstOrDefault()!,
+                staff.Where(person => person.UserId == item.Id).Select(person => person.PictureId).FirstOrDefault()))
             .ReadPageAsync(page, pageSize, total, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new(InspectionAssignmentStatus.Succeeded, new(Array.AsReadOnly(items), total, page, pageSize));

@@ -1,6 +1,4 @@
-using Dealership.Domain.Accounts;
 using System.Data;
-using Dealership.Application.Accounts;
 using Dealership.Application.Common;
 using Dealership.Application.Vehicles;
 using Dealership.Domain.Vehicles;
@@ -70,16 +68,16 @@ public sealed class ListingHistoryStore(DealershipDbContext database) : IListing
                           };
         var events = drafts.Concat(publications).Concat(withdrawals);
         var total = await events.CountAsync(cancellationToken);
+        var staff = PersonRows.Staff(database);
         var rows = await (from entry in events
                           join actor in database.Users.AsNoTracking() on entry.ActorId equals actor.Id
                           select new
                           {
                               Entry = entry,
-                              ActorIdentity = database.StaffProfiles.Where(profile => profile.UserId == actor.Id)
-                                  .Select(profile => profile.Name).FirstOrDefault() ?? PersonLabels.FormerEmployee,
-                              ActorPictureId = database.AccountPictures
-                                  .Where(AccountPicture.Current).Where(picture => picture.UserId == actor.Id)
-                                  .Select(picture => (Guid?)picture.Id).FirstOrDefault()
+                              ActorIdentity = staff.Where(person => person.UserId == actor.Id)
+                                  .Select(person => person.Name).FirstOrDefault(),
+                              ActorPictureId = staff.Where(person => person.UserId == actor.Id)
+                                  .Select(person => person.PictureId).FirstOrDefault()
                           })
             .OrderByDescending(row => row.Entry.RecordedAt).ThenByDescending(row => row.Entry.Order)
             .ThenByDescending(row => row.Entry.Id)

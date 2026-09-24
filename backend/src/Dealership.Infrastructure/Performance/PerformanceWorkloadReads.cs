@@ -1,4 +1,3 @@
-using Dealership.Domain.Accounts;
 using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Performance;
@@ -27,6 +26,7 @@ public sealed class PerformanceWorkloadReads(DealershipDbContext database) : IPe
 
         var now = await database.DatabaseNowAsync(cancellationToken);
         var branchId = scope.BranchId;
+        var staff = PersonRows.Staff(database);
         var people = await (from user in database.Users.AsNoTracking()
                             join branch in database.Branches.AsNoTracking() on user.BranchId equals branch.Id
                             join profile in database.StaffProfiles.AsNoTracking() on user.Id equals profile.UserId
@@ -39,9 +39,8 @@ public sealed class PerformanceWorkloadReads(DealershipDbContext database) : IPe
                                 user.Role,
                                 BranchId = branch.Id,
                                 BranchName = branch.Name,
-                                PictureId = database.AccountPictures
-                                    .Where(AccountPicture.Current).Where(picture => picture.UserId == user.Id)
-                                    .Select(picture => (Guid?)picture.Id).FirstOrDefault()
+                                PictureId = staff.Where(person => person.UserId == user.Id)
+                                    .Select(person => person.PictureId).FirstOrDefault()
                             })
             .ToListAsync(cancellationToken);
 

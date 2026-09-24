@@ -1,5 +1,4 @@
 using Dealership.Application.Accounts;
-using Dealership.Domain.Accounts;
 using Dealership.Application.Performance;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +20,7 @@ internal sealed class TeamPeople
     public static async Task<TeamPeople> ReadAsync(DealershipDbContext database, string[] roles,
         CancellationToken cancellationToken)
     {
+        var staff = PersonRows.Staff(database);
         var rows = await (from user in database.Users.AsNoTracking()
                           join profile in database.StaffProfiles.AsNoTracking() on user.Id equals profile.UserId
                           where roles.Contains(user.Role)
@@ -31,9 +31,8 @@ internal sealed class TeamPeople
                               user.Role,
                               user.IsActive,
                               user.BranchId,
-                              PictureId = database.AccountPictures
-                                  .Where(AccountPicture.Current).Where(picture => picture.UserId == user.Id)
-                                  .Select(picture => (Guid?)picture.Id).FirstOrDefault()
+                              PictureId = staff.Where(person => person.UserId == user.Id)
+                                  .Select(person => person.PictureId).FirstOrDefault()
                           })
             .ToListAsync(cancellationToken);
         var branches = await database.Branches.AsNoTracking().ToDictionaryAsync(branch => branch.Id,
