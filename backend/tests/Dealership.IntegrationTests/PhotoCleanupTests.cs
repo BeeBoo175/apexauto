@@ -70,12 +70,7 @@ public sealed class PhotoCleanupTests(IntakePhotoFixture fixture) : IClassFixtur
 
         Assert.True(await fixture.OwnedObjectExistsAsync(pending));
         var owner = await BookingTestData.OwnerAsync(factory, registration);
-        using (var scope = factory.Services.CreateScope())
-        {
-            var expires = await scope.ServiceProvider.GetRequiredService<DealershipDbContext>().IntakePhotos
-                .Where(photo => photo.Id == pending || photo.Id == unsubmitted).MaxAsync(photo => photo.ExpiresAt);
-            await WaitUntilAsync(expires);
-        }
+        await ExpirePhotosAsync("IntakePhotos", pending, unsubmitted);
 
         using var failing = fixture.CreateFactory(failBeforeDelete: true);
         using (var transferScope = factory.Services.CreateScope())
@@ -201,7 +196,7 @@ public sealed class PhotoCleanupTests(IntakePhotoFixture fixture) : IClassFixtur
 
         Assert.True(await fixture.OwnedObjectExistsAsync(PictureKey(abandoned)));
         Assert.Equal(HttpStatusCode.OK, (await PutPictureAsync(client, current, SKColors.Purple)).StatusCode);
-        await WaitUntilAsync(await ExpiryAsync(abandoned));
+        await ExpirePhotosAsync("AccountPictures", abandoned);
 
         using (var failing = fixture.CreateFactory(failBeforeDelete: true))
         {
@@ -295,13 +290,16 @@ public sealed class PhotoCleanupTests(IntakePhotoFixture fixture) : IClassFixtur
         return (await receipt.Content.ReadFromJsonAsync<AccountPictureReceipt>())!.Status;
     }
 
-    private async Task<DateTimeOffset> ExpiryAsync(Guid pictureId)
+    // Moves the rows' lifetime into the past through the owner role, so expiry needs no wait on the host clock.
+    private async Task ExpirePhotosAsync(string table, params Guid[] photoIds)
     {
-        await using var connection = new NpgsqlConnection(fixture.Database.RuntimeConnectionString);
-        await connection.OpenAsync();
-        await using var command = new NpgsqlCommand("SELECT \"ExpiresAt\" FROM \"AccountPictures\" WHERE \"Id\" = @id", connection);
-        command.Parameters.AddWithValue("id", pictureId);
-        return new DateTimeOffset((DateTime)(await command.ExecuteScalarAsync())!, TimeSpan.Zero);
+        await using var owner = new NpgsqlConnection(fixture.Database.ConnectionString);
+        await owner.OpenAsync();
+        var ids = string.Join(", ", photoIds.Select(id => $"'{id}'"));
+        await RetentionSql.AgeTableAsync(owner, table,
+            $"\"CreatedAt\" = \"CreatedAt\" - interval '1 hour', \"ExpiresAt\" = \"ExpiresAt\" - interval '1 hour', " +
+            $"\"AvailableAt\" = \"AvailableAt\" - interval '1 hour' " +
+            $"WHERE \"Id\" IN ({ids})");
     }
 
     private async Task ExpirePictureClaimsAsync()
@@ -333,17 +331,6 @@ public sealed class PhotoCleanupTests(IntakePhotoFixture fixture) : IClassFixtur
         await using var rewrite = new NpgsqlCommand("UPDATE \"PhotoRemovals\" SET \"DeletedAt\" = NULL WHERE \"PhotoId\" = @id", connection);
         rewrite.Parameters.AddWithValue("id", removedPhoto);
         Assert.Equal("CK_PhotoRemovals_Immutable", (await Assert.ThrowsAsync<PostgresException>(() => rewrite.ExecuteNonQueryAsync())).ConstraintName);
-    }
-
-    private static async Task WaitUntilAsync(DateTimeOffset deadline)
-    {
-        var delay = deadline - DateTimeOffset.UtcNow + TimeSpan.FromMilliseconds(25);
-        Assert.True(delay < TimeSpan.FromSeconds(20), "Fixture expiry must keep the scenario bounded.");
-
-        if (delay > TimeSpan.Zero)
-        {
-            await Task.Delay(delay);
-        }
     }
 
     private async Task ExpireCancellationRetentionAsync(Guid appointmentId)

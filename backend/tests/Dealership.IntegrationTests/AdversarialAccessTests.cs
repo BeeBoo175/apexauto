@@ -62,8 +62,7 @@ public sealed class AdversarialAccessTests(IntakePhotoFixture fixture) : IClassF
             foreach (var (path, body) in attempts)
             {
                 var response = await admin.PostAsJsonAsync(path, body);
-                Assert.True(!response.IsSuccessStatusCode && (int)response.StatusCode < 500,
-                    $"{path} answered {(int)response.StatusCode}");
+                Assert.True(response.StatusCode == HttpStatusCode.NotFound, $"{path} answered {(int)response.StatusCode}");
             }
 
             var user = await world.UserAsync(target);

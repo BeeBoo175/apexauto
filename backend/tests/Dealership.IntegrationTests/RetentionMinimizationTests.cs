@@ -61,8 +61,11 @@ public sealed class RetentionMinimizationTests(IntakePhotoFixture fixture) : ICl
         Assert.False(retired.IsPending(DateTimeOffset.UtcNow));
         Assert.NotNull(invitations[ids.LiveInvitation].Email);
 
-        // A second run finds nothing, and the executor owns no DELETE privilege.
+        // A second run finds nothing, so every minimization stamp is exactly what the first run left; the executor
+        // also owns no DELETE privilege.
+        var stampsBefore = await MinimizationStampsAsync(database);
         await Worker(factory).RunBatchAsync(CancellationToken.None);
+        Assert.Equal(stampsBefore, await MinimizationStampsAsync(database));
         Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, await FailureAsync(database,
             "DELETE FROM \"AccountSessions\" WHERE \"Id\" = {0}", ids.OldSession));
     }
@@ -247,6 +250,20 @@ public sealed class RetentionMinimizationTests(IntakePhotoFixture fixture) : ICl
     {
         return (await database.Database.SqlQueryRaw<string?>(
             "SELECT \"RecipientEmail\" AS \"Value\" FROM \"AppointmentMailOutbox\"").ToListAsync()).ToArray();
+    }
+
+    // Every column of every row the executor may minimize, so a later run that changed anything shows as a difference.
+    private static async Task<string[]> MinimizationStampsAsync(DealershipDbContext database)
+    {
+        var rows = new List<string>();
+        foreach (var table in new[] { "AccountSessions", "PasswordResetChallenges", "EmailVerificationChallenges",
+            "StaffInvitations" })
+        {
+            rows.AddRange(await database.Database.SqlQueryRaw<string>(
+                $"SELECT CAST(item AS text) AS \"Value\" FROM \"{table}\" item ORDER BY \"Id\"").ToListAsync());
+        }
+
+        return [.. rows];
     }
 
     private static async Task<int> MinimizedCountAsync(DealershipDbContext database, Guid[] ids)

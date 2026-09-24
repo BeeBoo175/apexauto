@@ -136,9 +136,13 @@ public sealed class AdversarialSaleDisposalTests(IntakePhotoFixture fixture) : I
             .Select(item => item.Number).SingleAsync();
         var placed = await holds.SetByNumberAsync(administrator,
             new(number, DateTimeOffset.UtcNow.AddYears(1), "Dispute under review"), default);
-        Assert.True(placed.Status is SaleRetentionHoldStatus.Succeeded or SaleRetentionHoldStatus.Invalid, placed.Status.ToString());
+        Assert.Equal(SaleRetentionHoldStatus.Succeeded, placed.Status);
         var after = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == settled.SaleId);
-        Assert.Equal((before.Version, before.Status, before.BalancePayable), (after.Version, after.Status, after.BalancePayable));
+        Assert.Equal((before.Version, before.Status, before.BalancePayable, before.CustomerId, before.ClaimedAt),
+            (after.Version, after.Status, after.BalancePayable, after.CustomerId, after.ClaimedAt));
+        Assert.Equal("Dispute under review", after.RetentionHoldReason);
+        Assert.Equal(administrator, after.RetentionHoldById);
+        Assert.NotNull(after.RetentionHoldUntil);
 
         await using var owner = new NpgsqlConnection(fixture.Database.ConnectionString);
         await owner.OpenAsync();

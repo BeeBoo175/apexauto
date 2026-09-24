@@ -103,11 +103,12 @@ public sealed class AdversarialErasureTests(IntakePhotoFixture fixture) : IClass
 
         // An Administrator whose stamp is stale cannot erase either, and a stamp of the wrong user is not accepted.
         var adminStamp = (await world.UserAsync(admin)).SecurityStamp!;
+        var otherStamp = (await world.UserAsync(otherId)).SecurityStamp!;
+        Assert.NotEqual(adminStamp, otherStamp);
         var other = await world.RunAsync(services => services.GetRequiredService<IAccountErasureStore>().EraseCustomerAsync(
-            admin, otherId, new(Guid.NewGuid(), "Subject request", Password), "not-the-admin-stamp", CancellationToken.None));
+            admin, otherId, new(Guid.NewGuid(), "Subject request", Password), otherStamp, CancellationToken.None));
         Assert.Equal(AccountErasureStatus.SessionChanged, other.Status);
         Assert.True(await world.IsOpenAsync(otherId));
-        Assert.NotEmpty(adminStamp);
     }
 
     [Fact]

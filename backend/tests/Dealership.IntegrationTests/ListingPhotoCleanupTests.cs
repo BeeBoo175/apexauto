@@ -47,23 +47,28 @@ public sealed class ListingPhotoCleanupTests(IntakePhotoFixture fixture) : IClas
 
         Assert.True(await fixture.OwnedObjectExistsAsync(ListingKey(abandoned)));
         var database = services.GetRequiredService<DealershipDbContext>();
-        var createdAt = await database.ListingPhotos.AsNoTracking().Where(item => item.Id == abandoned)
-            .Select(item => item.CreatedAt).SingleAsync();
-        using var cleanup = fixture.CreateFactory(pendingUploadLifetimeHours: TimeSpan.FromSeconds(2).TotalHours);
+        var lifetime = TimeSpan.FromHours(1).TotalHours;
+        using var cleanup = fixture.CreateFactory(pendingUploadLifetimeHours: lifetime);
         await RunCleanupAsync(cleanup);
         Assert.True(await fixture.OwnedObjectExistsAsync(ListingKey(abandoned)));
         Assert.Empty(await database.ListingPhotoRemovals.AsNoTracking().ToArrayAsync());
-        var wait = createdAt + TimeSpan.FromSeconds(2.2) - DateTimeOffset.UtcNow;
-        await Task.Delay(wait > TimeSpan.Zero ? wait : TimeSpan.Zero);
 
-        using (var failing = fixture.CreateFactory(failBeforeDelete: true, pendingUploadLifetimeHours: TimeSpan.FromSeconds(2).TotalHours))
+        // Age the unconfirmed upload past its lifetime through the owner role instead of waiting for the clock.
+        await using (var owner = new NpgsqlConnection(fixture.Database.ConnectionString))
+        {
+            await owner.OpenAsync();
+            await RetentionSql.AgeTableAsync(owner, "ListingPhotos",
+                $"\"CreatedAt\" = \"CreatedAt\" - interval '2 hours' WHERE \"Id\" = '{abandoned}'");
+        }
+
+        using (var failing = fixture.CreateFactory(failBeforeDelete: true, pendingUploadLifetimeHours: lifetime))
         {
             await RunCleanupAsync(failing);
         }
 
         Assert.True(await fixture.OwnedObjectExistsAsync(ListingKey(abandoned)));
         await ExpireListingClaimsAsync();
-        using (var lostAcknowledgement = fixture.CreateFactory(failAfterDelete: true, pendingUploadLifetimeHours: TimeSpan.FromSeconds(2).TotalHours))
+        using (var lostAcknowledgement = fixture.CreateFactory(failAfterDelete: true, pendingUploadLifetimeHours: lifetime))
         {
             await RunCleanupAsync(lostAcknowledgement);
         }
