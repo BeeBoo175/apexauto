@@ -63,8 +63,7 @@ public sealed record StaffAccountQuery(string Tab, string Search, string? Role, 
         if (!ListSearch.IsValid(nameText) || !ListSearch.IsValid(emailText) || !ListSearch.IsValid(mobileText) ||
             !StaffAccountTabs.IsValid(view) || !ListSearch.IsValid(text) || !Pagination.IsValid(page, pageSize) ||
             branchId == Guid.Empty || (!string.IsNullOrEmpty(role) && !StaffRoles.ContainsKey(role)) ||
-            (!string.IsNullOrEmpty(sort) && !SortColumns.Contains(sort)) ||
-            direction is not (null or "" or "asc" or "desc"))
+            !ListOrder.TryParse(sort, direction, SortColumns, out var order))
         {
             return null;
         }
@@ -74,8 +73,8 @@ public sealed record StaffAccountQuery(string Tab, string Search, string? Role, 
             Name = nameText,
             Email = emailText,
             Mobile = mobileText,
-            Sort = sort ?? string.Empty,
-            Descending = direction == "desc"
+            Sort = order.Sort,
+            Descending = order.Descending
         };
     }
 }

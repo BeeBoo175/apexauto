@@ -3,7 +3,12 @@ import { isRecord, isUtcInstant, isUuid } from "@/lib/auth/contracts";
 import { isNonNegativeInteger } from "@/lib/auth/contracts";
 import { parsePage } from "@/lib/api";
 import { DEFAULT_PAGE_SIZE, isPageSize, paginationQuery } from "@/lib/pagination";
-import type { SearchParams } from "@/lib/query";
+import {
+  isOmittedDirection,
+  listOrderParams,
+  type ListDirection,
+  type SearchParams,
+} from "@/lib/query";
 
 export const staffAccountTabs = [
   { value: "all", label: "All", count: "all" },
@@ -78,7 +83,7 @@ export interface StaffAccountFilters {
   email: string;
   mobile: string;
   sort: string;
-  direction: "asc" | "desc";
+  direction: ListDirection;
   pageSize: number;
 }
 
@@ -155,8 +160,7 @@ export function staffAccountParams(parameters: SearchParams) {
       name: cleanText(text("name")),
       email: cleanText(text("email")),
       mobile: cleanText(text("mobile")),
-      sort: sortKeys.includes(text("sort")) ? text("sort") : "",
-      direction: text("direction") === "desc" ? ("desc" as const) : ("asc" as const),
+      ...listOrderParams(text, sortKeys),
       pageSize: isPageSize(pageSize) ? pageSize : DEFAULT_PAGE_SIZE,
     } satisfies StaffAccountFilters,
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
@@ -166,12 +170,11 @@ export function staffAccountParams(parameters: SearchParams) {
 function filterEntries(filters: StaffAccountFilters) {
   const entries: [string, string][] = [];
   for (const [key, value] of Object.entries(filters)) {
-    // Ascending is the default order, so only a descending direction is carried.
     if (
       key === "pageSize" ||
       value === "" ||
       (key === "view" && value === "all") ||
-      (key === "direction" && (value === "asc" || !filters.sort))
+      isOmittedDirection(key, value, filters.sort)
     ) {
       continue;
     }

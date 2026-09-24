@@ -58,16 +58,15 @@ public sealed record CustomerDirectoryQuery(string Tab, string Search, int Page,
         var mobileText = mobile?.Trim() ?? string.Empty;
         return !ListSearch.IsValid(nameText) || !ListSearch.IsValid(emailText) || !ListSearch.IsValid(mobileText) ||
             !CustomerAccountTabs.IsValid(view) || !ListSearch.IsValid(text) || !Pagination.IsValid(page, pageSize) ||
-            (!string.IsNullOrEmpty(sort) && !SortColumns.Contains(sort)) ||
-            direction is not (null or "" or "asc" or "desc")
+            !ListOrder.TryParse(sort, direction, SortColumns, out var order)
             ? null
             : new(view ?? CustomerAccountTabs.All, text, page, pageSize)
             {
                 Name = nameText,
                 Email = emailText,
                 Mobile = mobileText,
-                Sort = sort ?? string.Empty,
-                Descending = direction == "desc"
+                Sort = order.Sort,
+                Descending = order.Descending
             };
     }
 }
