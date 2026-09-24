@@ -1,5 +1,5 @@
-using Dealership.Domain.Customers;
 using System.Text.RegularExpressions;
+using Dealership.Domain.Customers;
 
 namespace Dealership.Domain.Vehicles;
 

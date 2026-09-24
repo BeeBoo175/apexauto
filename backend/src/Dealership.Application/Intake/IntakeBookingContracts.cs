@@ -1,5 +1,5 @@
-using Dealership.Domain.Common;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
 
 namespace Dealership.Application.Intake;

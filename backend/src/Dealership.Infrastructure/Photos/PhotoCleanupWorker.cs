@@ -1,5 +1,5 @@
-using Dealership.Application.Photos;
 using Dealership.Application.Intake;
+using Dealership.Application.Photos;
 using Dealership.Infrastructure.Intake;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

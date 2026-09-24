@@ -1,7 +1,7 @@
-using Dealership.Domain.Common;
 using System.Data;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
+using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Accounts;
 using Dealership.Infrastructure.Persistence;

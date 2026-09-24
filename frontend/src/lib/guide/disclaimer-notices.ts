@@ -1,4 +1,4 @@
-﻿import { formatCurrency } from "@/lib/currency-format";
+import { formatCurrency } from "@/lib/currency-format";
 import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
 
 import type { IconName } from "@/lib/icons";

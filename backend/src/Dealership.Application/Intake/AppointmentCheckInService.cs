@@ -1,5 +1,5 @@
-using Dealership.Domain.Common;
 using Dealership.Application.Accounts;
+using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
 using Dealership.Domain.Vehicles;
 

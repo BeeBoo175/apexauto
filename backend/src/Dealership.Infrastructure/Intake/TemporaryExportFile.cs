@@ -1,5 +1,5 @@
-using Dealership.Application.Intake;
 using System.Runtime.InteropServices;
+using Dealership.Application.Intake;
 
 namespace Dealership.Infrastructure.Intake;
 

@@ -1,6 +1,6 @@
-using Dealership.Application.Common;
-using Dealership.Application.Branches;
 using System.Globalization;
+using Dealership.Application.Branches;
+using Dealership.Application.Common;
 
 namespace Dealership.Api.Endpoints;
 

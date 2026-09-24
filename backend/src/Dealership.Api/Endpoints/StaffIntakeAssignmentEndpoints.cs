@@ -1,5 +1,5 @@
-using Dealership.Domain.Common;
 using Dealership.Application.Intake;
+using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
 
 namespace Dealership.Api.Endpoints;

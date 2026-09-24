@@ -1,10 +1,10 @@
-using Dealership.Api.Configuration;
-using Dealership.Domain.Photos;
-using Dealership.Application.Photos;
 using System.IdentityModel.Tokens.Jwt;
+using Dealership.Api.Configuration;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
+using Dealership.Application.Photos;
 using Dealership.Domain.Intake;
+using Dealership.Domain.Photos;
 using Microsoft.AspNetCore.Http.Features;
 
 namespace Dealership.Api.Endpoints;

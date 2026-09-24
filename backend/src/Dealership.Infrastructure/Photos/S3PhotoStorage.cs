@@ -1,11 +1,11 @@
-using Dealership.Domain.Photos;
-using Dealership.Application.Photos;
-using Dealership.Infrastructure.Storage;
 using System.Net;
 using System.Security.Cryptography;
+using Dealership.Application.Photos;
+using Dealership.Domain.Photos;
+using Dealership.Infrastructure.Storage;
+using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
-using Amazon.Runtime;
 
 namespace Dealership.Infrastructure.Photos;
 

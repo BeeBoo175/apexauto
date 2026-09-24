@@ -1,6 +1,6 @@
-using Dealership.Domain.Photos;
-using Dealership.Application.Photos;
 using System.Security.Cryptography;
+using Dealership.Application.Photos;
+using Dealership.Domain.Photos;
 using SkiaSharp;
 
 namespace Dealership.Infrastructure.Photos;

@@ -1,6 +1,6 @@
-using Dealership.Domain.Common;
 using Dealership.Application.Intake;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

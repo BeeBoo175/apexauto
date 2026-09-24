@@ -1,6 +1,6 @@
-using Dealership.Domain.Common;
 using System.Globalization;
 using Dealership.Application.Branches;
+using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
 
 namespace Dealership.Application.Intake;

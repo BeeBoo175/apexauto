@@ -1,10 +1,8 @@
-using Dealership.Domain.Common;
 using System.Net;
-using Amazon.S3;
-using Amazon.S3.Model;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Common;
 using Dealership.Domain.Intake;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Development.Maintenance;
@@ -13,6 +11,8 @@ using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Amazon.S3;
+using Amazon.S3.Model;
 
 namespace Dealership.Infrastructure.Development;
 

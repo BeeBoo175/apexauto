@@ -1,5 +1,5 @@
-using Dealership.Application.Common;
 using System.Text;
+using Dealership.Application.Common;
 using Dealership.Application.Intake;
 
 namespace Dealership.Api.Endpoints;

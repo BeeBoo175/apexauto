@@ -1,9 +1,9 @@
-using Dealership.Application.Vehicles;
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
-using Dealership.Application.Intake;
 using Dealership.Application.Inspections;
+using Dealership.Application.Intake;
 using Dealership.Application.Photos;
+using Dealership.Application.Vehicles;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dealership.Application;

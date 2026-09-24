@@ -1,5 +1,5 @@
-using Dealership.Application.Photos;
 using Dealership.Application.Intake;
+using Dealership.Application.Photos;
 using Dealership.Domain.Intake;
 using Dealership.Domain.Photos;
 

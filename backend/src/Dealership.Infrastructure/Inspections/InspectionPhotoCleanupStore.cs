@@ -1,5 +1,5 @@
-using Dealership.Infrastructure.Photos;
 using Dealership.Infrastructure.Persistence;
+using Dealership.Infrastructure.Photos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 

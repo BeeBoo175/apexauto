@@ -1,5 +1,5 @@
-using Dealership.Domain.Sales;
 using System.Data;
+using Dealership.Domain.Sales;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;

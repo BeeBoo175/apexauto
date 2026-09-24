@@ -1,5 +1,5 @@
-using Dealership.Domain.Sales;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Sales;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

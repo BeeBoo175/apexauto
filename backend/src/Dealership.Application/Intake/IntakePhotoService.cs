@@ -1,7 +1,7 @@
-using Dealership.Domain.Photos;
-using Dealership.Application.Photos;
 using Dealership.Application.Accounts;
+using Dealership.Application.Photos;
 using Dealership.Domain.Intake;
+using Dealership.Domain.Photos;
 
 namespace Dealership.Application.Intake;
 

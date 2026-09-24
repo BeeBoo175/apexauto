@@ -1,7 +1,7 @@
-using Dealership.Domain.Accounts;
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Accounts;
 using Dealership.Infrastructure.Branches;
 using Dealership.Infrastructure.Identity;
 using Dealership.Infrastructure.Persistence;
