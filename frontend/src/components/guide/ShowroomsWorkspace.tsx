@@ -8,6 +8,7 @@ import { useShowroomOpenStatus } from "@/hooks/use-showroom-open-status";
 import { useShowroomStock } from "@/hooks/use-showroom-stock";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import { buttonClassName } from "@/components/ui/Button";
+import { PhotoAccordion, PhotoCollapsedName, PhotoPanel } from "@/components/ui/PhotoAccordion";
 import { LiveVehicles } from "@/components/vehicles/LiveVehicles";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import { showroomPhoto } from "@/lib/guide/showroom-photos";
@@ -122,38 +123,33 @@ export function ShowroomsWorkspace({
           </h2>
 
           <div className={styles.workspace}>
-            <ul className={styles.stack}>
+            <PhotoAccordion direction="column">
               {showroomBranches.map((branch) => {
                 const active = branch.id === panel.id;
                 const photo = showroomPhoto(branch.shortLabel);
                 const count = stock[branch.id];
                 return (
-                  <li key={branch.id} className={styles.panel} data-active={active}>
-                    <div className={styles.photo}>
+                  <PhotoPanel
+                    key={branch.id}
+                    active={active}
+                    photo={
                       <Image
                         src={photo.src}
                         alt={active ? photo.alt : ""}
                         fill
                         unoptimized
                         sizes="(max-width: 960px) 100vw, 640px"
-                        className={styles.image}
                       />
-                    </div>
-                    <div className={styles.scrim} aria-hidden="true" />
-                    <button
-                      type="button"
-                      className={styles.trigger}
-                      aria-expanded={active}
-                      aria-label={`${branch.shortLabel} showroom`}
-                      onClick={() => openBranch(branch)}
-                      onMouseEnter={() => setHoveredBranchId(branch.id)}
-                      onMouseLeave={() => setHoveredBranchId(null)}
-                    >
-                      <span className={styles.collapsedName} aria-hidden="true">
-                        {branch.shortLabel}
-                      </span>
-                    </button>
-                    <div className={styles.details} aria-hidden={!active}>
+                    }
+                    trigger={<PhotoCollapsedName>{branch.shortLabel}</PhotoCollapsedName>}
+                    triggerProps={{
+                      "aria-label": `${branch.shortLabel} showroom`,
+                      onClick: () => openBranch(branch),
+                      onMouseEnter: () => setHoveredBranchId(branch.id),
+                      onMouseLeave: () => setHoveredBranchId(null),
+                    }}
+                  >
+                    <div className={styles.details}>
                       <h3 className={styles.name}>{branch.name}</h3>
                       <p className={styles.status} data-open={openStatus?.open ?? false}>
                         {openStatus ? (
@@ -192,7 +188,6 @@ export function ShowroomsWorkspace({
                         <Link
                           href={catalogueHref({ ...catalogueDefaults, branchId: branch.id })}
                           prefetch={false}
-                          tabIndex={active ? undefined : -1}
                           className={styles.primary}
                         >
                           See the cars here
@@ -201,17 +196,16 @@ export function ShowroomsWorkspace({
                           href={`https://www.google.com/maps/dir/?api=1&destination=${branch.lat},${branch.lng}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          tabIndex={active ? undefined : -1}
                           className={styles.secondary}
                         >
                           Get directions
                         </a>
                       </div>
                     </div>
-                  </li>
+                  </PhotoPanel>
                 );
               })}
-            </ul>
+            </PhotoAccordion>
 
             <div className={styles.map}>
               <ShowroomMapStage

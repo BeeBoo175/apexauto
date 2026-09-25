@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useId, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { useRovingTabs } from "@/hooks/use-roving-tabs";
 import type { IconName } from "@/lib/icons";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import styles from "./BuyingSteps.module.css";
@@ -27,17 +28,13 @@ export function BuyingSteps({ steps }: { steps: readonly BuyingStepPanel[] }) {
     setActive(Math.min(Math.max(index, 0), last));
   }
 
-  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    const offsets: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1 };
-    const offset = offsets[event.key];
-    if (offset === undefined) {
-      return;
-    }
-    event.preventDefault();
-    const target = Math.min(Math.max(active + offset, 0), last);
-    select(target);
-    document.getElementById(`${baseId}-tab-${target}`)?.focus();
-  }
+  const onKeyDown = useRovingTabs({
+    count: steps.length,
+    activeIndex: active,
+    wrap: false,
+    tabId: (index) => `${baseId}-tab-${index}`,
+    onSelect: select,
+  });
 
   return (
     <div className={styles.steps}>

@@ -1,0 +1,35 @@
+/* The credits inside their notice row: one line per source, separated by space and a soft rule. */
+.creditList {
+  display: grid;
+  max-width: 72ch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.creditList li {
+  display: grid;
+  gap: 4px;
+  padding-block: 16px;
+  border-top: 1px solid var(--color-line-soft);
+  color: var(--color-graphite);
+}
+
+.creditList li:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.creditList span {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.creditList a {
+  color: var(--color-graphite);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import patterns from "@/components/layout/PublicPatterns.module.css";
+import { PhotoAccordion, PhotoCollapsedName, PhotoPanel } from "@/components/ui/PhotoAccordion";
 import { useShowroomStock } from "@/hooks/use-showroom-stock";
 import type { Branch } from "@/lib/branches";
 import { showroomPhoto } from "@/lib/guide/showroom-photos";
@@ -14,6 +14,7 @@ import {
 } from "@/lib/guide/showrooms";
 import { SHOWROOM_CLOSES_AT, SHOWROOM_OPENS_AT } from "@/lib/guide/visit-terms";
 import styles from "./LandingShowrooms.module.css";
+import { ShowroomVisitDetails } from "./ShowroomVisitDetails";
 import layout from "./VehicleLayout.module.css";
 
 interface LandingShowroomsProps {
@@ -69,60 +70,53 @@ export function LandingShowrooms({ branches, loading = false }: LandingShowrooms
           </p>
         </div>
 
-        <ul className={styles.accordion}>
+        <PhotoAccordion loading={loading}>
           {showrooms.map((showroom, index) => {
             const active = showroom.id === activeId;
             const photo = showroomPhoto(showroom.shortLabel);
             const stockCount = stock[showroom.id] ?? 0;
             return (
-              <li key={showroom.id} className={styles.panel} data-active={active}>
-                <div className={styles.photo}>
-                  {!loading && (
+              <PhotoPanel
+                key={showroom.id}
+                active={active}
+                photo={
+                  !loading && (
                     <Image
                       src={photo.src}
                       alt={active ? photo.alt : ""}
                       fill
                       unoptimized
                       sizes="900px"
-                      className={styles.image}
                     />
-                  )}
-                </div>
-                <div className={styles.scrim} aria-hidden="true" />
-                <button
-                  type="button"
-                  className={styles.trigger}
-                  aria-expanded={active}
-                  aria-label={`${showroomNumber(index)} ${showroom.shortLabel} showroom`}
-                  disabled={loading}
-                  onClick={() => setChosenId(showroom.id)}
-                >
-                  <span className={styles.collapsedName} aria-hidden="true">
+                  )
+                }
+                trigger={
+                  <PhotoCollapsedName>
                     {showroomNumber(index)} {showroom.shortLabel}
-                  </span>
-                </button>
-                <div className={styles.details} aria-hidden={!active}>
-                  <div className={styles.summary}>
-                    <h3 className={styles.name}>
+                  </PhotoCollapsedName>
+                }
+                triggerProps={{
+                  "aria-label": `${showroomNumber(index)} ${showroom.shortLabel} showroom`,
+                  disabled: loading,
+                  onClick: () => setChosenId(showroom.id),
+                }}
+              >
+                <ShowroomVisitDetails
+                  title={
+                    <>
                       <span>{showroomNumber(index)} /</span> {showroom.shortLabel}
-                    </h3>
-                    <p className={styles.address}>
-                      {showroom.address}, {showroom.city} • {showroom.hours}
-                      {stockCount > 0 ? ` • ${stockCount} cars on display` : ""}
-                    </p>
-                  </div>
-                  <Link
-                    href={`/branches?branchId=${showroom.id}`}
-                    tabIndex={active && !loading ? undefined : -1}
-                    className={styles.visit}
-                  >
-                    Plan a visit
-                  </Link>
-                </div>
-              </li>
+                    </>
+                  }
+                  address={`${showroom.address}, ${showroom.city} • ${showroom.hours}${
+                    stockCount > 0 ? ` • ${stockCount} cars on display` : ""
+                  }`}
+                  href={`/branches?branchId=${showroom.id}`}
+                  loading={loading}
+                />
+              </PhotoPanel>
             );
           })}
-        </ul>
+        </PhotoAccordion>
       </div>
     </section>
   );

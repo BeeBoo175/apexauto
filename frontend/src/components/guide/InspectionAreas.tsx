@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useState, type KeyboardEvent } from "react";
+import { useState } from "react";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import { Icon } from "@/components/ui/Icon";
 import { ScrollStrip } from "@/components/ui/ScrollStrip";
 import { SearchField } from "@/components/ui/SearchField";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
+import { useRovingTabs } from "@/hooks/use-roving-tabs";
 import type { InspectionCategoryKey, InspectionPointItem } from "@/lib/guide/inspection-points";
 import { inspectionCategories } from "@/lib/guide/inspection-rules";
 import styles from "./InspectionAreas.module.css";
@@ -63,18 +64,13 @@ export function InspectionAreas({ points }: { points: readonly InspectionPointIt
     setExpanded(false);
   }
 
-  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    const offsets: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1 };
-    const offset = offsets[event.key];
-    if (offset === undefined) {
-      return;
-    }
-    event.preventDefault();
-    const index = categories.findIndex((category) => category.key === active.key);
-    const next = categories[(index + offset + categories.length) % categories.length];
-    choose(next.key);
-    document.getElementById(`area-tab-${next.key}`)?.focus();
-  }
+  const onKeyDown = useRovingTabs({
+    count: categories.length,
+    activeIndex: categories.findIndex((category) => category.key === active.key),
+    wrap: true,
+    tabId: (index) => `area-tab-${categories[index].key}`,
+    onSelect: (index) => choose(categories[index].key),
+  });
 
   return (
     <section

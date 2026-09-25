@@ -7,3 +7,9 @@
 .section > h2 {
   margin: 0;
 }
+
+/* The one open panel of the showroom accordion, shorter than the home page's. */
+.panel {
+  --photo-accordion-height: clamp(280px, 32vw, 360px);
+  --photo-accordion-height-small: 320px;
+}

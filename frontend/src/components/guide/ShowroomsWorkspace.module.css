@@ -9,8 +9,8 @@
   color: var(--color-graphite);
 }
 
-/* The showroom stack beside the one map. The stack is the home page's accordion turned upright: the open panel
-   grows and holds everything about its showroom, so nothing is repeated elsewhere on the page. */
+/* The showroom accordion turned upright beside the one map. The open panel grows and holds everything about its
+   showroom, so nothing is repeated elsewhere on the page. */
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
@@ -18,128 +18,9 @@
   align-items: stretch;
 }
 
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  height: clamp(520px, 64vh, 640px);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.panel {
-  position: relative;
-  flex: 1 1 0;
-  min-height: 72px;
-  overflow: hidden;
-  border-radius: var(--radius-surface);
-  box-shadow: var(--shadow-surface);
-  background: var(--color-graphite);
-  isolation: isolate;
-  transition: flex-grow 640ms cubic-bezier(0.22, 0.8, 0.24, 1);
-}
-
-.panel[data-active="true"] {
-  flex-grow: 8;
-}
-
-/* The photo keeps one fixed size and is only cropped by the panel, so it never re-scales while the panel animates. */
-.photo {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  z-index: -2;
-  width: 100%;
-  height: 560px;
-  transform: translateY(-50%);
-}
-
-.image {
-  object-fit: cover;
-}
-
-.scrim {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(
-    to top,
-    rgb(14 27 42 / 0.94),
-    rgb(14 27 42 / 0.55) 50%,
-    rgb(14 27 42 / 0.12) 85%
-  );
-}
-
-.panel:not([data-active="true"]) .scrim {
-  background: linear-gradient(to right, rgb(14 27 42 / 0.9), rgb(14 27 42 / 0.45));
-}
-
-.trigger {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  width: 100%;
-  padding: 0 24px;
-  border: 0;
-  background: transparent;
-  color: var(--color-paper);
-  cursor: pointer;
-}
-
-.panel[data-active="true"] .trigger {
-  pointer-events: none;
-}
-
-.trigger:focus-visible {
-  outline: 3px solid var(--color-paper);
-  outline-offset: -6px;
-  border-radius: var(--radius-surface);
-}
-
-.collapsedName {
-  font-family: var(--font-display);
-  font-size: 1.375rem;
-  font-weight: 700;
-  transition:
-    opacity 300ms ease,
-    transform 300ms ease;
-}
-
-.panel:hover:not([data-active="true"]) .collapsedName {
-  transform: translateX(6px);
-}
-
-.panel[data-active="true"] .collapsedName {
-  opacity: 0;
-}
-
 .details {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
   display: grid;
   gap: 6px;
-  padding: 28px;
-  color: var(--color-paper);
-  opacity: 0;
-  transform: translateY(14px);
-  pointer-events: none;
-  transition:
-    opacity 260ms ease,
-    transform 260ms ease;
-}
-
-.panel[data-active="true"] .details {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-  transition:
-    opacity 420ms ease 260ms,
-    transform 420ms cubic-bezier(0.22, 0.8, 0.24, 1) 260ms;
 }
 
 .name {
@@ -244,10 +125,6 @@
   transform: translateY(1px);
 }
 
-.panel:not([data-active="true"]):active .collapsedName {
-  transform: translateX(2px) scale(0.98);
-}
-
 /* Loading shell for the car count: the text keeps its size and carries a shimmer until the count arrives. */
 .shell {
   position: relative;
@@ -281,7 +158,7 @@
   outline-offset: 3px;
 }
 
-/* The one map fills the height of the stack. */
+/* The one map fills the height of the accordion. */
 .map {
   display: grid;
 }
@@ -295,35 +172,15 @@
   .workspace {
     grid-template-columns: minmax(0, 1fr);
   }
-
-  .stack {
-    height: 560px;
-  }
-
-  .panel[data-active="true"] {
-    flex-grow: 6;
-  }
 }
 
 @media (max-width: 640px) {
   .heading {
     margin-bottom: 20px;
   }
-
-  .details {
-    padding: 20px;
-  }
-
-  .trigger {
-    padding: 0 20px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .panel,
-  .collapsedName,
-  .details,
-  .panel[data-active="true"] .details,
   .primary,
   .secondary {
     transition: none;

@@ -1,11 +1,11 @@
-.faqSplit {
+.split {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   align-items: start;
   gap: 40px 72px;
 }
 
-.faqRail {
+.rail {
   position: sticky;
   top: calc(var(--site-header-height) + 28px);
 }
@@ -91,13 +91,13 @@
   font-variant-numeric: tabular-nums;
 }
 
-.faqMain {
+.main {
   display: grid;
   gap: 36px;
   min-width: 0;
 }
 
-.faqTopBar {
+.topBar {
   display: grid;
   gap: 24px;
 }
@@ -211,12 +211,12 @@
 }
 
 @media (max-width: 920px) {
-  .faqSplit {
+  .split {
     grid-template-columns: minmax(0, 1fr);
     gap: 32px;
   }
 
-  .faqRail {
+  .rail {
     position: static;
   }
 
