@@ -9,11 +9,7 @@ import type { IconName } from "@/lib/icons";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import { formatCurrency, formatWholeCurrency } from "@/lib/currency-format";
-import {
-  PAYMENT_WINDOW_MINUTES,
-  RESERVATION_DEPOSIT,
-  RESERVATION_HOLD_HOURS,
-} from "@/lib/vehicles/deposit-terms";
+import { PAYMENT_WINDOW_MINUTES, RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
 import {
   calculateFinancing,
   DEFAULT_CASH_PERCENT,
@@ -146,7 +142,7 @@ const PAYMENT_ROUTES: readonly { icon: IconName; title: string; detail: string }
   },
 ];
 
-function buildSteps(): BuyingStepPanel[] {
+function buildSteps(holdHours: number): BuyingStepPanel[] {
   return [
     {
       id: "choose",
@@ -172,8 +168,8 @@ function buildSteps(): BuyingStepPanel[] {
         <>
           <p className={patterns.lede}>
             A refundable {formatWholeCurrency(RESERVATION_DEPOSIT)} deposit takes the car off sale
-            for {RESERVATION_HOLD_HOURS} hours and counts toward your cash contribution. Sign in
-            with a verified email to reserve.
+            for {holdHours} hours and counts toward your cash contribution. Sign in with a verified
+            email to reserve.
           </p>
           <ol className={styles.timeline} data-fill>
             <li>
@@ -184,7 +180,7 @@ function buildSteps(): BuyingStepPanel[] {
               </span>
             </li>
             <li>
-              <strong>The hold runs {RESERVATION_HOLD_HOURS} hours</strong>
+              <strong>The hold runs {holdHours} hours</strong>
               <span>Review the record, book a test drive and plan your payment.</span>
             </li>
             <li>
@@ -264,7 +260,7 @@ function buildSteps(): BuyingStepPanel[] {
   ];
 }
 
-export function BuyingJourney() {
+export function BuyingJourney({ holdHours }: { holdHours: number }) {
   return (
     <>
       <section className={patterns.hero} aria-labelledby="buying-guide-title">
@@ -293,7 +289,7 @@ export function BuyingJourney() {
 
       <section className={`${patterns.band} ${patterns.bandPaper}`} aria-label="The four steps">
         <div className={layout.content}>
-          <BuyingSteps steps={buildSteps()} />
+          <BuyingSteps steps={buildSteps(holdHours)} />
         </div>
       </section>
 
@@ -332,9 +328,7 @@ export function BuyingJourney() {
               />
             </div>
             <div className={styles.holdCopy}>
-              <h2 className={layout.sectionHeading}>
-                Hold a car for {RESERVATION_HOLD_HOURS} hours
-              </h2>
+              <h2 className={layout.sectionHeading}>Hold a car for {holdHours} hours</h2>
               <p className={patterns.lede}>
                 A {formatWholeCurrency(RESERVATION_DEPOSIT)} deposit takes it off sale while you
                 decide. Cancel while the sale is open, or let the hold lapse, and the full deposit
@@ -359,7 +353,7 @@ export function BuyingJourney() {
         aria-label="Questions about buying"
       >
         <div className={layout.content}>
-          <GuideFaq entries={buyingPageFaq} />
+          <GuideFaq entries={buyingPageFaq(holdHours)} />
         </div>
       </section>
     </>

@@ -1,5 +1,5 @@
 import { formatCurrency } from "@/lib/currency-format";
-import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
+import { RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
 
 import type { IconName } from "@/lib/icons";
 
@@ -23,47 +23,50 @@ export interface DisclaimerNotice {
   linkLabel: string;
 }
 
-export const disclaimerNotices: readonly DisclaimerNotice[] = [
-  {
-    id: "simulated-payments",
-    icon: "shield-check",
-    title: `${formatCurrency(RESERVATION_DEPOSIT, "RM")} holds and refunds are simulated`,
-    summary: `Reservations record a ${RESERVATION_HOLD_HOURS}-hour hold inside the demo without charging a card or bank account.`,
-    detail: "Cancelled or expired holds return an instant simulated refund.",
-    href: "/buying-guide#reserve",
-    linkLabel: "Hold deposit rules",
-  },
-  {
-    id: "indicative-calculators",
-    icon: "file-text",
-    title: "Financing and trade-in values are estimates",
-    summary:
-      "Repayment plans model a flat 3% annual rate over 1–9 years for budgeting, not a loan offer.",
-    detail: "A trade-in price range is indicative until the branch inspection confirms the offer.",
-    href: "/buying-guide#settle",
-    linkLabel: "See a worked estimate",
-  },
-  {
-    id: "inspection-scope",
-    icon: "inspection",
-    title: "210-point inspection vs statutory Puspakom B5",
-    summary:
-      "Our checklist determines ApexAuto Grades A, B, and C, excluding optional gear marked Not fitted.",
-    detail: "Mandatory Puspakom and B5 checks still apply before ownership transfer.",
-    href: "/inspection",
-    linkLabel: "Inspection rules",
-  },
-  {
-    id: "accounts-fixtures",
-    icon: "users",
-    title: "Sample branches and isolated accounts",
-    summary:
-      "Glenmarie, Petaling Jaya, and Bayan Lepas schedules demonstrate Malaysian showroom workflows.",
-    detail: "Buyer accounts stay separated from internal staff workspaces.",
-    href: "/branches",
-    linkLabel: "Branch schedule",
-  },
-];
+export function disclaimerNotices(holdHours: number): readonly DisclaimerNotice[] {
+  return [
+    {
+      id: "simulated-payments",
+      icon: "shield-check",
+      title: `${formatCurrency(RESERVATION_DEPOSIT, "RM")} holds and refunds are simulated`,
+      summary: `Reservations record a ${holdHours}-hour hold inside the demo without charging a card or bank account.`,
+      detail: "Cancelled or expired holds return an instant simulated refund.",
+      href: "/buying-guide#reserve",
+      linkLabel: "Hold deposit rules",
+    },
+    {
+      id: "indicative-calculators",
+      icon: "file-text",
+      title: "Financing and trade-in values are estimates",
+      summary:
+        "Repayment plans model a flat 3% annual rate over 1–9 years for budgeting, not a loan offer.",
+      detail:
+        "A trade-in price range is indicative until the branch inspection confirms the offer.",
+      href: "/buying-guide#settle",
+      linkLabel: "See a worked estimate",
+    },
+    {
+      id: "inspection-scope",
+      icon: "inspection",
+      title: "210-point inspection vs statutory Puspakom B5",
+      summary:
+        "Our checklist determines ApexAuto Grades A, B, and C, excluding optional gear marked Not fitted.",
+      detail: "Mandatory Puspakom and B5 checks still apply before ownership transfer.",
+      href: "/inspection",
+      linkLabel: "Inspection rules",
+    },
+    {
+      id: "accounts-fixtures",
+      icon: "users",
+      title: "Sample branches and isolated accounts",
+      summary:
+        "Glenmarie, Petaling Jaya, and Bayan Lepas schedules demonstrate Malaysian showroom workflows.",
+      detail: "Buyer accounts stay separated from internal staff workspaces.",
+      href: "/branches",
+      linkLabel: "Branch schedule",
+    },
+  ];
+}
 
 export const assetAttributions: readonly AssetAttributionItem[] = [
   {

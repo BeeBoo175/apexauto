@@ -2,6 +2,7 @@
 
 import { useInitialToast } from "@/hooks/use-initial-toast";
 import { useLandingData } from "@/hooks/use-landing-data";
+import styles from "./LandingStorefront.module.css";
 import { LandingBuyingSteps } from "./LandingBuyingSteps";
 import { LandingFeaturedVehicles } from "./LandingFeaturedVehicles";
 import { LandingHero } from "./LandingHero";
@@ -9,7 +10,7 @@ import { LandingInspectionRecord } from "./LandingInspectionRecord";
 import { LandingSellPanel } from "./LandingSellPanel";
 import { LandingShowrooms } from "./LandingShowrooms";
 
-export function LandingStorefront() {
+export function LandingStorefront({ holdHours }: { holdHours: number }) {
   const data = useLandingData();
 
   const failure =
@@ -28,14 +29,15 @@ export function LandingStorefront() {
   const leadIsProof = leadDetail !== null && leadDetail.listing.id === vehicles[0]?.id;
 
   return (
-    <>
+    <div className={styles.storefront}>
       <LandingHero
         taxonomy={data?.taxonomy.data ?? null}
         branches={branches}
         totalVehicles={totalVehicles}
+        holdHours={holdHours}
       />
       <LandingFeaturedVehicles result={data?.vehicles ?? null} />
-      <LandingBuyingSteps />
+      <LandingBuyingSteps holdHours={holdHours} />
       <LandingInspectionRecord
         detail={leadDetail}
         isLeadCar={leadIsProof}
@@ -43,6 +45,6 @@ export function LandingStorefront() {
       />
       <LandingSellPanel taxonomy={data?.taxonomy.data} />
       <LandingShowrooms branches={branches} loading={data === null} />
-    </>
+    </div>
   );
 }

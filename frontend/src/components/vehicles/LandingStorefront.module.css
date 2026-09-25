@@ -1,0 +1,12 @@
+/* How far the hero's finder hangs over the stock band below it. The hero pulls the finder up by this much and the
+   band adds it to its top padding, so the two stay in step. */
+.storefront {
+  --finder-overlap: 72px;
+}
+
+/* The phone finder is tall, so it hangs further off the photograph. */
+@media (max-width: 640px) {
+  .storefront {
+    --finder-overlap: 157px;
+  }
+}

@@ -30,6 +30,7 @@ import styles from "./VehicleReservation.module.css";
 
 export function VehicleReservation({
   detail,
+  holdHours,
   access,
   promo,
   promoBusy,
@@ -38,6 +39,7 @@ export function VehicleReservation({
   onReserved,
 }: {
   detail: PublicVehicleDetail;
+  holdHours: number;
   access: CustomerVehicleAccess;
   promo: PurchaseQuote | null;
   promoBusy: boolean;
@@ -133,6 +135,7 @@ export function VehicleReservation({
     <CustomerReservation
       key={`${access.actor.userId}:${detail.publicationId}`}
       detail={detail}
+      holdHours={holdHours}
       account={access.account}
       promo={promo}
       disabled={!actor.ready || promoBusy}
@@ -169,6 +172,7 @@ export function CustomerReservation({
 
 function OwnReservation({
   detail,
+  holdHours = RESERVATION_HOLD_HOURS,
   account,
   promo,
   disabled,
@@ -177,6 +181,8 @@ function OwnReservation({
   onReserved,
 }: {
   detail: PublicVehicleDetail;
+  // The Administrator hold length; the default covers callers that do not read the purchase guide.
+  holdHours?: number;
   account: CustomerAccount;
   promo: PurchaseQuote | null;
   disabled: boolean;
@@ -279,7 +285,7 @@ function OwnReservation({
         <p>
           {live
             ? `This holds the car for ${PAYMENT_WINDOW_MINUTES} minutes while you pay a refundable ${formatWholeCurrency(RESERVATION_DEPOSIT)} deposit securely online. The reservation is made only once your payment is confirmed.`
-            : `This reservation records a refundable ${formatWholeCurrency(RESERVATION_DEPOSIT)} deposit and holds the car for ${RESERVATION_HOLD_HOURS} hours. No real payment is taken.`}{" "}
+            : `This reservation records a refundable ${formatWholeCurrency(RESERVATION_DEPOSIT)} deposit and holds the car for ${holdHours} hours. No real payment is taken.`}{" "}
           The deposit counts toward your cash contribution.
         </p>
         <p>

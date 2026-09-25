@@ -62,17 +62,12 @@
 
 /* The finder hangs off the bottom edge of the photograph and overlaps the stock band. */
 .finderRow {
-  margin-bottom: -72px;
+  margin-bottom: calc(-1 * var(--finder-overlap));
 }
 
 @media (max-width: 640px) {
   .inner {
     gap: 24px;
     padding-top: 32px;
-  }
-
-  /* The phone finder is tall, so it hangs further off the photograph to keep the hero at the shared height. */
-  .finderRow {
-    margin-bottom: -157px;
   }
 }

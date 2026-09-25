@@ -3,35 +3,37 @@ import Link from "next/link";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import { Icon } from "@/components/ui/Icon";
 import { formatWholeCurrency } from "@/lib/currency-format";
-import { RESERVATION_DEPOSIT, RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
+import { RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
 import styles from "./LandingBuyingSteps.module.css";
 import layout from "./VehicleLayout.module.css";
 
-const STEPS = [
-  {
-    title: "Choose and reserve",
-    description: `Test drive it first if you like. ${formatWholeCurrency(RESERVATION_DEPOSIT)} then holds it for ${RESERVATION_HOLD_HOURS} hours, fully refundable.`,
-    image: "/images/step-choose.jpg",
-    alt: "A customer and a showroom adviser looking over a car together",
-    focus: "45% 40%",
-  },
-  {
-    title: "Agree final terms",
-    description: "Our sales team calls or emails to confirm price, trade-in and payment.",
-    image: "/images/step-reserve.jpg",
-    alt: "A customer checking his phone beside a parked car",
-    focus: "50% 45%",
-  },
-  {
-    title: "Visit and collect",
-    description: "Book your showroom visit, settle the balance and drive away.",
-    image: "/images/step-keys.jpg",
-    alt: "A smiling customer holding up her new car key from the driver's seat",
-    focus: "48% 50%",
-  },
-] as const;
+function buildSteps(holdHours: number) {
+  return [
+    {
+      title: "Choose and reserve",
+      description: `Test drive it first if you like. ${formatWholeCurrency(RESERVATION_DEPOSIT)} then holds it for ${holdHours} hours, fully refundable.`,
+      image: "/images/step-choose.jpg",
+      alt: "A customer and a showroom adviser looking over a car together",
+      focus: "45% 40%",
+    },
+    {
+      title: "Agree final terms",
+      description: "Our sales team calls or emails to confirm price, trade-in and payment.",
+      image: "/images/step-reserve.jpg",
+      alt: "A customer checking his phone beside a parked car",
+      focus: "50% 45%",
+    },
+    {
+      title: "Visit and collect",
+      description: "Book your showroom visit, settle the balance and drive away.",
+      image: "/images/step-keys.jpg",
+      alt: "A smiling customer holding up her new car key from the driver's seat",
+      focus: "48% 50%",
+    },
+  ] as const;
+}
 
-export function LandingBuyingSteps() {
+export function LandingBuyingSteps({ holdHours }: { holdHours: number }) {
   return (
     <section
       className={`${patterns.band} ${patterns.bandDark}`}
@@ -51,7 +53,7 @@ export function LandingBuyingSteps() {
         </div>
 
         <ol className={styles.film}>
-          {STEPS.map((step, index) => (
+          {buildSteps(holdHours).map((step, index) => (
             <li
               key={step.title}
               className={styles.step}

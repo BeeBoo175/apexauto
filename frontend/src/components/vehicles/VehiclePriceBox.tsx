@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
 import { formatCurrency } from "@/lib/currency-format";
 import { DEFAULT_CASH_PERCENT } from "@/lib/vehicles/financing";
 import layout from "./VehicleLayout.module.css";
@@ -7,6 +6,7 @@ import styles from "./VehiclePriceBox.module.css";
 
 interface VehiclePriceBoxProps {
   name: string;
+  holdHours: number;
   showroom: string;
   price: string;
   total: string;
@@ -21,6 +21,7 @@ interface VehiclePriceBoxProps {
 // the promo code as an opt-in disclosure.
 export function VehiclePriceBox({
   name,
+  holdHours,
   showroom,
   price,
   total,
@@ -60,8 +61,8 @@ export function VehiclePriceBox({
       </div>
 
       <p className={styles.refund}>
-        The deposit is refunded in full if you cancel inside the {RESERVATION_HOLD_HOURS}-hour hold
-        or let it lapse.
+        The deposit is refunded in full if you cancel inside the {holdHours}-hour hold or let it
+        lapse.
       </p>
 
       <dl className={styles.breakdown}>

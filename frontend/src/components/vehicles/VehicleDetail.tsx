@@ -40,11 +40,13 @@ export function VehicleDetail({
   initial,
   reservationAccess,
   showroom,
+  holdHours,
 }: {
   id: string;
   initial: ApiResult<PublicVehicleDetail>;
   reservationAccess: CustomerVehicleAccess;
   showroom: ShowroomBranchInfo | null;
+  holdHours: number;
 }) {
   const snapshot = initial.data;
   const unavailable = initial.status === 404;
@@ -134,6 +136,7 @@ export function VehicleDetail({
             <aside className={styles.side} aria-label="Price and reservation">
               <VehiclePriceBox
                 name={name}
+                holdHours={holdHours}
                 showroom={listing.branchName}
                 price={formatCurrency(price.vehiclePrice)}
                 total={formatCurrency(price.total)}
@@ -166,6 +169,7 @@ export function VehicleDetail({
                 actions={
                   <VehicleReservation
                     detail={snapshot}
+                    holdHours={holdHours}
                     access={reservationAccess}
                     promo={promo.accepted}
                     promoBusy={promo.busy}

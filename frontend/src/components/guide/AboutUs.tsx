@@ -10,28 +10,30 @@ import styles from "./AboutUs.module.css";
 // Everything below is a fictional company history for this demonstration site, set as of December 2026.
 
 // Each line is something the platform does, so the charter never promises more than the code enforces.
-const CHARTER = [
-  {
-    word: "A signed record",
-    line: "A technician checks 210 points and signs the result. You can read it line by line on the listing.",
-  },
-  {
-    word: "Cleared before listing",
-    line: "Only cars the workshop has cleared for sale can be listed. Structural, flood and tampered cars are not sold.",
-  },
-  {
-    word: "An itemised price",
-    line: "Vehicle price, processing fee, road tax and service tax are shown before you reserve.",
-  },
-  {
-    word: "A 48-hour hold",
-    line: "Reserve a car online and it is held for you for 48 hours.",
-  },
-  {
-    word: "Named work",
-    line: "Every inspection, repair and sale step is recorded against the person and branch that did it.",
-  },
-] as const;
+function buildCharter(holdHours: number) {
+  return [
+    {
+      word: "A signed record",
+      line: "A technician checks 210 points and signs the result. You can read it line by line on the listing.",
+    },
+    {
+      word: "Cleared before listing",
+      line: "Only cars the workshop has cleared for sale can be listed. Structural, flood and tampered cars are not sold.",
+    },
+    {
+      word: "An itemised price",
+      line: "Vehicle price, processing fee, road tax and service tax are shown before you reserve.",
+    },
+    {
+      word: `A ${holdHours}-hour hold`,
+      line: `Reserve a car online and it is held for you for ${holdHours} hours.`,
+    },
+    {
+      word: "Named work",
+      line: "Every inspection, repair and sale step is recorded against the person and branch that did it.",
+    },
+  ] as const;
+}
 
 type TimelineKind = "milestone" | "showroom" | "award";
 
@@ -129,7 +131,7 @@ function SectionHead({ id, title, lede }: { id: string; title: string; lede: str
   );
 }
 
-export function AboutUs() {
+export function AboutUs({ holdHours }: { holdHours: number }) {
   return (
     <>
       <div className={styles.top}>
@@ -180,7 +182,7 @@ export function AboutUs() {
                   <span>Rev. 2014 – 2026</span>
                 </div>
                 <ul>
-                  {CHARTER.map((item, index) => (
+                  {buildCharter(holdHours).map((item, index) => (
                     <Reveal as="li" key={item.word} delay={index * 110}>
                       <span className={styles.check} aria-hidden="true">
                         <span className={patterns.tick} />

@@ -3,6 +3,11 @@ import Image from "next/image";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import { HelpNotices } from "@/components/guide/HelpNotices";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
+import { readReservationHoldHours } from "@/lib/guide/guide-reads";
+
+// The hold length comes from the cached purchase guide, so the page is refreshed hourly
+// (PUBLIC_CONTENT_REVALIDATE_SECONDS).
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Disclaimers and notices — ApexAuto",
@@ -10,7 +15,9 @@ export const metadata: Metadata = {
     "What this demonstration site does and does not do, how its estimates work, and credits for its photographs and icons.",
 };
 
-export default function DisclaimerPage() {
+export default async function DisclaimerPage() {
+  const holdHours = await readReservationHoldHours();
+
   return (
     <>
       <section className={patterns.hero} aria-labelledby="notices-page-title">
@@ -33,7 +40,7 @@ export default function DisclaimerPage() {
           </p>
         </div>
       </section>
-      <HelpNotices />
+      <HelpNotices holdHours={holdHours} />
     </>
   );
 }

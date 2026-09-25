@@ -25,24 +25,24 @@ function subscribeToHash(onChange: () => void) {
   return () => window.removeEventListener("hashchange", onChange);
 }
 
-function countFor(name: NoticeTopic) {
+function countFor(name: NoticeTopic, noticeCount: number) {
   if (name === "Notices") {
-    return disclaimerNotices.length;
+    return noticeCount;
   }
-  return name === "Credits" ? 1 : disclaimerNotices.length + 1;
+  return name === "Credits" ? 1 : noticeCount + 1;
 }
 
-const topics = topicDefinitions.map((definition) => ({
-  id: definition.id,
-  label: definition.id,
-  icon: definition.icon,
-  count: countFor(definition.id),
-}));
-
 // The disclaimers laid out like the FAQ: a topic rail beside hairline rows that open and close.
-export function HelpNotices() {
+export function HelpNotices({ holdHours }: { holdHours: number }) {
+  const notices = disclaimerNotices(holdHours);
+  const topics = topicDefinitions.map((definition) => ({
+    id: definition.id,
+    label: definition.id,
+    icon: definition.icon,
+    count: countFor(definition.id, notices.length),
+  }));
   const [topic, setTopic] = useState<NoticeTopic>("All");
-  const [openIds, setOpenIds] = useState<string[]>(disclaimerNotices.map((notice) => notice.id));
+  const [openIds, setOpenIds] = useState<string[]>(notices.map((notice) => notice.id));
   // A link to the credits opens their row, since it would otherwise land on a closed one. Once the visitor opens or
   // closes the row themselves, that choice wins over the link.
   const linkedToCredits = useSyncExternalStore(
@@ -63,7 +63,7 @@ export function HelpNotices() {
   }
 
   const noticeRows: GuideAccordionRow[] = showNotices
-    ? disclaimerNotices.map((notice) => ({
+    ? notices.map((notice) => ({
         id: notice.id,
         anchorId: notice.id,
         panelId: `notice-panel-${notice.id}`,

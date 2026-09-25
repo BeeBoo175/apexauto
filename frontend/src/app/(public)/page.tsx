@@ -1,14 +1,23 @@
 import type { Metadata } from "next";
 import { LandingStorefront } from "@/components/vehicles/LandingStorefront";
-import { RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
+import { readReservationHoldHours } from "@/lib/guide/guide-reads";
 
-export const metadata: Metadata = {
-  title: "Buy Inspected Used Cars & Sell Online | ApexAuto Malaysia",
-  description: `Used cars checked on 210 points at ApexAuto showrooms in Malaysia. Fixed prices, a monthly payment estimate on every car, and a ${RESERVATION_HOLD_HOURS}-hour online hold.`,
-};
+// The hold length comes from the cached purchase guide, so the page is refreshed hourly
+// (PUBLIC_CONTENT_REVALIDATE_SECONDS).
+export const revalidate = 3600;
 
-// Everything on this page is fixed copy; the cars, showrooms and finder options load in the browser, so the page
-// itself is generated ahead of time.
-export default function Home() {
-  return <LandingStorefront />;
+export async function generateMetadata(): Promise<Metadata> {
+  const holdHours = await readReservationHoldHours();
+
+  return {
+    title: "Buy Inspected Used Cars & Sell Online | ApexAuto Malaysia",
+    description: `Used cars checked on 210 points at ApexAuto showrooms in Malaysia. Fixed prices, a monthly payment estimate on every car, and a ${holdHours}-hour online hold.`,
+  };
+}
+
+// The copy is fixed apart from the hold length; the cars, showrooms and finder options load in the browser.
+export default async function Home() {
+  const holdHours = await readReservationHoldHours();
+
+  return <LandingStorefront holdHours={holdHours} />;
 }

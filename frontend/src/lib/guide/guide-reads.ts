@@ -6,6 +6,7 @@ import { resolveShowrooms } from "@/lib/guide/showrooms";
 import { parseInspectionGuide, type InspectionGuide } from "@/lib/guide/inspection-points";
 import { parsePurchaseGuide, type PurchaseGuide } from "@/lib/guide/purchase-guide";
 import { requestApiJson } from "@/lib/server/http/api";
+import { RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
 
 // Owner's public content cache choice (audit PD-12): guide and showroom reads are reused for one hour.
 // Pages that only read these export `revalidate` with the same literal, which Next requires.
@@ -30,6 +31,13 @@ export async function readGuides(): Promise<{ data: Guides | null; status: numbe
   }
 
   return { data: { purchase: purchase.data, inspection: inspection.data }, status: 200 };
+}
+
+// The hold length customers are told about, falling back silently to the default when the guide cannot be read.
+export async function readReservationHoldHours(): Promise<number> {
+  const guides = await readGuides();
+
+  return guides.data?.purchase.reservationHoldHours ?? RESERVATION_HOLD_HOURS;
 }
 
 export async function readShowrooms() {

@@ -2,7 +2,7 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { VehicleDetail } from "@/components/vehicles/VehicleDetail";
 import { isUuid } from "@/lib/auth/contracts";
-import { readShowrooms } from "@/lib/guide/guide-reads";
+import { readReservationHoldHours, readShowrooms } from "@/lib/guide/guide-reads";
 import { requestApiJson } from "@/lib/server/http/api";
 import { parsePublicDetail } from "@/lib/vehicles/public-detail";
 import { readCustomerVehicleAccess } from "@/lib/vehicles/customer-access-server";
@@ -36,11 +36,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function VehiclePage({ params }: Props) {
   const { id } = await params;
-  // The showroom block reads beside the detail; a failed read only omits it. The car carousel loads in the browser.
-  const [initial, reservationAccess, branches] = await Promise.all([
+  // The showroom block and the hold length read beside the detail; a failed read only omits the block or uses the default. The car carousel loads in the browser.
+  const [initial, reservationAccess, branches, holdHours] = await Promise.all([
     readDetail(id),
     readCustomerVehicleAccess(),
     isUuid(id) ? readShowrooms() : null,
+    readReservationHoldHours(),
   ]);
 
   const listing = initial.data?.listing;
@@ -53,6 +54,7 @@ export default async function VehiclePage({ params }: Props) {
       initial={initial}
       reservationAccess={reservationAccess}
       showroom={showroom}
+      holdHours={holdHours}
     />
   );
 }

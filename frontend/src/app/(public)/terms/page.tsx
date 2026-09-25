@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { LegalDocument } from "@/components/guide/LegalDocument";
+import { readReservationHoldHours } from "@/lib/guide/guide-reads";
 import { TERMS_INTRO, termsSections } from "@/lib/legal/terms-of-use";
+
+// The hold length comes from the cached purchase guide, so the page is refreshed hourly
+// (PUBLIC_CONTENT_REVALIDATE_SECONDS).
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Terms of use — ApexAuto",
@@ -8,7 +13,10 @@ export const metadata: Metadata = {
     "The terms for using the ApexAuto demonstration site: what it is, what is simulated and how you may use it.",
 };
 
-// Fixed text, so the page is generated ahead of time.
-export default function TermsPage() {
-  return <LegalDocument title="Terms of use" intro={TERMS_INTRO} sections={termsSections} />;
+export default async function TermsPage() {
+  const holdHours = await readReservationHoldHours();
+
+  return (
+    <LegalDocument title="Terms of use" intro={TERMS_INTRO} sections={termsSections(holdHours)} />
+  );
 }

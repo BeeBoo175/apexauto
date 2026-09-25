@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
 import type { Branch } from "@/lib/branches";
 import type { Taxonomy } from "@/lib/intake/contracts";
 import patterns from "@/components/layout/PublicPatterns.module.css";
@@ -11,9 +10,10 @@ interface LandingHeroProps {
   taxonomy: Taxonomy | null;
   branches: Branch[] | null;
   totalVehicles: number | null;
+  holdHours: number;
 }
 
-export function LandingHero({ taxonomy, branches, totalVehicles }: LandingHeroProps) {
+export function LandingHero({ taxonomy, branches, totalVehicles, holdHours }: LandingHeroProps) {
   return (
     <section className={styles.hero} aria-labelledby="landing-hero-title">
       <div className={styles.media} aria-hidden="true">
@@ -35,7 +35,7 @@ export function LandingHero({ taxonomy, branches, totalVehicles }: LandingHeroPr
           </h1>
           <p className={styles.lead}>
             Every car is checked on 210 points and sold at a fixed price. Reserve online and
-            we&apos;ll hold it for {RESERVATION_HOLD_HOURS} hours.
+            we&apos;ll hold it for {holdHours} hours.
           </p>
         </div>
         <div className={`${styles.finderRow} ${patterns.rise}`}>

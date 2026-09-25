@@ -9,11 +9,7 @@ import {
   SHOWROOM_CLOSES_AT,
   SHOWROOM_OPENS_AT,
 } from "./visit-terms";
-import {
-  PAYMENT_WINDOW_MINUTES,
-  RESERVATION_DEPOSIT,
-  RESERVATION_HOLD_HOURS,
-} from "@/lib/vehicles/deposit-terms";
+import { PAYMENT_WINDOW_MINUTES, RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
 
 export type FaqCategory =
   | "All"
@@ -58,48 +54,50 @@ function reservationHoldEntry(holdHours: number): FaqEntry {
   };
 }
 
-// Entries that need no live figures, so the two guides can show them on pages generated ahead of time.
-const buyingEntries: FaqEntry[] = [
-  {
-    id: "reserve-account",
-    onBuyingPage: true,
-    category: "Buying & warranty",
-    question: "Do I need an account to reserve a car?",
-    answer:
-      "Yes. Create an account and verify your email, then reserve or book a test drive from the car's page.",
-    href: "/register",
-    linkLabel: "Create an account",
-  },
-  reservationHoldEntry(RESERVATION_HOLD_HOURS),
-  {
-    id: "payment-window",
-    onBuyingPage: true,
-    category: "Buying & warranty",
-    question: `What happens if I do not pay within ${PAYMENT_WINDOW_MINUTES} minutes?`,
-    answer: `The reservation is made only once payment is confirmed. If the ${PAYMENT_WINDOW_MINUTES}-minute payment window runs out, the car is released and nothing is charged. You can start again while the car is still listed.`,
-    href: "/vehicles",
-    linkLabel: "Browse cars",
-  },
-  {
-    id: "promo-codes",
-    category: "Buying & warranty",
-    question: "How do I use a promo code?",
-    answer:
-      "Open the car and choose Reserve, then open the promo code field, enter the code exactly as given (codes are case-sensitive) and press Apply. The saving appears as its own line before you pay. Only one code applies to a booking, it is capped at the vehicle price, and it does not reserve the car or lock its price.",
-    href: "/vehicles",
-    linkLabel: "Browse cars",
-  },
-  {
-    id: "financing-rounding",
-    onBuyingPage: true,
-    category: "Buying & warranty",
-    question: "How is the monthly installment estimated?",
-    answer:
-      "Each car's Financing tab uses a 3% flat annual rate over 1–9 years, rounded to exact sen with any remainder settled in the final month. It is a budgeting estimate, not a loan offer.",
-    href: "/buying-guide#settle",
-    linkLabel: "See a worked estimate",
-  },
-];
+// The buying entries; the hold length is passed in because it is an Administrator setting.
+function buildBuyingEntries(holdHours: number): FaqEntry[] {
+  return [
+    {
+      id: "reserve-account",
+      onBuyingPage: true,
+      category: "Buying & warranty",
+      question: "Do I need an account to reserve a car?",
+      answer:
+        "Yes. Create an account and verify your email, then reserve or book a test drive from the car's page.",
+      href: "/register",
+      linkLabel: "Create an account",
+    },
+    reservationHoldEntry(holdHours),
+    {
+      id: "payment-window",
+      onBuyingPage: true,
+      category: "Buying & warranty",
+      question: `What happens if I do not pay within ${PAYMENT_WINDOW_MINUTES} minutes?`,
+      answer: `The reservation is made only once payment is confirmed. If the ${PAYMENT_WINDOW_MINUTES}-minute payment window runs out, the car is released and nothing is charged. You can start again while the car is still listed.`,
+      href: "/vehicles",
+      linkLabel: "Browse cars",
+    },
+    {
+      id: "promo-codes",
+      category: "Buying & warranty",
+      question: "How do I use a promo code?",
+      answer:
+        "Open the car and choose Reserve, then open the promo code field, enter the code exactly as given (codes are case-sensitive) and press Apply. The saving appears as its own line before you pay. Only one code applies to a booking, it is capped at the vehicle price, and it does not reserve the car or lock its price.",
+      href: "/vehicles",
+      linkLabel: "Browse cars",
+    },
+    {
+      id: "financing-rounding",
+      onBuyingPage: true,
+      category: "Buying & warranty",
+      question: "How is the monthly installment estimated?",
+      answer:
+        "Each car's Financing tab uses a 3% flat annual rate over 1–9 years, rounded to exact sen with any remainder settled in the final month. It is a budgeting estimate, not a loan offer.",
+      href: "/buying-guide#settle",
+      linkLabel: "See a worked estimate",
+    },
+  ];
+}
 
 const inspectionEntries: FaqEntry[] = [
   {
@@ -155,7 +153,9 @@ const sellingEntries: FaqEntry[] = [
   },
 ];
 
-export const buyingPageFaq = buyingEntries.filter((entry) => entry.onBuyingPage);
+export function buyingPageFaq(holdHours: number): readonly FaqEntry[] {
+  return buildBuyingEntries(holdHours).filter((entry) => entry.onBuyingPage);
+}
 export const sellingPageFaq = sellingEntries.filter((entry) => entry.onSellingPage);
 
 export function faqEntries(
@@ -175,9 +175,7 @@ export function faqEntries(
       linkLabel: "See a worked example",
       onWarrantyPage: true,
     },
-    ...buyingEntries.map((entry) =>
-      entry.id === "reservation-hold" ? reservationHoldEntry(guide.reservationHoldHours) : entry,
-    ),
+    ...buildBuyingEntries(guide.reservationHoldHours),
     {
       id: "warranty-included",
       category: "Buying & warranty",

@@ -1,6 +1,6 @@
-/* The finder overlaps this band by 72px, so the band clears it before its own heading. */
+/* The finder overlaps this band by --finder-overlap, so the band clears it, plus a gap, before its own heading. */
 .section {
-  padding-top: 168px;
+  padding-top: calc(var(--finder-overlap) + 96px);
   background: var(--color-canvas);
 }
 
@@ -254,7 +254,7 @@
 
 @media (max-width: 640px) {
   .section {
-    padding-top: 229px;
+    padding-top: calc(var(--finder-overlap) + 72px);
   }
 }
 
