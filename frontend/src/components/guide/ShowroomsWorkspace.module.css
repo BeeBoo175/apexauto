@@ -2,13 +2,6 @@
   margin-bottom: 32px;
 }
 
-/* The darker band the selling guide gives its showroom visit, so the two pages share one tone. */
-.bookBand {
-  border-block: 1px solid var(--color-line);
-  background: color-mix(in srgb, var(--color-graphite) 7%, var(--color-canvas));
-  color: var(--color-graphite);
-}
-
 /* The showroom accordion turned upright beside the one map. The open panel grows and holds everything about its
    showroom, so nothing is repeated elsewhere on the page. */
 .workspace {
@@ -78,7 +71,6 @@
   margin-top: 16px;
 }
 
-.primary,
 .secondary {
   display: inline-flex;
   align-items: center;
@@ -94,21 +86,6 @@
   transition:
     background-color 200ms ease,
     transform 200ms ease;
-}
-
-.primary {
-  background: var(--color-signal);
-  color: var(--color-paper);
-}
-
-.primary:hover {
-  background: var(--color-signal-dark);
-  transform: translateY(-1px);
-}
-
-.primary:active {
-  background: var(--color-signal-dark);
-  transform: translateY(1px);
 }
 
 .secondary {
@@ -127,6 +104,7 @@
 
 /* Loading shell for the car count: the text keeps its size and carries a shimmer until the count arrives. */
 .shell {
+  composes: shell from "../layout/PublicPatterns.module.css";
   position: relative;
   display: inline-block;
   overflow: hidden;
@@ -135,21 +113,6 @@
   background: rgb(255 255 255 / 0.22);
   color: transparent;
   vertical-align: bottom;
-}
-
-.shell::after {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.35), transparent);
-  content: "";
-  transform: translateX(-100%);
-  animation: stockShellShimmer 2.4s linear infinite;
-}
-
-@keyframes stockShellShimmer {
-  to {
-    transform: translateX(100%);
-  }
 }
 
 .primary:focus-visible,

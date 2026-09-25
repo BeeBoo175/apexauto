@@ -393,28 +393,10 @@
   }
 }
 
-/* The console fades in and lifts as it scrolls into view, as the cards on the guide pages do; it is visible without
-   scroll-driven animation. */
-@supports (animation-timeline: view()) {
-  .console {
-    animation: consoleRise linear both;
-    animation-timeline: view();
-    animation-range: entry 0% entry 30%;
-  }
-}
-
-@keyframes consoleRise {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .panelHead,
   .focus,
-  .points,
-  .console {
+  .points {
     animation: none;
   }
 }

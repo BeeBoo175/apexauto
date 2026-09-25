@@ -1,55 +1,6 @@
-.hero {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: var(--hero-min-height, 260px);
-  padding-block: 36px;
-  background: var(--color-graphite);
-  color: var(--color-paper);
-}
-
+/* Frames the photograph lower than the shared hero crop. */
 .heroPhoto {
-  object-fit: cover;
   object-position: 50% 60%;
-  opacity: 0.5;
-}
-
-.heroScrim {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    95deg,
-    rgb(14 27 42 / 94%) 0%,
-    rgb(14 27 42 / 78%) 50%,
-    rgb(14 27 42 / 40%) 100%
-  );
-}
-
-.heroInner {
-  position: relative;
-  display: grid;
-  justify-items: start;
-  gap: 12px;
-}
-
-.heroInner h1 {
-  color: var(--color-paper);
-}
-
-.lede {
-  max-width: 62ch;
-  margin: 0 0 4px;
-  color: var(--color-line-soft);
-  font-size: 1.0625rem;
-  line-height: 1.6;
-}
-
-/* A band of its own tone with one card in it: the photograph runs edge to edge on one side, the visit on the other. */
-.visitBand {
-  border-block: 1px solid var(--color-line);
-  background: color-mix(in srgb, var(--color-graphite) 7%, var(--color-canvas));
-  color: var(--color-graphite);
 }
 
 .visit {
@@ -126,27 +77,7 @@
   line-height: 1.4;
 }
 
-/* The card fades in and lifts as it scrolls into view; it is visible without scroll-driven animation. */
-@supports (animation-timeline: view()) {
-  .visit {
-    animation: visitRise linear both;
-    animation-timeline: view();
-    animation-range: entry 0% entry 35%;
-  }
-}
-
-@keyframes visitRise {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .visit {
-    animation: none;
-  }
-
   .facts li {
     transition: none;
   }
@@ -193,9 +124,5 @@
   .visitCopy > a {
     justify-self: stretch;
     justify-content: center;
-  }
-
-  .hero {
-    padding-block: 28px;
   }
 }

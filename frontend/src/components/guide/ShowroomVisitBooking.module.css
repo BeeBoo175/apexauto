@@ -149,31 +149,12 @@
 
 /* Placeholder chips drawn while a day's bays load, with the same size and shimmer as the other loading shells. */
 .shellChip {
+  composes: shell from "../layout/PublicPatterns.module.css";
   position: relative;
   min-height: 52px;
   overflow: hidden;
   border-radius: 8px;
   background: var(--color-line-soft);
-}
-
-.shellChip::after {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--color-paper) 70%, transparent),
-    transparent
-  );
-  content: "";
-  transform: translateX(-100%);
-  animation: slotShellShimmer 2.4s linear infinite;
-}
-
-@keyframes slotShellShimmer {
-  to {
-    transform: translateX(100%);
-  }
 }
 
 .empty {
@@ -238,9 +219,5 @@
   .days button,
   .slots button {
     transition: none;
-  }
-
-  .shellChip::after {
-    animation: none;
   }
 }

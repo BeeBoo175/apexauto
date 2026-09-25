@@ -13,6 +13,7 @@
 }
 
 .photo {
+  composes: shell from "../layout/PublicPatterns.module.css";
   position: relative;
   display: grid;
   flex-shrink: 0;
@@ -68,6 +69,7 @@
 }
 
 .grade {
+  composes: shell from "../layout/PublicPatterns.module.css";
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   background: var(--color-canvas);
@@ -78,6 +80,7 @@
 }
 
 .eyebrow {
+  composes: shell from "../layout/PublicPatterns.module.css";
   color: var(--color-signal);
   font-size: 0.75rem;
   font-weight: 600;
@@ -87,6 +90,7 @@
 
 /* The name identifies the car; the price is what the eye lands on, so the name stays a step quieter. */
 .title {
+  composes: shell from "../layout/PublicPatterns.module.css";
   font-size: 1.0625rem;
   font-weight: 600;
   line-height: 1.3;
@@ -106,6 +110,7 @@
 }
 
 .price {
+  composes: shell from "../layout/PublicPatterns.module.css";
   font-size: 1.625rem;
   font-weight: 700;
   line-height: 1.1;
@@ -115,6 +120,7 @@
 }
 
 .monthly {
+  composes: shell from "../layout/PublicPatterns.module.css";
   color: var(--color-muted);
   font-size: 0.8125rem;
   font-weight: 400;
@@ -171,6 +177,18 @@
   color: var(--color-muted);
   font-size: 0.8125rem;
   font-weight: 400;
+}
+
+.specLabel {
+  composes: shell from "../layout/PublicPatterns.module.css";
+}
+
+.specValue {
+  composes: shell from "../layout/PublicPatterns.module.css";
+}
+
+.branchName {
+  composes: shell from "../layout/PublicPatterns.module.css";
 }
 
 .branchLine svg {
@@ -317,7 +335,7 @@
 }
 
 .vehicle[data-shell]
-  :is(.eyebrow, .grade, .title, .price, .monthly, .specStrip dt, .specStrip dd, .branchLine span) {
+  :is(.eyebrow, .grade, .title, .price, .monthly, .specLabel, .specValue, .branchName) {
   position: relative;
   overflow: hidden;
   width: fit-content;
@@ -327,76 +345,10 @@
   color: transparent;
 }
 
-.vehicle[data-shell]
-  :is(
-    .eyebrow,
-    .grade,
-    .title,
-    .price,
-    .monthly,
-    .specStrip dt,
-    .specStrip dd,
-    .branchLine span
-  )::after {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--color-paper) 65%, transparent),
-    transparent
-  );
-  content: "";
-  transform: translateX(-100%);
-  animation: vehicleShellShimmer 2.4s linear infinite;
-}
-
-.vehicle[data-shell] .photo::after {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--color-paper) 65%, transparent),
-    transparent
-  );
-  content: "";
-  transform: translateX(-100%);
-  animation: vehicleShellShimmer 2.4s linear infinite;
-}
-
 .vehicle[data-shell] .monthly strong {
   color: transparent;
 }
 
 .vehicle[data-shell] .branchLine svg {
   opacity: 0.25;
-}
-
-@keyframes vehicleShellShimmer {
-  to {
-    transform: translateX(100%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .vehicle[data-shell]
-    :is(
-      .eyebrow,
-      .grade,
-      .title,
-      .price,
-      .monthly,
-      .specStrip dt,
-      .specStrip dd,
-      .branchLine span
-    )::after {
-    animation: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .vehicle[data-shell] .photo::after {
-    animation: none;
-  }
 }

@@ -162,7 +162,7 @@ export function AboutUs() {
       </div>
 
       <section
-        className={`${patterns.band} ${styles.tone} ${styles.afterBar}`}
+        className={`${patterns.band} ${patterns.bandTone} ${styles.afterBar}`}
         aria-labelledby="about-values"
       >
         <div className={layout.content}>
@@ -266,7 +266,7 @@ export function AboutUs() {
         </div>
       </section>
 
-      <section className={`${patterns.band} ${styles.tone}`} aria-labelledby="about-notes">
+      <section className={`${patterns.band} ${patterns.bandTone}`} aria-labelledby="about-notes">
         <div className={layout.content}>
           <SectionHead
             id="about-notes"

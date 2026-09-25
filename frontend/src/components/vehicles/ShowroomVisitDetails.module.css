@@ -13,6 +13,7 @@
 }
 
 .name {
+  composes: shell from "../layout/PublicPatterns.module.css";
   margin: 0;
   font-family: var(--font-display);
   font-size: clamp(1.5rem, 2.2vw, 2rem);
@@ -26,6 +27,7 @@
 }
 
 .address {
+  composes: shell from "../layout/PublicPatterns.module.css";
   margin: 0;
   font-size: 0.875rem;
   line-height: 1.5;
@@ -33,38 +35,11 @@
 }
 
 .visit {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 24px;
-  border-radius: var(--radius-sm);
-  background: var(--color-signal);
-  color: var(--color-paper);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-decoration: none;
-  text-transform: uppercase;
-  white-space: nowrap;
-  transition:
-    background-color 200ms ease,
-    transform 200ms ease;
-}
-
-.visit:hover {
-  background: var(--color-signal-dark);
-  transform: translateY(-1px);
+  composes: shell from "../layout/PublicPatterns.module.css";
 }
 
 .visit:focus-visible {
-  outline: 3px solid var(--color-paper);
-  outline-offset: 3px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .visit {
-    transition: none;
-  }
+  outline-color: var(--color-paper);
 }
 
 /* Loading silhouette: placeholder blocks where the text will be. */
@@ -72,6 +47,7 @@ section[data-shell] :is(.name, .address, .visit) {
   position: relative;
   overflow: hidden;
   width: fit-content;
+  border-color: transparent;
   border-radius: 2px;
   background: color-mix(in srgb, var(--color-graphite) 12%, transparent);
   color: transparent;
@@ -79,30 +55,4 @@ section[data-shell] :is(.name, .address, .visit) {
 
 section[data-shell] .name span {
   color: transparent;
-}
-
-section[data-shell] :is(.name, .address, .visit)::after {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--color-paper) 55%, transparent),
-    transparent
-  );
-  content: "";
-  transform: translateX(-100%);
-  animation: showroomShellShimmer 2.4s linear infinite;
-}
-
-@keyframes showroomShellShimmer {
-  to {
-    transform: translateX(100%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  section[data-shell] :is(.name, .address, .visit)::after {
-    animation: none;
-  }
 }

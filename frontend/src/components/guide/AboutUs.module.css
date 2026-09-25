@@ -75,7 +75,8 @@
   transform: translateY(50%);
 }
 
-.tone.afterBar {
+/* The element qualifier outranks the shared band and tone classes. */
+section.afterBar {
   padding-top: calc(var(--bar-half) + 64px);
   border-top: 0;
 }
@@ -95,13 +96,6 @@
 
 .sectionHead p {
   max-width: 48ch;
-}
-
-/* The darker band the selling guide gives its showroom visit, so the pages share one tone. */
-.tone {
-  border-block: 1px solid var(--color-line);
-  background: color-mix(in srgb, var(--color-graphite) 7%, var(--color-canvas));
-  color: var(--color-graphite);
 }
 
 /* What we stand for: the charter on a clipboard, with a pencil beside it. */

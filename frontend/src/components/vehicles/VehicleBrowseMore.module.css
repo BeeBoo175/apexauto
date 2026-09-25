@@ -15,25 +15,3 @@
 .head h2 {
   margin: 0;
 }
-
-.all {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  color: var(--color-graphite);
-  font-size: 0.875rem;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.all span {
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 6px;
-}
-
-.all:focus-visible {
-  outline: 3px solid var(--color-graphite);
-  outline-offset: 4px;
-}

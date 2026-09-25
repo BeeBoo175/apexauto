@@ -5,6 +5,7 @@
 }
 
 .tabs {
+  composes: edgeFade from "../ui/ScrollStrip.module.css";
   display: grid;
   grid-auto-columns: minmax(150px, 1fr);
   grid-auto-flow: column;

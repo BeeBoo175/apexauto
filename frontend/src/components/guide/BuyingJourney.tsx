@@ -267,21 +267,21 @@ function buildSteps(): BuyingStepPanel[] {
 export function BuyingJourney() {
   return (
     <>
-      <section className={styles.hero} aria-labelledby="buying-guide-title">
+      <section className={patterns.hero} aria-labelledby="buying-guide-title">
         <Image
           src="/images/apexauto-detail.webp"
           alt=""
           fill
           priority
           sizes="100vw"
-          className={styles.heroPhoto}
+          className={patterns.heroPhoto}
         />
-        <div className={styles.heroScrim} aria-hidden="true" />
-        <div className={`${layout.content} ${styles.heroInner} ${patterns.rise}`}>
+        <div className={patterns.heroScrim} aria-hidden="true" />
+        <div className={`${layout.content} ${patterns.heroInner} ${patterns.rise}`}>
           <h1 id="buying-guide-title" className={layout.heroHeading}>
             How buying works
           </h1>
-          <p className={styles.lede}>
+          <p className={patterns.heroLede}>
             Four steps from choosing a car to collecting it, with the costs and the monthly estimate
             worked through.
           </p>
@@ -298,11 +298,11 @@ export function BuyingJourney() {
       </section>
 
       <section
-        className={`${patterns.band} ${styles.canvasBand}`}
+        className={`${patterns.band} ${patterns.bandTone} ${styles.canvasBand}`}
         aria-label="Ways to pay and the reservation hold"
       >
         <div className={`${layout.content} ${styles.cards}`}>
-          <div className={styles.payCard}>
+          <div className={`${styles.payCard} ${patterns.riseOnView}`}>
             <div className={styles.payIntro}>
               <h2 className={layout.sectionHeading}>Pay your way</h2>
               <p className={patterns.lede}>
@@ -320,7 +320,7 @@ export function BuyingJourney() {
             </ul>
           </div>
 
-          <div className={styles.holdCard}>
+          <div className={`${styles.holdCard} ${patterns.riseOnView}`}>
             <div className={styles.holdPhoto}>
               <Image
                 src="/images/guide-buy-reserve.jpg"

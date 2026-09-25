@@ -92,21 +92,21 @@ const SELL_STEPS: readonly SellingStep[] = [
 export function SellingGuide() {
   return (
     <>
-      <section className={styles.hero} aria-labelledby="selling-guide-title">
+      <section className={patterns.hero} aria-labelledby="selling-guide-title">
         <Image
           src="/images/vehicle-trade-in.webp"
           alt=""
           fill
           priority
           sizes="100vw"
-          className={styles.heroPhoto}
+          className={`${patterns.heroPhoto} ${styles.heroPhoto}`}
         />
-        <div className={styles.heroScrim} aria-hidden="true" />
-        <div className={`${layout.content} ${styles.heroInner} ${patterns.rise}`}>
+        <div className={patterns.heroScrim} aria-hidden="true" />
+        <div className={`${layout.content} ${patterns.heroInner} ${patterns.rise}`}>
           <h1 id="selling-guide-title" className={layout.heroHeading}>
             How selling works
           </h1>
-          <p className={styles.lede}>
+          <p className={patterns.heroLede}>
             Four short steps online, then one {INSPECTION_BAY_MINUTES}-minute showroom visit. You
             see a price range before you sign in, and the offer is confirmed on site.
           </p>
@@ -126,11 +126,11 @@ export function SellingGuide() {
       </section>
 
       <section
-        className={`${patterns.band} ${styles.visitBand}`}
+        className={`${patterns.band} ${patterns.bandTone}`}
         aria-labelledby="selling-visit-heading"
       >
         <div className={layout.content}>
-          <div className={styles.visit}>
+          <div className={`${styles.visit} ${patterns.riseOnView}`}>
             <div className={styles.visitPhoto}>
               <Image
                 src="/images/inspect-brakes.jpg"

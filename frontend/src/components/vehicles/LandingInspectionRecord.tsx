@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { buttonClassName } from "@/components/ui/Button";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import { formatMalaysianDate } from "@/lib/date-format";
 import { categoryTitle, inspectionCategoryTitles } from "@/lib/guide/inspection-rules";
@@ -91,7 +92,7 @@ export function LandingInspectionRecord({
               Signed inspection record
             </h2>
             <p className={styles.lead}>
-              This is the record for the <strong>{name}</strong>
+              This is the record for the <strong className={styles.leadName}>{name}</strong>
               {isLeadCar ? " above" : ""}, not a sample.
             </p>
           </div>
@@ -139,7 +140,7 @@ export function LandingInspectionRecord({
                 href={listing ? `/vehicles/${listing.id}#inspection` : "/vehicles"}
                 tabIndex={loading ? -1 : undefined}
                 prefetch={false}
-                className={styles.cta}
+                className={`${buttonClassName("primary", "md")} ${styles.cta}`}
               >
                 Open the full record
               </Link>

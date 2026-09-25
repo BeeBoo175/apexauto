@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { buttonClassName } from "@/components/ui/Button";
 import styles from "./ShowroomVisitDetails.module.css";
 
 interface ShowroomVisitDetailsProps {
@@ -23,7 +24,11 @@ export function ShowroomVisitDetails({
         <h3 className={styles.name}>{title}</h3>
         {address && <p className={styles.address}>{address}</p>}
       </div>
-      <Link href={href} tabIndex={loading ? -1 : undefined} className={styles.visit}>
+      <Link
+        href={href}
+        tabIndex={loading ? -1 : undefined}
+        className={`${buttonClassName("primary", "md")} ${styles.visit}`}
+      >
         Plan a visit
       </Link>
     </div>

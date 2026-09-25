@@ -7,39 +7,6 @@
   margin-bottom: 40px;
 }
 
-.more {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--color-paper);
-  font-size: 0.875rem;
-  font-weight: 700;
-  text-decoration: none;
-  transition: gap 250ms cubic-bezier(0.22, 0.8, 0.24, 1);
-}
-
-/* Only the words are underlined; the arrow beside them is not. */
-.moreLabel {
-  text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--color-paper) 45%, transparent);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 6px;
-  transition: text-decoration-color 250ms ease;
-}
-
-.more:hover {
-  gap: 14px;
-}
-
-.more:hover .moreLabel {
-  text-decoration-color: var(--color-paper);
-}
-
-.more:focus-visible {
-  outline: 3px solid var(--color-paper);
-  outline-offset: 4px;
-}
-
 /* Three equal columns and one shared frame; only the stagger varies, stepping down one stage at a time. */
 .film {
   display: grid;
@@ -52,7 +19,7 @@
 }
 
 .step {
-  animation: rise 700ms cubic-bezier(0.22, 0.8, 0.24, 1) backwards;
+  composes: rise from "../layout/PublicPatterns.module.css";
   animation-delay: calc(var(--step-index) * 110ms);
 }
 
@@ -119,13 +86,6 @@
   line-height: 1.5;
 }
 
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-}
-
 @media (max-width: 920px) {
   .film {
     grid-template-columns: minmax(0, 1fr);
@@ -142,12 +102,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .step {
-    animation: none;
-  }
-
-  .media img,
-  .more {
+  .media img {
     transition: none;
   }
 }

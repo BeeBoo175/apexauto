@@ -109,7 +109,7 @@ export function ShowroomVisitBooking({ showroom }: { showroom: ShowroomBranchInf
               {!shown && (
                 <div className={styles.slots} aria-hidden="true">
                   {SLOT_SHELLS.map((shell) => (
-                    <span key={shell} className={styles.shellChip} />
+                    <span key={shell} className={styles.shellChip} data-shell />
                   ))}
                 </div>
               )}

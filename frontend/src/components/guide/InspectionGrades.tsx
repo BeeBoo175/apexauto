@@ -15,7 +15,7 @@ export function InspectionGrades({
   return (
     <section
       id="grades"
-      className={`${patterns.band} ${styles.band}`}
+      className={`${patterns.band} ${patterns.bandTone}`}
       aria-labelledby="inspection-grades-heading"
     >
       <div className={`${layout.content} ${styles.grades}`}>

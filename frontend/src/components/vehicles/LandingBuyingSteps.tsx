@@ -45,8 +45,8 @@ export function LandingBuyingSteps() {
             </h2>
             <p className={patterns.sectionSub}>Choose, reserve, then collect at the showroom.</p>
           </div>
-          <Link href="/buying-guide" className={styles.more}>
-            <span className={styles.moreLabel}>Read the full guide</span> <Icon name="next" />
+          <Link href="/buying-guide" className={patterns.seeAll}>
+            <span className={patterns.seeAllLabel}>Read the full guide</span> <Icon name="next" />
           </Link>
         </div>
 

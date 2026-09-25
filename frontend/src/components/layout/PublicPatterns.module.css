@@ -174,6 +174,91 @@
   }
 }
 
+/* A card or panel fades in and lifts as it scrolls into view; it is visible without scroll-driven animation. */
+@supports (animation-timeline: view()) {
+  .riseOnView {
+    animation: riseOnView linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 35%;
+  }
+}
+
+@keyframes riseOnView {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+/* A band of its own tone, slightly darker than the sections around it. */
+.bandTone {
+  border-block: 1px solid var(--color-line);
+  background: color-mix(in srgb, var(--color-graphite) 7%, var(--color-canvas));
+  color: var(--color-graphite);
+}
+
+/* "See all" link: the words are underlined, the arrow beside them is not, and the gap opens on hover. */
+.seeAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: gap 250ms cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+
+.seeAllLabel {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentcolor 45%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 6px;
+  transition: text-decoration-color 250ms ease;
+}
+
+.seeAll:hover {
+  gap: 14px;
+}
+
+.seeAll:hover .seeAllLabel {
+  text-decoration-color: currentcolor;
+}
+
+.seeAll:focus-visible {
+  outline: 3px solid currentcolor;
+  outline-offset: 4px;
+}
+
+/*
+  Shimmer sweep shared by every customer loading shell. The host keeps its own fill, stays positioned and
+  clips its overflow. Hosts always carry the class; it only takes effect inside a [data-shell] or
+  [data-loading] ancestor, or on an element that is itself [data-shell].
+*/
+:is([data-shell], [data-loading]) .shell::after,
+.shell[data-shell]::after,
+:is([data-shell], [data-loading]) .shellBackdrop::before,
+.shellBackdrop[data-shell]::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-paper) 65%, transparent),
+    transparent
+  );
+  content: "";
+  transform: translateX(-100%);
+  animation: shellShimmer 2.4s linear infinite;
+}
+
+@keyframes shellShimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
 @media (max-width: 640px) {
   .band {
     padding-block: 56px;
@@ -191,8 +276,16 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rise {
+  .rise,
+  .riseOnView,
+  .seeAll,
+  .seeAllLabel,
+  :is([data-shell], [data-loading]) .shell::after,
+  .shell[data-shell]::after,
+  :is([data-shell], [data-loading]) .shellBackdrop::before,
+  .shellBackdrop[data-shell]::before {
     animation: none;
+    transition: none;
   }
 }
 

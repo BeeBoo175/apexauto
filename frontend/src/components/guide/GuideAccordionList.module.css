@@ -18,6 +18,7 @@
 }
 
 .topicNav {
+  composes: edgeFade from "../ui/ScrollStrip.module.css";
   display: grid;
   gap: 8px;
 }

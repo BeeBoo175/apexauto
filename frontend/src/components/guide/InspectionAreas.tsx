@@ -83,7 +83,7 @@ export function InspectionAreas({ points }: { points: readonly InspectionPointIt
           Where we check
         </h2>
 
-        <div className={styles.console}>
+        <div className={`${styles.console} ${patterns.riseOnView}`}>
           <div className={styles.stageColumn}>
             <div className={styles.stage}>
               <div className={styles.figure}>

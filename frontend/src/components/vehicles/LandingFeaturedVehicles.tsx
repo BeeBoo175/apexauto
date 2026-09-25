@@ -106,7 +106,7 @@ function LeadCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: b
       <div className={styles.leadBody}>
         <span className={styles.leadPrice}>{formatCurrency(vehicle.vehiclePrice)}</span>
         <h3 className={styles.leadName}>{vehicleTitle(vehicle)}</h3>
-        <span>
+        <span className={styles.leadMeta}>
           {vehicle.mileageKilometres.toLocaleString("en-MY")} km · {vehicle.transmission} · {fuel} ·{" "}
           {vehicle.branchName}
         </span>
@@ -144,10 +144,12 @@ export function LandingFeaturedVehicles({ result }: { result: ApiResult<Catalogu
             <Link
               href={catalogueHref(catalogueDefaults)}
               prefetch={false}
-              className={styles.all}
+              className={`${patterns.seeAll} ${styles.all}`}
               data-shell={loading || undefined}
             >
-              <span className={styles.allLabel}>See all {snapshot?.total ?? 100} cars</span>{" "}
+              <span className={`${patterns.seeAllLabel} ${styles.allLabel}`}>
+                See all {snapshot?.total ?? 100} cars
+              </span>{" "}
               <Icon name="next" />
             </Link>
           )}

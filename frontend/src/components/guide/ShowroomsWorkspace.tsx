@@ -163,7 +163,7 @@ export function ShowroomsWorkspace({
                               className={`${styles.lamp} ${styles.lampShell}`}
                               aria-hidden="true"
                             />
-                            <span className={styles.shell} aria-hidden="true">
+                            <span className={styles.shell} data-shell aria-hidden="true">
                               Open now, closes at {SHOWROOM_CLOSES_AT}
                             </span>
                           </>
@@ -178,7 +178,7 @@ export function ShowroomsWorkspace({
                         {count === undefined && !ready && (
                           <>
                             {" • "}
-                            <span className={styles.shell} aria-hidden="true">
+                            <span className={styles.shell} data-shell aria-hidden="true">
                               00 cars on the floor
                             </span>
                           </>
@@ -188,7 +188,7 @@ export function ShowroomsWorkspace({
                         <Link
                           href={catalogueHref({ ...catalogueDefaults, branchId: branch.id })}
                           prefetch={false}
-                          className={styles.primary}
+                          className={`${buttonClassName("primary", "md")} ${styles.primary}`}
                         >
                           See the cars here
                         </Link>
@@ -232,7 +232,7 @@ export function ShowroomsWorkspace({
       </section>
       <section
         id="book-a-visit"
-        className={`${patterns.band} ${styles.bookBand}`}
+        className={`${patterns.band} ${patterns.bandTone}`}
         aria-labelledby="showrooms-booking-heading"
       >
         <div className={layout.content}>

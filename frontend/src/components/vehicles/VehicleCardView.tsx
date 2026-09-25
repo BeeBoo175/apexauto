@@ -94,22 +94,24 @@ export function VehicleCardView({
         </div>
         <dl className={styles.specStrip}>
           <div>
-            <dt>Odometer</dt>
-            <dd>{vehicle.mileageKilometres.toLocaleString("en-MY")} km</dd>
+            <dt className={styles.specLabel}>Odometer</dt>
+            <dd className={styles.specValue}>
+              {vehicle.mileageKilometres.toLocaleString("en-MY")} km
+            </dd>
           </div>
           <div>
-            <dt>Gearbox</dt>
-            <dd>{vehicle.transmission}</dd>
+            <dt className={styles.specLabel}>Gearbox</dt>
+            <dd className={styles.specValue}>{vehicle.transmission}</dd>
           </div>
           <div>
-            <dt>Fuel</dt>
-            <dd>{fuelLabel(vehicle.fuel)}</dd>
+            <dt className={styles.specLabel}>Fuel</dt>
+            <dd className={styles.specValue}>{fuelLabel(vehicle.fuel)}</dd>
           </div>
         </dl>
       </div>
       <p className={styles.branchLine}>
         <Icon name="map-pin" />
-        <span>{vehicle.branchName}</span>
+        <span className={styles.branchName}>{vehicle.branchName}</span>
       </p>
     </article>
   );

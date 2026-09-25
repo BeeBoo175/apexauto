@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import type { PublicVehicle } from "@/lib/vehicles/contracts";
 import { catalogueDefaults, catalogueHref } from "@/lib/vehicles/query";
+import patterns from "@/components/layout/PublicPatterns.module.css";
 import layout from "./VehicleLayout.module.css";
 import { VehicleCarousel } from "./VehicleCarousel";
 import styles from "./VehicleBrowseMore.module.css";
@@ -34,8 +35,8 @@ export function VehicleBrowseMore({
         <h2 id={headingId} className={layout.sectionHeading}>
           {title}
         </h2>
-        <Link href={href} prefetch={false} className={styles.all}>
-          <span>{linkLabel}</span>
+        <Link href={href} prefetch={false} className={patterns.seeAll}>
+          <span className={patterns.seeAllLabel}>{linkLabel}</span>
           <Icon name="next" />
         </Link>
       </div>

@@ -36,7 +36,8 @@
   line-height: 1.5;
 }
 
-.lead strong {
+.leadName {
+  composes: shell from "../layout/PublicPatterns.module.css";
   font-weight: 700;
 }
 
@@ -106,6 +107,7 @@
 }
 
 .carName {
+  composes: shell from "../layout/PublicPatterns.module.css";
   font-family: var(--font-display);
   font-size: 1.375rem;
   font-weight: 700;
@@ -152,6 +154,7 @@
 }
 
 .areaName {
+  composes: shell from "../layout/PublicPatterns.module.css";
   display: grid;
   gap: 2px;
   font-weight: 600;
@@ -178,10 +181,15 @@
 }
 
 .score {
+  composes: shell from "../layout/PublicPatterns.module.css";
   font-size: 1rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+.signed {
+  composes: shell from "../layout/PublicPatterns.module.css";
 }
 
 .scoreTotal {
@@ -206,38 +214,8 @@
   }
 }
 
-.cta {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 20px;
-  border-radius: var(--radius-sm);
-  background: var(--color-signal);
-  color: var(--color-paper);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-decoration: none;
-  text-transform: uppercase;
-  white-space: nowrap;
-  transition:
-    background-color 200ms ease,
-    transform 200ms ease;
-}
-
-.cta:hover {
-  background: var(--color-signal-dark);
-  transform: translateY(-1px);
-}
-
-.cta:focus-visible {
-  outline: 3px solid var(--color-graphite);
-  outline-offset: 3px;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .media img,
-  .cta {
+  .media img {
     transition: none;
   }
 }
@@ -247,41 +225,16 @@
   pointer-events: none;
 }
 
-section[data-shell] :is(.lead strong, .carName, .areaName, .score, .signed, .cta) {
+section[data-shell] :is(.leadName, .carName, .areaName, .score, .signed, .cta) {
   position: relative;
   display: inline-block;
   overflow: hidden;
+  border-color: transparent;
   border-radius: 2px;
   background: var(--color-line-soft);
   color: transparent;
 }
 
-section[data-shell] :is(.lead strong, .carName, .areaName, .score, .signed, .cta)::after {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--color-paper) 65%, transparent),
-    transparent
-  );
-  content: "";
-  transform: translateX(-100%);
-  animation: recordShellShimmer 2.4s linear infinite;
-}
-
 section[data-shell] .barFill {
   background: var(--color-line-soft);
-}
-
-@keyframes recordShellShimmer {
-  to {
-    transform: translateX(100%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  section[data-shell] :is(.lead strong, .carName, .areaName, .score, .signed, .cta)::after {
-    animation: none;
-  }
 }
