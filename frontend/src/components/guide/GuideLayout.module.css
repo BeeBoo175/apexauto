@@ -189,7 +189,7 @@
   border-radius: 8px;
   background: var(--color-paper);
   color: var(--color-graphite);
-  box-shadow: 0 2px 12px rgb(14 27 42 / 5%);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--color-graphite) 5%, transparent);
 }
 
 .receiptPanel > :last-child {

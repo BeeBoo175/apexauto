@@ -4,8 +4,8 @@
   border-radius: 8px;
   background: var(--color-paper);
   box-shadow:
-    0 2px 4px rgb(14 27 42 / 0.12),
-    0 24px 40px rgb(14 27 42 / 0.28);
+    0 2px 4px color-mix(in srgb, var(--color-graphite) 12%, transparent),
+    0 24px 40px color-mix(in srgb, var(--color-graphite) 28%, transparent);
   color: var(--color-graphite);
 }
 

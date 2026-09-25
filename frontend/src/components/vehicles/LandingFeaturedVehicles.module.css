@@ -53,7 +53,11 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(180deg, rgb(14 27 42 / 0%) 38%, rgb(14 27 42 / 92%) 100%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-graphite) 0%, transparent) 38%,
+    color-mix(in srgb, var(--color-graphite) 92%, transparent) 100%
+  );
   content: "";
 }
 
@@ -263,13 +267,6 @@
   .railCar:hover .railArrow {
     transform: none;
   }
-}
-
-/* A failed read holds the height of the lot, so the sections below do not move. */
-.failed {
-  display: grid;
-  align-content: center;
-  min-height: 560px;
 }
 
 /* Loading silhouette: the real cards with their text drawn as placeholder blocks that carry the shared shimmer. */

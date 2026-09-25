@@ -94,6 +94,7 @@ export function InspectionCatalogBrowser({
               onChange={setQuery}
               onClear={query ? () => setQuery("") : undefined}
               placeholder="Search code (e.g. FC-038, ET-027) or check item..."
+              size="large"
             />
           </form>
 

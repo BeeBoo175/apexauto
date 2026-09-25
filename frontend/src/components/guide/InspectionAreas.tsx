@@ -165,6 +165,7 @@ export function InspectionAreas({ points }: { points: readonly InspectionPointIt
                 onChange={setQuery}
                 onClear={query ? () => setQuery("") : undefined}
                 placeholder="Try brake, paint or a code"
+                size="large"
               />
 
               <ul key={`${active.key}-list`} className={styles.points}>

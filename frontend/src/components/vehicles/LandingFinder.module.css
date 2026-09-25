@@ -1,6 +1,5 @@
 .finder {
   display: grid;
-  --radius-sm: 8px;
   grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
   align-items: end;
   gap: 16px;

@@ -26,9 +26,9 @@
   inset: 0;
   background: linear-gradient(
     95deg,
-    rgb(14 27 42 / 96%) 0%,
-    rgb(14 27 42 / 84%) 46%,
-    rgb(14 27 42 / 52%) 100%
+    color-mix(in srgb, var(--color-graphite) 96%, transparent) 0%,
+    color-mix(in srgb, var(--color-graphite) 84%, transparent) 46%,
+    color-mix(in srgb, var(--color-graphite) 52%, transparent) 100%
   );
 }
 

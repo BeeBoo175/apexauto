@@ -109,13 +109,17 @@
   justify-content: space-between;
   gap: 8px;
   padding: 10px;
-  background: linear-gradient(180deg, rgb(14 27 42 / 72%) 0%, rgb(14 27 42 / 0%) 100%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-graphite) 72%, transparent) 0%,
+    color-mix(in srgb, var(--color-graphite) 0%, transparent) 100%
+  );
 }
 
 .angleBadge {
   padding: 4px 10px;
   border-radius: 6px;
-  background: rgb(14 27 42 / 82%);
+  background: color-mix(in srgb, var(--color-graphite) 82%, transparent);
   color: var(--color-paper);
   font-size: 0.75rem;
   font-weight: 700;
@@ -156,7 +160,11 @@
   justify-content: space-between;
   gap: 10px;
   padding: 10px 12px;
-  background: linear-gradient(0deg, rgb(14 27 42 / 86%) 0%, rgb(14 27 42 / 35%) 100%);
+  background: linear-gradient(
+    0deg,
+    color-mix(in srgb, var(--color-graphite) 86%, transparent) 0%,
+    color-mix(in srgb, var(--color-graphite) 35%, transparent) 100%
+  );
 }
 
 .fileName {
@@ -181,7 +189,7 @@
   border: 0;
   border-radius: 8px;
   background: color-mix(in srgb, var(--color-paper) 94%, transparent);
-  box-shadow: 0 2px 8px rgb(14 27 42 / 30%);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-graphite) 30%, transparent);
   color: var(--color-graphite);
   font-size: 0.8125rem;
   font-weight: 700;

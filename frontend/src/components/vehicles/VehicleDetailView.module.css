@@ -1,5 +1,4 @@
 .view {
-  --radius-sm: 8px;
   container-type: inline-size;
   min-width: 0;
 }

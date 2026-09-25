@@ -454,7 +454,7 @@
   /* The same phone bar as the staff dashboard: 52px, a 19px wordmark and an icon-only menu button. */
   .header {
     padding-inline: 16px;
-    border-bottom: 1px solid #49617a;
+    border-bottom: 1px solid var(--staff-shell-line);
   }
 
   .brand {
@@ -467,15 +467,15 @@
     height: 36px;
     min-height: 36px;
     padding: 0;
-    border: 1px solid #49617a;
+    border: 1px solid var(--staff-shell-line);
     border-radius: var(--radius-sm, 4px);
-    background: #203449;
+    background: var(--color-command-surface);
     color: var(--color-paper);
   }
 
   .menuToggle:hover {
-    background: #2a4460;
-    border-color: #5c7b9e;
+    background: var(--color-command-surface-hover);
+    border-color: var(--staff-shell-line-hover);
   }
 
   .menuLabel {

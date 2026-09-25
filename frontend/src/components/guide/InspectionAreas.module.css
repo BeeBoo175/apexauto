@@ -102,8 +102,8 @@
 
 .tabsFrame [class*="scrollControl"] {
   box-shadow:
-    0 6px 16px rgb(14 27 42 / 38%),
-    0 1px 3px rgb(14 27 42 / 30%);
+    0 6px 16px color-mix(in srgb, var(--color-graphite) 38%, transparent),
+    0 1px 3px color-mix(in srgb, var(--color-graphite) 30%, transparent);
 }
 
 .tabs {

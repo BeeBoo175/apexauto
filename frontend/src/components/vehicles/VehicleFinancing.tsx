@@ -5,6 +5,7 @@ import { RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useCountedNumber } from "@/hooks/use-counted-number";
 import { useVehicleFinancing } from "@/hooks/use-vehicle-financing";
 import { formatCurrency } from "@/lib/currency-format";
@@ -68,25 +69,18 @@ export function VehicleFinancing({
                 aria-valuetext={formatCurrency(sliderCash)}
                 onChange={(event) => setCashContribution(Number(event.target.value).toFixed(2))}
               />
-              <div
-                className={styles.presets}
-                role="group"
-                aria-label="Deposit as a share of the price"
-              >
-                {DEPOSIT_PERCENT_PRESETS.map((percent) => {
+              <SegmentedControl
+                label="Deposit as a share of the price"
+                options={DEPOSIT_PERCENT_PRESETS.map((percent) => {
                   const share = cashShare(total, percent);
-                  return (
-                    <button
-                      key={percent}
-                      type="button"
-                      aria-pressed={cash !== null && cash === parseMyr(share)}
-                      onClick={() => setCashContribution(share)}
-                    >
-                      {percent}%
-                    </button>
-                  );
+                  return {
+                    key: String(percent),
+                    label: `${percent}%`,
+                    selected: cash !== null && cash === parseMyr(share),
+                    onSelect: () => setCashContribution(share),
+                  };
                 })}
-              </div>
+              />
               <div className={styles.rangeLabels}>
                 <span>RM 0</span>
                 <span>{formatCurrency(total)}</span>
@@ -213,7 +207,7 @@ export function VehicleFinancing({
             target="_blank"
             rel="noopener noreferrer"
             aria-label="How this estimate works (opens in a new tab)"
-            className={layout.guideLink}
+            className={`${layout.guideLink} ${styles.resultLink}`}
           >
             How this estimate works <Icon name="next" />
           </Link>

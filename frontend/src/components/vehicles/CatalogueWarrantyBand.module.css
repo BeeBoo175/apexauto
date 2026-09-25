@@ -3,7 +3,7 @@
    composition. Light-on-dark uses the canvas tint, never pure white. */
 .band {
   --ink: var(--color-canvas);
-  --ink-soft: #a5b4c3;
+  --ink-soft: var(--color-ink-soft);
   --ink-hairline: color-mix(in srgb, var(--color-canvas) 18%, transparent);
 
   grid-column: 1 / -1;
@@ -28,7 +28,7 @@
   display: block;
   width: 100%;
   height: auto;
-  filter: drop-shadow(0 10px 8px rgb(14 27 42 / 60%));
+  filter: drop-shadow(0 10px 8px color-mix(in srgb, var(--color-graphite) 60%, transparent));
 }
 
 /* A slanted hairline between the car and the offer: a vertical rule skewed to lean with the sedan. */

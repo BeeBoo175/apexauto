@@ -126,7 +126,7 @@
   border: 3px solid var(--color-paper);
   border-radius: 50%;
   background: var(--color-graphite);
-  box-shadow: 0 2px 6px rgb(14 27 42 / 35%);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--color-graphite) 35%, transparent);
   appearance: none;
 }
 
@@ -136,7 +136,7 @@
   border: 3px solid var(--color-paper);
   border-radius: 50%;
   background: var(--color-graphite);
-  box-shadow: 0 2px 6px rgb(14 27 42 / 35%);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--color-graphite) 35%, transparent);
 }
 
 .slider:focus-visible {
@@ -149,45 +149,6 @@
 }
 
 .slider:focus-visible::-moz-range-thumb {
-  outline: 2px solid var(--color-signal);
-  outline-offset: 2px;
-}
-
-.segmented {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
-}
-
-.segmented button {
-  min-height: 48px;
-  padding: 8px 12px;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
-  background: var(--color-paper);
-  color: var(--color-graphite);
-  font: inherit;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  line-height: 1.2;
-  cursor: pointer;
-  transition:
-    background-color 180ms ease,
-    border-color 180ms ease,
-    color 180ms ease;
-}
-
-.segmented button:hover:not([aria-pressed="true"]) {
-  border-color: var(--color-subtle);
-}
-
-.segmented button[aria-pressed="true"] {
-  border-color: var(--color-graphite);
-  background: var(--color-graphite);
-  color: var(--color-paper);
-}
-
-.segmented button:focus-visible {
   outline: 2px solid var(--color-signal);
   outline-offset: 2px;
 }
@@ -392,10 +353,6 @@
     grid-template-columns: auto minmax(0, 1fr);
     gap: 16px;
   }
-
-  .segmented {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 420px) {
@@ -420,8 +377,7 @@
   .bands > div,
   .letter,
   .mark,
-  .cover li,
-  .segmented button {
+  .cover li {
     transition: none;
   }
 }

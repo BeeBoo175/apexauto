@@ -5,7 +5,8 @@
   /* Every page hero is at least this tall, so moving between pages never changes the banner. */
   --hero-min-height: 260px;
   --color-paper: #fbfcfd;
-  --shadow-surface-dark: 0 24px 48px -24px rgb(14 27 42 / 0.65);
+  /* Controls (fields, selects, chips, buttons) share 8px; containers and cards share 12px. */
+  --radius-sm: 8px;
   /* A 96px soft-focus studio shot, inline so it needs no request: what every vehicle photo shows until its own image loads. */
   --vehicle-photo-placeholder:
     linear-gradient(
@@ -13,18 +14,6 @@
       color-mix(in srgb, var(--color-canvas) 45%, transparent)
     ),
     url("/images/car-placeholder.webp") center / cover no-repeat;
-}
-
-/* Customer search fields are roomier than the dashboard's 36px: taller, with full-size text. Below 820px the
-   shared field already switches to its 44px touch height. */
-@media (min-width: 821px) {
-  .site div[data-density][data-density] {
-    --search-height: 48px;
-  }
-
-  .site div[data-density] input {
-    font-size: 1rem;
-  }
 }
 
 @media (max-width: 640px) {

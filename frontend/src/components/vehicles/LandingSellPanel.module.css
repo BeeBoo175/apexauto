@@ -17,7 +17,7 @@
   container-type: inline-size;
   border: 1px solid color-mix(in srgb, var(--color-paper) 8%, transparent);
   border-radius: var(--radius);
-  background: #222b32;
+  background: var(--color-graphite-soft);
   box-shadow: var(--shadow-surface);
 }
 
@@ -54,7 +54,7 @@
   max-width: 46ch;
   font-size: 1.0625rem;
   line-height: 1.6;
-  color: #a5b4c3;
+  color: var(--color-ink-soft);
 }
 
 /* --------------------------------------------------------------------------
@@ -68,7 +68,7 @@
   padding: 4px;
   border-radius: var(--radius-surface);
   background: var(--color-paper);
-  box-shadow: 0 4px 20px rgb(14 27 42 / 20%);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--color-graphite) 20%, transparent);
 }
 
 .selectCell {
@@ -80,7 +80,7 @@
 
 .selectCell:hover,
 .selectCell:has(.select:focus-visible) {
-  background: #f1f5f9;
+  background: var(--color-canvas);
 }
 
 .select {
@@ -90,7 +90,7 @@
   background: transparent;
   font-size: 0.9375rem;
   font-weight: 500;
-  color: #334155;
+  color: var(--color-graphite-soft);
 }
 
 .select:focus-visible {
@@ -102,53 +102,23 @@
   width: 1px;
   height: 24px;
   margin: 0 4px;
-  background: #e2e8f0;
+  background: var(--color-line-soft);
 }
 
 .capsuleButton {
-  display: inline-flex;
   flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0 24px;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: var(--color-signal);
-  color: var(--color-paper);
-  font-family: inherit;
-  font-size: 0.9375rem;
-  font-weight: 600;
   white-space: nowrap;
-  cursor: pointer;
-  box-shadow: 0 2px 10px rgba(217, 37, 24, 0.35);
-  transition:
-    background-color 150ms ease,
-    transform 150ms ease;
-}
-
-.capsuleButton:hover {
-  background: var(--color-signal-dark);
-}
-
-.capsuleButton:active {
-  transform: scale(0.97);
-}
-
-.capsuleButton:focus-visible {
-  outline: 2px solid var(--color-paper);
-  outline-offset: 2px;
 }
 
 .footnote {
   margin: 16px 0 0;
   font-size: 0.8125rem;
   line-height: 1.5;
-  color: #8697a8;
+  color: var(--color-ink-soft);
 }
 
 .footnoteLink {
-  color: #b4c2d0;
+  color: var(--color-ink-soft);
   text-decoration: underline;
   text-underline-offset: 3px;
   transition: color 150ms ease;
@@ -210,7 +180,7 @@
   padding: 14px 20px;
   border: 1px solid color-mix(in srgb, var(--color-paper) 8%, transparent);
   border-radius: var(--step-radius);
-  background: rgb(14 27 42 / 22%);
+  background: color-mix(in srgb, var(--color-graphite) 22%, transparent);
 }
 
 .bottomStep {
@@ -233,14 +203,14 @@
   font-size: 0.9375rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: #8697a8;
+  color: var(--color-ink-soft);
 }
 
 .bottomLabel {
   font-size: 0.8125rem;
   font-weight: 500;
   letter-spacing: 0.01em;
-  color: #e2e8f0;
+  color: var(--color-line-soft);
 }
 
 /* Below this the overhang is held inside the page gutter so it never causes a horizontal scroll. */
@@ -312,8 +282,6 @@
 
   .capsuleButton {
     flex: 1 1 100%;
-    min-height: 46px;
-    border-radius: 8px;
   }
 
   .bottomBar {

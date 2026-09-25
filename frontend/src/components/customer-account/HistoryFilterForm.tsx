@@ -50,6 +50,7 @@ export function HistoryFilterForm<T extends Draft>({
             disabled={disabled}
             busy={busy}
             density="default"
+            size="large"
             onChange={(search) => onDraft({ ...draft, search })}
             onClear={draft.search ? onClearSearch : undefined}
           />

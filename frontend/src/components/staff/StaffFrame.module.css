@@ -7,13 +7,11 @@
   --color-muted: #485766;
   --color-subtle: #5c6a79;
   --color-warning: #8a4a00;
-  --color-command-surface: #203449;
   --color-command-foreground: #ffffff;
   --color-header-surface: #c8d3df;
   --color-selected-surface: #e2eaf2;
   --color-interaction-border: #294e80;
   --staff-shell: #0e1b2a;
-  --staff-shell-line: #49617a;
   --staff-shell-text: #b4c2d1;
   --radius-sm: 4px;
   --radius-xs: 4px;
@@ -582,8 +580,8 @@
   }
 
   .mobileMenuButton:hover {
-    background: #2a4460;
-    border-color: #5c7b9e;
+    background: var(--color-command-surface-hover);
+    border-color: var(--staff-shell-line-hover);
   }
 
   .backdrop {

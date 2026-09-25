@@ -14,7 +14,6 @@
 }
 
 .page {
-  --radius-sm: 8px;
   width: 100%;
   min-width: 0;
   padding-bottom: 72px;

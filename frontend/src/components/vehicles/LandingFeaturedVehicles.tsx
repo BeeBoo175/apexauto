@@ -1,8 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { StatusPage } from "@/components/ui/StatusPage";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import type { ApiResult } from "@/lib/api";
 import { formatCurrency } from "@/lib/currency-format";
@@ -175,28 +174,7 @@ export function LandingFeaturedVehicles({ result }: { result: ApiResult<Catalogu
           </div>
         )}
 
-        {!loading && !snapshot && (
-          <div className={styles.failed}>
-            <StatusPage
-              compact
-              tone="alert"
-              code="503"
-              icon="alert-triangle"
-              title="Latest cars could not be loaded"
-              actions={
-                <Link
-                  href="/vehicles"
-                  prefetch={false}
-                  className={buttonClassName("secondary", "md")}
-                >
-                  Open vehicle catalogue
-                </Link>
-              }
-            >
-              Reload the page to try again, or continue to the vehicle catalogue.
-            </StatusPage>
-          </div>
-        )}
+        {!loading && !snapshot && <ReloadNotice subject="Latest cars" compact />}
       </div>
     </section>
   );

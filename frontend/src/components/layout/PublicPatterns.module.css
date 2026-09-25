@@ -6,7 +6,6 @@
 
 .band {
   padding-block: 96px;
-  --radius-sm: 8px;
 }
 
 .bandDark {
@@ -311,9 +310,9 @@
   inset: 0;
   background: linear-gradient(
     95deg,
-    rgb(14 27 42 / 94%) 0%,
-    rgb(14 27 42 / 76%) 55%,
-    rgb(14 27 42 / 40%) 100%
+    color-mix(in srgb, var(--color-graphite) 94%, transparent) 0%,
+    color-mix(in srgb, var(--color-graphite) 76%, transparent) 55%,
+    color-mix(in srgb, var(--color-graphite) 40%, transparent) 100%
   );
 }
 

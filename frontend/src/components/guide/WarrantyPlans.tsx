@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { buttonClassName } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { formatWholeCurrency } from "@/lib/currency-format";
 import type { GuideWarranty, InspectionGradeTier } from "@/lib/guide/purchase-guide";
 import { isWarrantyPlanEligible, splitWarrantyName } from "@/lib/guide/warranty-plans";
@@ -51,19 +52,15 @@ export function WarrantyPlans({ warranties }: { warranties: readonly GuideWarran
     <div className={styles.wrap}>
       <div className={styles.gradeBar}>
         <p className={styles.gradeLabel}>Show the plans for a car graded</p>
-        <div className={styles.segmented} role="group" aria-label="Car inspection grade">
-          {gradeOptions.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={styles.segment}
-              aria-pressed={grade === option.value}
-              onClick={() => setGrade(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Car inspection grade"
+          options={gradeOptions.map((option) => ({
+            key: option.value,
+            label: option.label,
+            selected: grade === option.value,
+            onSelect: () => setGrade(option.value),
+          }))}
+        />
       </div>
 
       <ol className={styles.plans}>

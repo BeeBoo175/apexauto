@@ -29,18 +29,6 @@
   border-color: var(--color-graphite);
 }
 
-.group [data-density] {
-  background: transparent;
-}
-
-.group [data-density]::after {
-  border: 0;
-}
-
-.group [data-density]:focus-within {
-  outline: none;
-}
-
 .search {
   flex: 1 1 auto;
   min-width: 0;

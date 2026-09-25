@@ -25,8 +25,8 @@
     background: color-mix(in srgb, var(--toast-color) 12%, var(--color-paper));
     color: var(--color-graphite);
     box-shadow:
-      0 8px 24px rgb(14 27 42 / 16%),
-      0 2px 6px rgb(14 27 42 / 10%);
+      0 8px 24px color-mix(in srgb, var(--color-graphite) 16%, transparent),
+      0 2px 6px color-mix(in srgb, var(--color-graphite) 10%, transparent);
   }
 
   .success {

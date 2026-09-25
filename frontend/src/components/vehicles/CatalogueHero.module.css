@@ -7,9 +7,9 @@
   background:
     linear-gradient(
       90deg,
-      rgb(14 27 42 / 96%) 0%,
-      rgb(14 27 42 / 82%) 38%,
-      rgb(14 27 42 / 38%) 100%
+      color-mix(in srgb, var(--color-graphite) 96%, transparent) 0%,
+      color-mix(in srgb, var(--color-graphite) 82%, transparent) 38%,
+      color-mix(in srgb, var(--color-graphite) 38%, transparent) 100%
     ),
     url("/images/showroom-panorama.jpg") center 62% / cover no-repeat,
     var(--color-graphite);
@@ -75,7 +75,11 @@
 @media (max-width: 960px) {
   .hero {
     background:
-      linear-gradient(180deg, rgb(14 27 42 / 90%) 0%, rgb(14 27 42 / 72%) 100%),
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--color-graphite) 90%, transparent) 0%,
+        color-mix(in srgb, var(--color-graphite) 72%, transparent) 100%
+      ),
       url("/images/showroom-panorama.jpg") center / cover no-repeat,
       var(--color-graphite);
   }

@@ -18,54 +18,6 @@
   font-weight: 500;
 }
 
-.segmented {
-  display: inline-grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(96px, 1fr);
-  height: 40px;
-  border: 1px solid var(--color-line);
-  border-radius: 8px;
-  background: var(--color-paper);
-  overflow: hidden;
-}
-
-.segment {
-  min-width: 0;
-  padding: 0 16px;
-  border: 0;
-  background: transparent;
-  color: var(--color-muted);
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    background-color 160ms ease,
-    color 160ms ease;
-}
-
-.segment + .segment {
-  border-left: 1px solid var(--color-line);
-}
-
-@media (hover: hover) {
-  .segment:hover:not([aria-pressed="true"]) {
-    background: var(--color-canvas);
-    color: var(--color-graphite);
-  }
-}
-
-.segment[aria-pressed="true"] {
-  background: var(--color-graphite);
-  color: var(--color-canvas);
-  font-weight: 600;
-}
-
-.segment:focus-visible {
-  outline: 2px solid var(--color-signal);
-  outline-offset: -2px;
-}
-
 /* ---------- Plan cards ---------- */
 .plans {
   display: grid;
@@ -100,7 +52,7 @@
 .plan[data-featured] {
   border: 2px solid var(--color-graphite);
   padding: 31px 27px 27px;
-  box-shadow: 0 14px 32px -16px rgb(14 27 42 / 35%);
+  box-shadow: 0 14px 32px -16px color-mix(in srgb, var(--color-graphite) 35%, transparent);
 }
 
 .plan[data-unavailable] {
@@ -314,22 +266,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .plan,
-  .segment {
+  .plan {
     transition: none;
   }
 }
 
 @media (max-width: 640px) {
-  .segmented {
-    width: 100%;
-    grid-auto-columns: 1fr;
-  }
-
-  .segment {
-    padding: 0 8px;
-  }
-
   .plan {
     padding: 28px 22px 24px;
   }

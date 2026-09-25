@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { buttonClassName } from "@/components/ui/Button";
-import { StatusPage } from "@/components/ui/StatusPage";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { apiFetch } from "@/lib/api-browser";
 import { CATALOGUE_PAGE_SIZE, type PublicVehicle } from "@/lib/vehicles/contracts";
 import { parseCatalogue } from "@/lib/vehicles/parse";
@@ -14,7 +12,7 @@ import { VehicleBrowseMore } from "./VehicleBrowseMore";
 type LiveState =
   | { status: "loading" }
   | { status: "ready"; vehicles: readonly PublicVehicle[] }
-  | { status: "failed"; code: number };
+  | { status: "failed" };
 
 const DEFAULT_LIMIT = 10;
 
@@ -37,7 +35,6 @@ export function LiveVehicles({
   limit?: number;
 }) {
   const [state, setState] = useState<LiveState>({ status: "loading" });
-  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     const request = new AbortController();
@@ -67,27 +64,20 @@ export function LiveVehicles({
             return true;
           })
           .slice(0, limit);
-        const failed = reads.find((read) => !read.data);
+        const failed = reads.some((read) => !read.data);
         setState(
-          vehicles.length === 0 && failed
-            ? { status: "failed", code: failed.status }
-            : { status: "ready", vehicles },
+          vehicles.length === 0 && failed ? { status: "failed" } : { status: "ready", vehicles },
         );
       } catch {
         // A read that was cancelled because the page changed is not a failure; any other throw is one.
         if (!request.signal.aborted) {
-          setState({ status: "failed", code: 503 });
+          setState({ status: "failed" });
         }
       }
     }
     void load();
     return () => request.abort();
-  }, [attempt, branchId, excludeId, limit]);
-
-  function retry() {
-    setState({ status: "loading" });
-    setAttempt((value) => value + 1);
-  }
+  }, [branchId, excludeId, limit]);
 
   if (state.status === "ready") {
     return state.vehicles.length > 0 ? (
@@ -98,29 +88,7 @@ export function LiveVehicles({
   if (state.status === "failed") {
     return (
       <div className={styles.frame}>
-        <StatusPage
-          compact
-          tone="alert"
-          code={String(state.code)}
-          icon="alert-triangle"
-          title="Cars unavailable"
-          actions={
-            <>
-              <button type="button" className={buttonClassName("primary", "md")} onClick={retry}>
-                Try again
-              </button>
-              <Link
-                href="/vehicles"
-                prefetch={false}
-                className={buttonClassName("secondary", "md")}
-              >
-                See all cars
-              </Link>
-            </>
-          }
-        >
-          The cars on sale could not be loaded just now.
-        </StatusPage>
+        <ReloadNotice subject="The cars on sale" compact />
       </div>
     );
   }

@@ -44,6 +44,8 @@ export function CatalogueSearch({ search, busy, onSearch }: CatalogueSearchProps
         label="Search vehicles"
         placeholder="Search by make, model, trim or year"
         density="default"
+        size="large"
+        embedded
         value={text}
         disabled={false}
         busy={busy}

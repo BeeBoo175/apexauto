@@ -49,8 +49,12 @@ export function VehicleCard({
                 onClick={() => void photos.navigate(-1)}
               >
                 <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="11" fill="#f2f5f8" fillOpacity="0.9" />
-                  <path d="m13.5 8-4 4 4 4" stroke="#485766" strokeWidth="1.75" />
+                  <circle className={styles.photoArrowDisc} cx="12" cy="12" r="11" />
+                  <path
+                    d="m13.5 8-4 4 4 4"
+                    className={styles.photoArrowChevron}
+                    strokeWidth="1.75"
+                  />
                 </svg>
               </Button>
             )}
@@ -64,8 +68,12 @@ export function VehicleCard({
                 onClick={() => void photos.navigate(1)}
               >
                 <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="11" fill="#f2f5f8" fillOpacity="0.9" />
-                  <path d="m10.5 8 4 4-4 4" stroke="#485766" strokeWidth="1.75" />
+                  <circle className={styles.photoArrowDisc} cx="12" cy="12" r="11" />
+                  <path
+                    d="m10.5 8 4 4-4 4"
+                    className={styles.photoArrowChevron}
+                    strokeWidth="1.75"
+                  />
                 </svg>
               </Button>
             )}

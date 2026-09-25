@@ -8,6 +8,7 @@ import type { InspectionGradingPolicy } from "@/lib/guide/inspection-points";
 import { evaluateInspectionOutcome } from "@/lib/guide/inspection-rules";
 import type { GuideWarranty } from "@/lib/guide/purchase-guide";
 import { isWarrantyPlanEligible, splitWarrantyName } from "@/lib/guide/warranty-plans";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { label, severities, type Severity } from "@/lib/inspection/contracts";
 import styles from "./InspectionGradeRuler.module.css";
 
@@ -104,18 +105,16 @@ export function InspectionGradeRuler({
 
         <div className={styles.control}>
           <span className={styles.controlLabel}>Worst finding on the sheet</span>
-          <div className={styles.segmented} role="group" aria-label="Worst finding">
-            {severities.map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={severity === value}
-                onClick={() => setSeverity(value)}
-              >
-                {label(value)}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            fill
+            label="Worst finding"
+            options={severities.map((value) => ({
+              key: value,
+              label: label(value),
+              selected: severity === value,
+              onSelect: () => setSeverity(value),
+            }))}
+          />
         </div>
       </div>
 

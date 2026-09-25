@@ -19,7 +19,7 @@
   text-transform: none;
   text-align: left;
   white-space: normal;
-  box-shadow: 0 6px 16px rgb(14 27 42 / 10%);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--color-graphite) 10%, transparent);
 }
 
 .shelf:popover-open:not([data-positioned]) {

@@ -21,6 +21,8 @@ export function SearchField({
   busy = false,
   disabledReason,
   density = "compact",
+  size = "default",
+  embedded = false,
   className = "",
 }: {
   label: string;
@@ -32,6 +34,10 @@ export function SearchField({
   busy?: boolean;
   disabledReason?: string;
   density?: "default" | "compact";
+  // Customer pages use the large size: taller, with full-size text, from tablet width up.
+  size?: "default" | "large";
+  // Drops the field's own border and fill when a parent control draws the shared outline.
+  embedded?: boolean;
   className?: string;
 }) {
   const field = useRef<HTMLDivElement>(null);
@@ -67,7 +73,13 @@ export function SearchField({
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   return (
-    <div ref={field} className={`${styles.field} ${className}`.trim()} data-density={density}>
+    <div
+      ref={field}
+      className={`${styles.field} ${className}`.trim()}
+      data-density={density}
+      data-size={size}
+      data-embedded={embedded || undefined}
+    >
       <Input
         label={label}
         labelHidden

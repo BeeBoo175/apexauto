@@ -70,27 +70,35 @@
   z-index: -1;
   background: linear-gradient(
     to top,
-    rgb(14 27 42 / 0.92),
-    rgb(14 27 42 / 0.45) 40%,
-    rgb(14 27 42 / 0.08) 75%
+    color-mix(in srgb, var(--color-graphite) 92%, transparent),
+    color-mix(in srgb, var(--color-graphite) 45%, transparent) 40%,
+    color-mix(in srgb, var(--color-graphite) 8%, transparent) 75%
   );
 }
 
 .panel:not([data-active="true"]) .scrim {
-  background: linear-gradient(to top, rgb(14 27 42 / 0.94), rgb(14 27 42 / 0.5));
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--color-graphite) 94%, transparent),
+    color-mix(in srgb, var(--color-graphite) 50%, transparent)
+  );
 }
 
 .accordion[data-direction="column"] .scrim {
   background: linear-gradient(
     to top,
-    rgb(14 27 42 / 0.94),
-    rgb(14 27 42 / 0.55) 50%,
-    rgb(14 27 42 / 0.12) 85%
+    color-mix(in srgb, var(--color-graphite) 94%, transparent),
+    color-mix(in srgb, var(--color-graphite) 55%, transparent) 50%,
+    color-mix(in srgb, var(--color-graphite) 12%, transparent) 85%
   );
 }
 
 .accordion[data-direction="column"] .panel:not([data-active="true"]) .scrim {
-  background: linear-gradient(to right, rgb(14 27 42 / 0.9), rgb(14 27 42 / 0.45));
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--color-graphite) 90%, transparent),
+    color-mix(in srgb, var(--color-graphite) 45%, transparent)
+  );
 }
 
 .trigger {

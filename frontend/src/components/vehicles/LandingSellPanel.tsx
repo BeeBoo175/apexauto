@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import patterns from "@/components/layout/PublicPatterns.module.css";
+import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Input";
 import { INSPECTION_BAY_MINUTES } from "@/lib/guide/visit-terms";
 import type { Taxonomy } from "@/lib/intake/contracts";
@@ -82,7 +83,6 @@ export function LandingSellPanel({ taxonomy }: LandingSellPanelProps) {
     <section className={`${patterns.band} ${styles.root}`} aria-labelledby="sell-panel-heading">
       <div className={layout.content}>
         <div className={styles.banner}>
-          {/* Main Content Area: Copy + Capsule Form + Car Studio Render */}
           <div className={styles.mainArea}>
             <div className={styles.copyCol}>
               <h2 id="sell-panel-heading" className={styles.title}>
@@ -93,21 +93,20 @@ export function LandingSellPanel({ taxonomy }: LandingSellPanelProps) {
                 inspection.
               </p>
 
-              {/* Quick Valuation Input Capsule */}
               <form className={styles.capsule} onSubmit={handleSubmit} method="get" action="/sell">
                 <div className={styles.selectCell}>
                   <Select
                     name="make"
-                    label="Select Make"
+                    label="Select make"
                     labelHidden
                     value={make}
-                    onChange={(e) => setMake(e.target.value)}
+                    onChange={(event) => setMake(event.target.value)}
                     className={styles.select}
                   >
-                    <option value="">Select Make</option>
-                    {makes.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
+                    <option value="">Select make</option>
+                    {makes.map((makeName) => (
+                      <option key={makeName} value={makeName}>
+                        {makeName}
                       </option>
                     ))}
                   </Select>
@@ -118,27 +117,26 @@ export function LandingSellPanel({ taxonomy }: LandingSellPanelProps) {
                 <div className={styles.selectCell}>
                   <Select
                     name="year"
-                    label="Select Year"
+                    label="Select year"
                     labelHidden
                     value={year}
-                    onChange={(e) => setYear(e.target.value)}
+                    onChange={(event) => setYear(event.target.value)}
                     className={styles.select}
                   >
                     <option value="">Year</option>
-                    {years.map((y) => (
-                      <option key={y} value={y}>
-                        {y}
+                    {years.map((manufactureYear) => (
+                      <option key={manufactureYear} value={manufactureYear}>
+                        {manufactureYear}
                       </option>
                     ))}
                   </Select>
                 </div>
 
-                <button type="submit" className={styles.capsuleButton}>
+                <Button type="submit" size="md" className={styles.capsuleButton}>
                   Get my price range
-                </button>
+                </Button>
               </form>
 
-              {/* Footnote */}
               <p className={styles.footnote}>
                 Free, not an offer, and no obligation to sell.{" "}
                 <Link href="/selling-guide" className={styles.footnoteLink}>
@@ -147,7 +145,6 @@ export function LandingSellPanel({ taxonomy }: LandingSellPanelProps) {
               </p>
             </div>
 
-            {/* Right Side: Clean Sedan Cutout with Dynamic Overhang */}
             <div ref={stage} className={styles.visualCol}>
               <Image
                 src="/images/sell-car-stage.png"
@@ -161,7 +158,6 @@ export function LandingSellPanel({ taxonomy }: LandingSellPanelProps) {
             </div>
           </div>
 
-          {/* Bottom Bar: 3-Step Inset Strip */}
           <div className={styles.bottomBar}>
             {STEPS.map((step) => (
               <div key={step.num} className={styles.bottomStep}>

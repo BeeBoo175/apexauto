@@ -22,6 +22,28 @@
   --search-height: 36px;
 }
 
+@media (min-width: 821px) {
+  .field[data-size="large"] {
+    --search-height: 48px;
+  }
+
+  .field[data-size="large"] input {
+    font-size: 1rem;
+  }
+}
+
+.field[data-embedded] {
+  background: transparent;
+}
+
+.field[data-embedded]::after {
+  border: 0;
+}
+
+.field[data-embedded]:focus-within {
+  outline: none;
+}
+
 .field > div {
   flex: 1;
   min-width: 0;

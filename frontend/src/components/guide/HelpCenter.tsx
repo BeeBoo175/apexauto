@@ -37,6 +37,7 @@ export function HelpCenter({ faqEntries }: { faqEntries: readonly FaqEntry[] }) 
               onClear={query ? () => setQuery("") : undefined}
               placeholder="Try deposit, grade or trade-in"
               density="default"
+              size="large"
             />
           </div>
         </div>

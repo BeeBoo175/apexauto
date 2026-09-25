@@ -161,7 +161,7 @@
 .softControls .scrollControl {
   border-color: transparent;
   background: color-mix(in srgb, var(--color-paper) 88%, transparent);
-  box-shadow: 0 2px 10px rgb(14 27 42 / 18%);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--color-graphite) 18%, transparent);
   backdrop-filter: blur(6px);
 }
 
