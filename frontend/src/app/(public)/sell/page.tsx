@@ -1,10 +1,8 @@
-import { paginationQuery } from "@/lib/pagination";
 import type { Metadata } from "next";
 import { readCurrentActor, readOwnAccount } from "@/lib/auth/server";
 import { staffSellNotice } from "@/lib/intake/staff-sell-notice";
 import { requestApiJson } from "@/lib/server/http/api";
-import { parseBranch } from "@/lib/branches";
-import { parsePage } from "@/lib/api";
+import { readShowrooms } from "@/lib/guide/guide-reads";
 import { parseTaxonomy } from "@/lib/intake/parse";
 import { SellerJourney } from "@/components/sell/SellerJourney";
 
@@ -16,7 +14,7 @@ export const metadata: Metadata = {
 export default async function SellPage() {
   const [taxonomy, branches, access] = await Promise.all([
     requestApiJson("/api/taxonomy", parseTaxonomy),
-    requestApiJson(`/api/branches?${paginationQuery()}`, (value) => parsePage(value, parseBranch)),
+    readShowrooms(),
     readOwnAccount().catch(() => ({ status: 502, account: null })),
   ]);
   // The customer account read refuses staff, so a refused read is the only case that needs the signed-in role.

@@ -1,10 +1,8 @@
 import { cache } from "react";
 import type { Metadata } from "next";
 import { VehicleDetail } from "@/components/vehicles/VehicleDetail";
-import { parsePage } from "@/lib/api";
 import { isUuid } from "@/lib/auth/contracts";
-import { parseBranch } from "@/lib/branches";
-import { resolveShowrooms } from "@/lib/guide/showrooms";
+import { readShowrooms } from "@/lib/guide/guide-reads";
 import { requestApiJson } from "@/lib/server/http/api";
 import { parsePublicDetail } from "@/lib/vehicles/public-detail";
 import { readCustomerVehicleAccess } from "@/lib/vehicles/customer-access-server";
@@ -38,22 +36,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function VehiclePage({ params }: Props) {
   const { id } = await params;
-  const [initial, reservationAccess] = await Promise.all([
+  // The showroom block reads beside the detail; a failed read only omits it. The car carousel loads in the browser.
+  const [initial, reservationAccess, branches] = await Promise.all([
     readDetail(id),
     readCustomerVehicleAccess(),
+    isUuid(id) ? readShowrooms() : null,
   ]);
 
-  // The showroom block reads beside the detail; a failed read only omits it. The car carousel loads in the browser.
   const listing = initial.data?.listing;
-  const branches = listing
-    ? await requestApiJson("/api/branches?page=1&pageSize=25", (value) =>
-        parsePage(value, parseBranch),
-      )
-    : null;
-
-  const showroom =
-    resolveShowrooms(branches?.data?.items ?? []).find((item) => item.id === listing?.branchId) ??
-    null;
+  const showroom = branches?.showrooms.find((item) => item.id === listing?.branchId) ?? null;
 
   return (
     <VehicleDetail

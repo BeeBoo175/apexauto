@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
 import { ShowroomsWorkspace } from "@/components/guide/ShowroomsWorkspace";
 import { StatusPage } from "@/components/ui/StatusPage";
-import { parsePage } from "@/lib/api";
-import { parseBranch } from "@/lib/branches";
-import { resolveShowrooms } from "@/lib/guide/showrooms";
+import { readShowrooms } from "@/lib/guide/guide-reads";
 import { SHOWROOM_CLOSES_AT, SHOWROOM_OPENS_AT } from "@/lib/guide/visit-terms";
-import { requestApiJson } from "@/lib/server/http/api";
 
 // The showrooms and their opening hours change only with a release, so the page is generated ahead of time and
-// refreshed on this interval. Each showroom's stock and cars are read in the browser.
-const REVALIDATE_SECONDS = 3600;
+// refreshed hourly (PUBLIC_CONTENT_REVALIDATE_SECONDS). Each showroom's stock and cars are read in the browser.
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
@@ -18,11 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function BranchesPage() {
-  const result = await requestApiJson(
-    "/api/branches?page=1&pageSize=25",
-    (value) => parsePage(value, parseBranch),
-    { revalidateSeconds: REVALIDATE_SECONDS },
-  );
+  const result = await readShowrooms();
   if (!result.data) {
     return (
       <StatusPage
@@ -33,5 +25,5 @@ export default async function BranchesPage() {
     );
   }
 
-  return <ShowroomsWorkspace showroomBranches={resolveShowrooms(result.data.items)} />;
+  return <ShowroomsWorkspace showroomBranches={result.showrooms} />;
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { VehicleCatalogue } from "@/components/vehicles/VehicleCatalogue";
-import { parsePage } from "@/lib/api";
-import { parseBranch } from "@/lib/branches";
+import { readShowrooms } from "@/lib/guide/guide-reads";
 import { parsePurchaseGuide } from "@/lib/guide/purchase-guide";
 import { parseTaxonomy } from "@/lib/intake/parse";
 import type { SearchParams } from "@/lib/query";
@@ -34,7 +33,7 @@ export default async function VehiclesPage({
       `/api/vehicles?${query}&pageSize=${CATALOGUE_LISTING_PAGE_SIZE}`,
       parseCatalogue,
     ),
-    requestApiJson("/api/branches?page=1&pageSize=25", (value) => parsePage(value, parseBranch)),
+    readShowrooms(),
     requestApiJson("/api/taxonomy", parseTaxonomy),
     requestApiJson("/api/purchase-guide", parsePurchaseGuide),
   ]);

@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { ApexShieldGuide } from "@/components/guide/ApexShieldGuide";
 import { StatusPage } from "@/components/ui/StatusPage";
 import { faqEntries } from "@/lib/guide/faq-items";
-import { parseInspectionGuide } from "@/lib/guide/inspection-points";
-import { parsePurchaseGuide } from "@/lib/guide/purchase-guide";
-import { requestApiJson } from "@/lib/server/http/api";
+import { readGuides } from "@/lib/guide/guide-reads";
+
+// Guide content is cached for an hour (PUBLIC_CONTENT_REVALIDATE_SECONDS).
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "ApexShield Warranty | ApexAuto Malaysia",
@@ -13,20 +14,15 @@ export const metadata: Metadata = {
 };
 
 export default async function WarrantyPage() {
-  const [purchase, inspection] = await Promise.all([
-    requestApiJson("/api/purchase-guide", parsePurchaseGuide),
-    requestApiJson("/api/inspection-guide", parseInspectionGuide),
-  ]);
-  if (!purchase.data || !inspection.data) {
-    const failed = purchase.data ? inspection : purchase;
+  const guides = await readGuides();
+  if (!guides.data) {
     return (
-      <StatusPage code={String(failed.status)} icon="alert-triangle" title="Warranty unavailable" />
+      <StatusPage code={String(guides.status)} icon="alert-triangle" title="Warranty unavailable" />
     );
   }
 
-  const faq = faqEntries(purchase.data, inspection.data.grading).filter(
-    (entry) => entry.onWarrantyPage,
-  );
+  const { purchase, inspection } = guides.data;
+  const faq = faqEntries(purchase, inspection.grading).filter((entry) => entry.onWarrantyPage);
 
-  return <ApexShieldGuide warranties={purchase.data.warranties} faq={faq} />;
+  return <ApexShieldGuide warranties={purchase.warranties} faq={faq} />;
 }

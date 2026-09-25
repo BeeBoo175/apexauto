@@ -3,10 +3,11 @@ import { HelpCenter } from "@/components/guide/HelpCenter";
 import { StatusPage } from "@/components/ui/StatusPage";
 import { formatCurrency } from "@/lib/currency-format";
 import { faqEntries } from "@/lib/guide/faq-items";
-import { parseInspectionGuide } from "@/lib/guide/inspection-points";
-import { parsePurchaseGuide } from "@/lib/guide/purchase-guide";
-import { requestApiJson } from "@/lib/server/http/api";
+import { readGuides } from "@/lib/guide/guide-reads";
 import { RESERVATION_DEPOSIT } from "@/lib/vehicles/deposit-terms";
+
+// Guide content is cached for an hour (PUBLIC_CONTENT_REVALIDATE_SECONDS).
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "FAQ — ApexAuto",
@@ -14,16 +15,14 @@ export const metadata: Metadata = {
 };
 
 export default async function HelpPage() {
-  const [purchase, inspection] = await Promise.all([
-    requestApiJson("/api/purchase-guide", parsePurchaseGuide),
-    requestApiJson("/api/inspection-guide", parseInspectionGuide),
-  ]);
-  if (!purchase.data || !inspection.data) {
-    const failed = purchase.data ? inspection : purchase;
+  const guides = await readGuides();
+  if (!guides.data) {
     return (
-      <StatusPage code={String(failed.status)} icon="alert-triangle" title="Help unavailable" />
+      <StatusPage code={String(guides.status)} icon="alert-triangle" title="Help unavailable" />
     );
   }
 
-  return <HelpCenter faqEntries={faqEntries(purchase.data, inspection.data.grading)} />;
+  const { purchase, inspection } = guides.data;
+
+  return <HelpCenter faqEntries={faqEntries(purchase, inspection.grading)} />;
 }
