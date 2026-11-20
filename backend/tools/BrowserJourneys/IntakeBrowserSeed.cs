@@ -133,9 +133,12 @@ internal static class IntakeBrowserSeed
         await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
         await using var scope = provider.CreateAsyncScope();
         var reports = await scope.ServiceProvider.GetRequiredService<DevelopmentFixtureRunner>().SeedAsync(target, CancellationToken.None);
-        if (reports.Any(report => report.RequiresAttention))
+        var drift = reports.Where(report => report.RequiresAttention)
+            .Select(report => $"{report.Fixture}: {report.State}").ToArray();
+        if (drift.Length > 0)
         {
-            throw new InvalidOperationException("Canonical browser fixture initialization reported drift.");
+            throw new InvalidOperationException(
+                $"Canonical browser fixture initialization reported drift: {string.Join("; ", drift)}");
         }
     }
 

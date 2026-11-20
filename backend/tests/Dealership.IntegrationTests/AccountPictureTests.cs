@@ -10,6 +10,32 @@ namespace Dealership.IntegrationTests;
 public sealed class AccountPictureTests(IntakePhotoFixture fixture) : IClassFixture<IntakePhotoFixture>
 {
     [Fact]
+    public async Task HistoricalApplicationClockDoesNotExpireANewPictureUpload()
+    {
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+        await IntakePhotoFixture.RegisterAsync(client);
+        var profile = (await client.GetFromJsonAsync<AccountProfile>("/api/account/profile"))!;
+
+        using var historicalFactory = fixture.CreateFactory(clock: new HistoricalClock());
+        using var scope = historicalFactory.Services.CreateScope();
+        var pictures = scope.ServiceProvider.GetRequiredService<AccountPictureService>();
+        var pictureId = Guid.NewGuid();
+        using var image = new MemoryStream(Image(SKEncodedImageFormat.Jpeg, 40, 40));
+
+        var uploaded = await pictures.UploadAsync(profile.UserId, pictureId, "image/jpeg", image, CancellationToken.None);
+        var receipt = await pictures.GetReceiptAsync(profile.UserId, pictureId, CancellationToken.None);
+
+        Assert.Equal(AccountPictureStatus.Available, uploaded.Status);
+        Assert.Equal(uploaded, receipt);
+    }
+
+    private sealed class HistoricalClock : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => DateTimeOffset.UtcNow.AddDays(-7);
+    }
+
+    [Fact]
     public async Task OwnerUploadsThumbnailStaffViewAndOnlyOwnerOrAdministratorRemoves()
     {
         using var factory = fixture.CreateFactory();

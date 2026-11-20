@@ -1,6 +1,5 @@
 using Dealership.Application.Accounts;
 using Dealership.Domain.Accounts;
-using Dealership.Domain.Common;
 using Dealership.Domain.Photos;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Photos;
@@ -8,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dealership.Infrastructure.Accounts;
 
-public sealed class AccountPictureStore(DealershipDbContext database, TimeProvider clock, PhotoCleanupSignal cleanup)
+public sealed class AccountPictureStore(DealershipDbContext database, PhotoCleanupSignal cleanup)
     : IAccountPictureStore
 {
     public async Task<AccountPicture?> FindAsync(Guid userId, CancellationToken cancellationToken)
@@ -48,7 +47,8 @@ public sealed class AccountPictureStore(DealershipDbContext database, TimeProvid
                 : new AccountPicturePreparation(AccountPictureStatus.Conflict);
         }
 
-        var pending = new AccountPicture(pictureId, userId, content, ReceiptTime(), lifetime);
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        var pending = new AccountPicture(pictureId, userId, content, now, lifetime);
         database.AccountPictures.Add(pending);
         await database.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -176,7 +176,8 @@ public sealed class AccountPictureStore(DealershipDbContext database, TimeProvid
             return new AccountPicturePreparation(AccountPictureStatus.Available, picture);
         }
 
-        return picture.IsExpired(clock.GetUtcNow())
+        var now = await database.DatabaseNowAsync(cancellationToken);
+        return picture.IsExpired(now)
             ? new AccountPicturePreparation(AccountPictureStatus.NotFound)
             : new AccountPicturePreparation(AccountPictureStatus.Pending, picture);
     }
@@ -207,7 +208,4 @@ public sealed class AccountPictureStore(DealershipDbContext database, TimeProvid
             $"SELECT * FROM \"AspNetUsers\" WHERE \"Id\" = {userId} AND \"ClosedAt\" IS NULL FOR SHARE")
             .AsNoTracking().AnyAsync(cancellationToken);
     }
-
-    // PostgreSQL stores microseconds; the first response must match persisted replay receipts exactly.
-    private DateTimeOffset ReceiptTime() => UtcTime.TruncateToMicroseconds(clock.GetUtcNow());
 }
