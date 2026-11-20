@@ -7,7 +7,7 @@ import {
   parseRemovedPicture,
 } from "@/lib/profile/contracts";
 import { privateApiFetch } from "@/lib/api-browser";
-import { PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
+import { PHOTO_UPLOAD_MAX_BYTES } from "@/lib/intake/contracts";
 
 // The owner replaces or removes the picture they see. An upload keeps one id per chosen file so a replay
 // reconciles instead of duplicating, and a removal names the displayed picture so a replacement is never removed.
@@ -59,8 +59,8 @@ export function useAccountPicture(accountId: string, initialPictureId: string | 
       error("Choose a JPEG, PNG or WebP picture.");
       return;
     }
-    if (file.size > PHOTO_MAX_BYTES) {
-      error("Choose a picture under 10 MiB.");
+    if (file.size > PHOTO_UPLOAD_MAX_BYTES) {
+      error("Choose a picture no larger than 4 MiB.");
       return;
     }
     const chosen =

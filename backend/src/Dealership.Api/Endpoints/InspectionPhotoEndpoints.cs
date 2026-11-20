@@ -52,11 +52,11 @@ public static class InspectionPhotoEndpoints
             var size = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
             if (size is { IsReadOnly: false })
             {
-                size.MaxRequestBodySize = PhotoContent.MaximumBytes;
+                size.MaxRequestBodySize = PhotoTemporaryFile.UploadMaximumBytes;
             }
-            if (context.Request.ContentLength > PhotoContent.MaximumBytes)
+            if (context.Request.ContentLength > PhotoTemporaryFile.UploadMaximumBytes)
             {
-                return Results.Problem(statusCode: 413, title: "Photo exceeds 10 MiB.");
+                return Results.Problem(statusCode: 413, title: PhotoTemporaryFile.UploadTooLargeMessage);
             }
 
             await using var file = PhotoTemporaryFile.Create();

@@ -1,7 +1,7 @@
 import "server-only";
 import { isUuid } from "@/lib/auth/contracts";
 import { HttpError, parseRetryAfterSeconds, readBoundedBytes } from "@/lib/http";
-import { PHOTO_DEADLINE_MS, PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
+import { PHOTO_DEADLINE_MS, PHOTO_MAX_BYTES, PHOTO_UPLOAD_MAX_BYTES } from "@/lib/intake/contracts";
 import { apiError, apiJson, requestApiJson, sessionToken } from "@/lib/server/http/api";
 import { requireSameOrigin } from "@/lib/server/http/request";
 import { confirmedActor } from "@/lib/server/http/staff-relay";
@@ -38,7 +38,7 @@ export async function uploadOwnPicture(request: Request, pictureId: string) {
     if (!PICTURE_CONTENT_TYPES.includes(contentType)) {
       throw new HttpError(415, "Choose a JPEG, PNG or WebP picture.");
     }
-    const bytes = await readBoundedBytes(request.body, signal, PHOTO_MAX_BYTES);
+    const bytes = await readBoundedBytes(request.body, signal, PHOTO_UPLOAD_MAX_BYTES);
     const result = await requestApiJson(
       `/api/accounts/me/picture/${pictureId}`,
       parsePictureReceipt,

@@ -41,7 +41,7 @@ export function FindingPhotos({
                 Add evidence
               </Button>
               <span id={formatHelpId} className={styles.help}>
-                JPEG, PNG or WebP · up to 10 MiB
+                JPEG, PNG or WebP · up to 4 MiB
               </span>
             </>
           )}
@@ -79,7 +79,7 @@ export function FindingPhotos({
               ref={fileInput}
               id={`photo-${pointCode}`}
               type="file"
-              label="Add JPEG, PNG or WebP (up to 10 MiB)"
+              label="Add JPEG, PNG or WebP (up to 4 MiB)"
               accept="image/jpeg,image/png,image/webp"
               disabled={disabled || photo.busy || photo.uncertain}
               onChange={(event) => {

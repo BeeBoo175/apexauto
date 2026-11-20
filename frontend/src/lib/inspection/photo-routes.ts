@@ -6,7 +6,7 @@ import { requireSameOrigin } from "@/lib/server/http/request";
 import { confirmedActor } from "@/lib/server/http/staff-relay";
 import { requestApiJson, sessionToken } from "@/lib/server/http/api";
 import { apiError, apiJson } from "@/lib/server/http/api";
-import { PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
+import { PHOTO_MAX_BYTES, PHOTO_UPLOAD_MAX_BYTES } from "@/lib/intake/contracts";
 import { parsePhoto } from "./parse-report";
 
 export async function inspectionPhoto(request: Request, inspectionId: string, id: string) {
@@ -37,7 +37,7 @@ export async function inspectionPhoto(request: Request, inspectionId: string, id
       if (!["image/jpeg", "image/png", "image/webp"].includes(contentType)) {
         throw new HttpError(415, "Choose a JPEG, PNG or WebP photo.");
       }
-      const bytes = await readBoundedBytes(request.body, signal, PHOTO_MAX_BYTES);
+      const bytes = await readBoundedBytes(request.body, signal, PHOTO_UPLOAD_MAX_BYTES);
       const query = new URLSearchParams({ pointCode, assignmentVersion: String(version) });
       const result = await requestApiJson(
         `${path}?${query}`,

@@ -124,7 +124,7 @@ test("inspection claim, retained draft/photo, exact reconciliation, signed repor
     .getByLabel("EP-004 finding notes", { exact: true })
     .fill("Bumper scuff requires paint repair.");
   await page
-    .getByLabel("Add JPEG, PNG or WebP (up to 10 MiB)", { exact: true })
+    .getByLabel("Add JPEG, PNG or WebP (up to 4 MiB)", { exact: true })
     .setInputFiles(path.join(evidence, "upload.jpg"));
   await page.getByRole("button", { name: "Upload photo", exact: true }).click();
   await expect(page.getByText("Private evidence · 1 of 4 photos", { exact: true })).toBeVisible();

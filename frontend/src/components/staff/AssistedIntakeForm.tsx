@@ -166,7 +166,7 @@ export function AssistedIntakeForm({
             <h3>Exterior photos</h3>
             <p className={forms.hint}>
               {customer
-                ? "Four angles, up to 10 MiB each. They upload when you book."
+                ? "Four angles, up to 4 MiB each. They upload when you book."
                 : "Choose the customer before adding photos."}
             </p>
             <div className={sell.uploadGrid}>

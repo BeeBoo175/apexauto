@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { privateApiFetch } from "@/lib/api-browser";
-import { PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
+import { PHOTO_UPLOAD_MAX_BYTES } from "@/lib/intake/contracts";
 import { matchesListingUpload, parseListingPhotoReceipt } from "@/lib/vehicles/listing-photos";
 import { useEditGuard } from "./use-edit-guard";
 
@@ -23,10 +23,10 @@ export function useListingUpload(vehicleId: string, onConfirmed: (id: string) =>
     }
     if (
       selected.size === 0 ||
-      selected.size > PHOTO_MAX_BYTES ||
+      selected.size > PHOTO_UPLOAD_MAX_BYTES ||
       !["image/jpeg", "image/png", "image/webp"].includes(selected.type)
     ) {
-      toast.error("Choose a JPEG, PNG or WebP photo no larger than 10 MiB.");
+      toast.error("Choose a JPEG, PNG or WebP photo no larger than 4 MiB.");
       return false;
     }
     operation.current = { id: crypto.randomUUID(), file: selected };

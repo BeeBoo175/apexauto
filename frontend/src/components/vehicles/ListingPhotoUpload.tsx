@@ -39,7 +39,7 @@ export function ListingPhotoUpload({
             variant="secondary"
             disabled={disabled}
             aria-describedby={helpId}
-            title="JPEG, PNG or WebP · up to 10 MiB"
+            title="JPEG, PNG or WebP · up to 4 MiB"
             onClick={() => fileInput.current?.click()}
           >
             Upload
@@ -84,7 +84,7 @@ export function ListingPhotoUpload({
         </div>
       )}
       <span id={helpId} className="sr-only">
-        JPEG, PNG or WebP, up to 10 MiB.
+        JPEG, PNG or WebP, up to 4 MiB.
       </span>
     </div>
   );

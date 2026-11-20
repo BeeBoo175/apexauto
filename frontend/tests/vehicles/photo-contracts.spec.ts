@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { readBoundedBytes } from "@/lib/http";
+import { PHOTO_UPLOAD_MAX_BYTES } from "@/lib/intake/contracts";
 import {
   parseListingPhotos,
   parseListingPhotoReceipt,
@@ -21,6 +23,19 @@ const photo = {
   createdAt: "2026-10-27T00:00:00+00:00",
   availableAt: "2026-10-27T00:00:01+00:00",
 };
+
+test("photo request bodies accept 4 MiB and reject one additional byte", async () => {
+  const maximumBytes = 4 * 1024 * 1024;
+  const signal = new AbortController().signal;
+  const accepted = new Response(new Uint8Array(maximumBytes));
+  const rejected = new Response(new Uint8Array(maximumBytes + 1));
+
+  const bytes = await readBoundedBytes(accepted.body, signal, PHOTO_UPLOAD_MAX_BYTES);
+  expect(bytes.byteLength).toBe(maximumBytes);
+  await expect(
+    readBoundedBytes(rejected.body, signal, PHOTO_UPLOAD_MAX_BYTES),
+  ).rejects.toMatchObject({ status: 413 });
+});
 
 test("uploaded photo pages validate bounded metadata and omit private fields", () => {
   const page = { items: [{ ...photo, actorId: ids[1] }], total: 12, page: 2, pageSize: 10 };

@@ -292,7 +292,7 @@ function SellerWorkflow({
           <div hidden={step !== 2} className={styles.stepPane}>
             <div className={`${styles.stack} ${styles.formFill}`}>
               <p className={styles.intro}>
-                Add 4 clear exterior angles (JPEG, PNG or WebP, max 10 MiB each). Photos upload
+                Add 4 clear exterior angles (JPEG, PNG or WebP, max 4 MiB each). Photos upload
                 automatically when you choose an appointment.
               </p>
               {initial.staffNotice?.assisted && (

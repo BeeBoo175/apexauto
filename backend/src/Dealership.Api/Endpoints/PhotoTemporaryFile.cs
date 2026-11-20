@@ -1,9 +1,10 @@
-using Dealership.Domain.Photos;
-
 namespace Dealership.Api.Endpoints;
 
 internal static class PhotoTemporaryFile
 {
+    public const int UploadMaximumBytes = 4 * 1024 * 1024;
+    public const string UploadTooLargeMessage = "Photo exceeds 4 MiB.";
+
     public static FileStream Create()
     {
         var options = new FileStreamOptions
@@ -39,9 +40,9 @@ internal static class PhotoTemporaryFile
 
             total += read;
 
-            if (total > PhotoContent.MaximumBytes)
+            if (total > UploadMaximumBytes)
             {
-                throw new BadHttpRequestException("Photo exceeds 10 MiB.", StatusCodes.Status413PayloadTooLarge);
+                throw new BadHttpRequestException(UploadTooLargeMessage, StatusCodes.Status413PayloadTooLarge);
             }
 
             await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);

@@ -36,12 +36,12 @@ public static class AccountPictureEndpoints
 
         if (sizeFeature is { IsReadOnly: false })
         {
-            sizeFeature.MaxRequestBodySize = PhotoContent.MaximumBytes;
+            sizeFeature.MaxRequestBodySize = PhotoTemporaryFile.UploadMaximumBytes;
         }
 
-        if (context.Request.ContentLength > PhotoContent.MaximumBytes)
+        if (context.Request.ContentLength > PhotoTemporaryFile.UploadMaximumBytes)
         {
-            return Results.Problem(statusCode: 413, title: "Picture exceeds 10 MiB.");
+            return Results.Problem(statusCode: 413, title: PhotoTemporaryFile.UploadTooLargeMessage);
         }
 
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

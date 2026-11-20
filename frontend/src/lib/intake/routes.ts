@@ -4,7 +4,7 @@ import { assistedCustomerId, requireSameOrigin } from "@/lib/server/http/request
 import { isRecord, isUuid } from "@/lib/auth/contracts";
 import { requestApiJson, sessionToken, apiJson, apiError } from "@/lib/server/http/api";
 import { API_DEADLINE_MS } from "@/lib/api";
-import { PHOTO_DEADLINE_MS, PHOTO_MAX_BYTES, angles } from "./contracts";
+import { PHOTO_DEADLINE_MS, PHOTO_UPLOAD_MAX_BYTES, angles } from "./contracts";
 import { confirmedActor } from "@/lib/server/http/staff-relay";
 import { parseIntakeConflict } from "./errors";
 
@@ -82,7 +82,7 @@ export async function relayPhoto(request: Request, id: string, parse: (value: un
     if (!contentType || !["image/jpeg", "image/png", "image/webp"].includes(contentType)) {
       throw new HttpError(415, "Choose a JPEG, PNG or WebP photo.");
     }
-    const bytes = await readBoundedBytes(request.body, signal, PHOTO_MAX_BYTES);
+    const bytes = await readBoundedBytes(request.body, signal, PHOTO_UPLOAD_MAX_BYTES);
     const result = await requestApiJson(
       `/api/intake/photos/${id}?angle=${angle}`,
       parse,

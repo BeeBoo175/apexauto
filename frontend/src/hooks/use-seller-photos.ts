@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api-browser";
 import { parsePhoto } from "@/lib/intake/parse";
-import { PHOTO_DEADLINE_MS, PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
+import { PHOTO_DEADLINE_MS, PHOTO_UPLOAD_MAX_BYTES } from "@/lib/intake/contracts";
 import type { PhotoAngle, PhotoReceipt } from "@/lib/intake/contracts";
 import { useToast } from "@/components/ui/Toast";
 import { assistedHeaders } from "@/lib/staff/assisted-customer";
@@ -57,10 +57,10 @@ export function useSellerPhoto(
       return;
     }
     if (
-      selected.size > PHOTO_MAX_BYTES ||
+      selected.size > PHOTO_UPLOAD_MAX_BYTES ||
       !["image/jpeg", "image/png", "image/webp"].includes(selected.type)
     ) {
-      error("Choose a JPEG, PNG or WebP photo no larger than 10 MiB.");
+      error("Choose a JPEG, PNG or WebP photo no larger than 4 MiB.");
       return;
     }
     setFile(selected);

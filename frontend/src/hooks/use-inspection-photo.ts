@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { inspectionFetch } from "@/lib/inspection/browser";
 import { parsePhoto } from "@/lib/inspection/parse-report";
-import { PHOTO_MAX_BYTES } from "@/lib/intake/contracts";
+import { PHOTO_UPLOAD_MAX_BYTES } from "@/lib/intake/contracts";
 import type { PhotoReceipt } from "@/lib/inspection/report-contracts";
 import { useToast } from "@/components/ui/Toast";
 import { useEditGuard } from "./use-edit-guard";
@@ -35,10 +35,10 @@ export function useInspectionPhoto(
       return;
     }
     if (
-      file.size > PHOTO_MAX_BYTES ||
+      file.size > PHOTO_UPLOAD_MAX_BYTES ||
       !["image/jpeg", "image/png", "image/webp"].includes(file.type)
     ) {
-      toast.error("Choose a JPEG, PNG or WebP photo no larger than 10 MiB.");
+      toast.error("Choose a JPEG, PNG or WebP photo no larger than 4 MiB.");
       return;
     }
     operation.current = { id: crypto.randomUUID(), file };
