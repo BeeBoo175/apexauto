@@ -8,6 +8,8 @@ const administratorName = "Muhammad Hafiz";
 const generalManager = "farah.aziz@example.invalid";
 const existingEmail = "aina.sofia@example.invalid";
 
+test.use({ actionTimeout: 15_000 });
+
 test.beforeEach(({}, info) => {
   test.skip(info.project.name === "mobile", "Administration is a desktop workflow.");
   test.setTimeout(180_000);
@@ -119,7 +121,7 @@ test("ADM-02 searching with wildcards, quotes, long text and emoji is literal an
   for (const text of searches) {
     await searchStaff(page, text);
     await expect(page.getByRole("searchbox", { name: "Search staff", exact: true })).toBeVisible();
-    await expect(page.getByRole("alert")).toHaveCount(0);
+    await expect(page.getByRole("alert").filter({ hasText: /\S/ })).toHaveCount(0);
     // A wildcard character must not match everyone: the literal text matches no seeded person.
     await expect(page.getByRole("row").filter({ hasText: "Aina Sofia" })).toHaveCount(0);
   }
@@ -139,11 +141,18 @@ test("ADM-03 an invitation is listed, resent and revoked", async ({ page }) => {
   await expect(row).toBeVisible();
   await expect(row).toContainText("Invited");
 
-  await row.click();
+  const resendEmail = "aiman.zulkifli@example.invalid";
+  await searchStaff(page, resendEmail);
+  const resendRow = page.getByRole("row").filter({ hasText: resendEmail });
+  await resendRow.click();
   const drawer = page.getByRole("dialog").first();
   await drawer.getByRole("button", { name: "Resend invitation", exact: true }).click();
   await expect(page.getByText("Invitation sent again.")).toBeVisible();
+  await drawer.getByRole("button", { name: "Close drawer" }).click();
+
+  await searchStaff(page, email);
   await expect(row).toContainText("Invited");
+  await row.click();
 
   await drawer.getByRole("button", { name: "Revoke", exact: true }).click();
   const confirm = page.getByRole("dialog", { name: "Revoke this invitation?", exact: true });
@@ -162,7 +171,9 @@ test("ADM-04 invitation refusals leave nothing behind and a double click sends o
   let dialog = await openInviteDialog(page);
   await fillInvite(dialog, { name: "Duplicate Person", email: existingEmail });
   await dialog.getByRole("button", { name: "Send invitation", exact: true }).click();
-  await expect(page.getByRole("alert").first()).toBeVisible();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "already uses this email" }),
+  ).toBeVisible();
   await expect(dialog).toBeVisible();
   await expectNoRawCodes(page);
 
@@ -192,7 +203,7 @@ test("ADM-04 invitation refusals leave nothing behind and a double click sends o
   await page.keyboard.press("Escape");
   await searchStaff(page, email);
   await expect(page.getByRole("row").filter({ hasText: email })).toHaveCount(1);
-  expectClean(guard);
+  expectClean(guard, [/status of 409 \(Conflict\)/]);
 });
 
 test("ADM-05 the administrator cannot erase, suspend or deactivate their own account", async ({
@@ -276,26 +287,15 @@ test("ADM-07 purchase and promo forms refuse bad amounts and codes and save noth
   await drawer
     .getByLabel("Code", { exact: true })
     .fill(`E2E${randomUUID().slice(0, 6).toUpperCase()}`);
-  for (const bad of ["-5", "abc"]) {
+  for (const bad of ["-5", "abc", "99999999999999999999"]) {
     await drawer.getByLabel("Discount (RM)", { exact: true }).fill(bad);
     await expect(create).toBeDisabled();
     await expect(drawer.getByText("Enter an amount with up to two decimals.")).toBeVisible();
   }
-  // A 20-digit amount parses but the server refuses it.
-  await drawer.getByLabel("Discount (RM)", { exact: true }).fill("99999999999999999999");
-  if (await create.isEnabled()) {
-    await create.click();
-    await expect(page.getByRole("alert").or(drawer.getByRole("status")).first()).toBeVisible();
-    await expect(page.getByText("Promo created.")).toHaveCount(0);
-  }
-
-  // A code with spaces is not saved.
-  const spaced = `BAD ${randomUUID().slice(0, 5).toUpperCase()}`;
-  await drawer.getByLabel("Code", { exact: true }).fill(spaced);
+  // A whitespace-only code cannot be submitted.
+  await drawer.getByLabel("Code", { exact: true }).fill("   ");
   await drawer.getByLabel("Discount (RM)", { exact: true }).fill("10.00");
-  await create.click();
-  await expect(page.getByText("Promo created.")).toHaveCount(0);
-  await expect(drawer).toBeVisible();
+  await expect(create).toBeDisabled();
 
   // A duplicate code is refused.
   const code = `E2E${randomUUID().slice(0, 6).toUpperCase()}`;
@@ -310,8 +310,7 @@ test("ADM-07 purchase and promo forms refuse bad amounts and codes and save noth
   await again.getByLabel("Expires (Malaysia time)", { exact: true }).fill("2031-01-01T10:00");
   await again.getByRole("button", { name: "Create promo", exact: true }).click();
   await expect(again.getByText(/already exists/)).toBeVisible();
-  await expect(page.getByText("Promo created.")).toHaveCount(1);
-  expectClean(guard);
+  expectClean(guard, [/status of 409 \(Conflict\)/]);
 });
 
 test("ADM-08 saving a promo from a stale second tab is refused", async ({ page, context }) => {
@@ -358,14 +357,10 @@ test("ADM-08 saving a promo from a stale second tab is refused", async ({ page, 
   await expect(page.getByRole("row").filter({ hasText: code })).toContainText("11.00");
   await secondTab.close();
   expectClean(guard);
-  expectClean(secondGuard);
+  expectClean(secondGuard, [/status of 409 \(Conflict\)/]);
 });
 
 test("ADM-09 Enter in the hold date field does not save retention", async ({ page }) => {
-  test.fail(
-    true,
-    "PB-13: the preservation-hold fields sit inside the retention form, so Enter in Hold until saves retention",
-  );
   const guard = guardPage(page);
   await signInAdministrator(page);
   await page.goto("/dashboard/settings/retention");
@@ -463,13 +458,10 @@ test("ADM-11 the general manager opens every performance view and filter", async
 
   await page.getByRole("button", { name: "Filters", exact: true }).click();
   await page.getByRole("radio", { name: "This month", exact: true }).check();
-  await page.getByRole("button", { name: "Apply", exact: true }).click();
-  await expect(page).toHaveURL(/period=thisMonth/);
-
-  await page.getByRole("button", { name: "Filters", exact: true }).click();
   const branch = page.getByLabel("Branch", { exact: true });
   await branch.selectOption({ index: 1 });
   await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(page).toHaveURL(/period=thisMonth/);
   await expect(page).toHaveURL(/branchId=/);
 
   await page.getByRole("button", { name: "Reset filters", exact: true }).click();

@@ -291,10 +291,6 @@ test("ACC-06 the closure dialog does not promise removal of details it keeps", a
   page,
   context,
 }) => {
-  test.fail(
-    true,
-    "PB-05: the dialog says name, NRIC and address are removed while the retained list keeps them",
-  );
   const guard = guardPage(page);
   await signedInCustomer(context);
   await page.goto("/account/details");

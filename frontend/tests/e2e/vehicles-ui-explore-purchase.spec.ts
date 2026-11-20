@@ -741,10 +741,6 @@ test("BUY-11 a customer with a staff-made deposit request sees it waiting in the
   page,
   context,
 }) => {
-  test.fail(
-    true,
-    "PB-14: a staff-made pending deposit request refuses a new reservation as an active reservation while the account shows none",
-  );
   test.setTimeout(120_000);
   const guard = guardPage(page);
   await apiLogin(context, customers.waitingRequest);

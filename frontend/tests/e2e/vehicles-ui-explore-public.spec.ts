@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { calendarDayLabel } from "@/lib/calendar";
 import { expectClean, expectNoSidewaysScroll, guardPage } from "./explore-guards";
 
 const origin = process.env.APP_BASE_URL!;
@@ -541,10 +542,6 @@ test("PUB-07 vehicle page totals add up, sections update the URL, thumbnails cha
 });
 
 test("PUB-08 the card's monthly estimate matches the vehicle page", async ({ page }) => {
-  test.fail(
-    true,
-    "PB-08: the card estimates from the vehicle price, the page from the on-the-road total",
-  );
   const guard = guardPage(page);
   await openCatalogue(page);
 
@@ -619,10 +616,6 @@ test("PUB-09 erratic: promo codes are refused or applied clearly, and removal re
 });
 
 test("PUB-09 the promo discount row carries a minus sign", async ({ page }) => {
-  test.fail(
-    true,
-    "PB-07: the promo discount row shows mis-encoded characters instead of a minus sign",
-  );
   const guard = guardPage(page);
   await openFirstCar(page);
 
@@ -667,7 +660,6 @@ test("PUB-10 a visitor who presses Reserve signs in and returns to the same car"
 });
 
 test("PUB-11 the home page showroom counts match the showrooms page", async ({ page }) => {
-  test.fail(true, "PB-09: the home page counts cars from only the first 12 in the catalogue");
   test.setTimeout(120_000);
   const guard = guardPage(page);
 
@@ -708,10 +700,6 @@ test("PUB-11 the home page showroom counts match the showrooms page", async ({ p
 test("PUB-12 'Plan a visit' for a non-first showroom opens the showrooms page on it", async ({
   page,
 }) => {
-  test.fail(
-    true,
-    "PB-11: /branches ignores the branch id, so it always opens on the first showroom",
-  );
   const guard = guardPage(page);
 
   await page.goto("/");
@@ -721,12 +709,13 @@ test("PUB-12 'Plan a visit' for a non-first showroom opens the showrooms page on
   const shortLabel = label.replace(/^02 /, "").replace(/ showroom$/, "");
   await second.click();
 
-  const plan = page.getByRole("link", { name: "Plan a visit" });
+  const panel = page.getByRole("listitem").filter({ has: second });
+  const plan = panel.getByRole("link", { name: "Plan a visit", exact: true });
   const href = (await plan.getAttribute("href"))!;
-  expect(href).toMatch(/^\/branches\?branch=[0-9a-f-]{36}$/);
+  expect(href).toMatch(/^\/branches\?branchId=[0-9a-f-]{36}$/);
   await plan.click();
 
-  await expect(page).toHaveURL(/\/branches\?branch=/);
+  await expect(page).toHaveURL(/\/branches\?branchId=/);
   await expect(
     page.getByRole("button", { name: `${shortLabel} showroom`, exact: true }),
   ).toHaveAttribute("aria-expanded", "true");
@@ -739,7 +728,6 @@ test("PUB-12 'Plan a visit' for a non-first showroom opens the showrooms page on
 test("PUB-13 'Book appraisal' carries the chosen showroom, day and bay to the seller form", async ({
   page,
 }) => {
-  test.fail(true, "PB-10: Book appraisal is a plain link to /sell and drops the choice");
   test.setTimeout(120_000);
   const guard = guardPage(page);
   await page.goto("/branches");
@@ -747,14 +735,22 @@ test("PUB-13 'Book appraisal' carries the chosen showroom, day and bay to the se
   const book = page.getByRole("link", { name: "Book appraisal", exact: true });
   await expect(book).toHaveAttribute("aria-disabled", "true");
 
-  const days = page.locator('[role="group"][aria-label="Day"] button');
-  const slotsResponse = page.waitForResponse((response) =>
-    response.url().includes("/api/intake/slots"),
-  );
-  await days.nth(2).click();
-  const slotsUrl = new URL((await slotsResponse).url());
+  const day = page.getByRole("group", { name: "Day", exact: true }).getByRole("button").nth(2);
+  const dayLabel = await day.getAttribute("aria-label");
+  const slotsResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    const date = url.searchParams.get("date");
+    return (
+      url.pathname === "/api/intake/slots" && date !== null && calendarDayLabel(date) === dayLabel
+    );
+  });
+  await day.click();
+  const response = await slotsResponse;
+  expect(response.ok()).toBe(true);
+  await expect(day).toHaveAttribute("aria-pressed", "true");
+  const slotsUrl = new URL(response.url());
   const branchId = slotsUrl.searchParams.get("branchId")!;
-  const date = slotsUrl.searchParams.get("date")!;
+  const { data: offer } = await response.json();
 
   const bays = page.locator('[role="group"][aria-label="Time"] button');
   await expect(bays.first()).toBeVisible();
@@ -762,9 +758,12 @@ test("PUB-13 'Book appraisal' carries the chosen showroom, day and bay to the se
   await expect(bays.first()).toHaveAttribute("aria-pressed", "true");
   await expect(book).not.toHaveAttribute("aria-disabled", "true");
 
-  const href = decodeURIComponent((await book.getAttribute("href"))!);
-  expect(href).toContain(branchId);
-  expect(href).toContain(date);
+  const target = new URL((await book.getAttribute("href"))!, origin);
+  expect(target.pathname).toBe("/sell");
+  expect(target.searchParams.get("branchId")).toBe(branchId);
+  expect(target.searchParams.get("startsAt")).toBe(offer.slots[0].startsAt);
+  await book.click();
+  await expect(page).toHaveURL(target.href);
 
   expectClean(guard);
 });
