@@ -35,17 +35,7 @@ public sealed class S3PhotoStorageCompatibilityTests
             : intakePhoto;
         var settings = Settings();
         using var handler = new StorageHandler(bytes, corruptReadBack);
-        using var client = new AmazonS3Client(new BasicAWSCredentials(settings.AccessKey, settings.SecretKey),
-            new AmazonS3Config
-            {
-                ServiceURL = settings.ServiceURL,
-                AuthenticationRegion = settings.Region,
-                ForcePathStyle = settings.ForcePathStyle,
-                RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
-                ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED,
-                MaxErrorRetry = 0,
-                HttpClientFactory = new TestClientFactory(() => new HttpClient(handler, disposeHandler: false))
-            });
+        using var client = Client(settings, handler);
         var storage = new S3PhotoStorage(client, settings);
         using var input = new MemoryStream(bytes);
 
@@ -61,9 +51,9 @@ public sealed class S3PhotoStorageCompatibilityTests
         Assert.Equal([HttpMethod.Put, HttpMethod.Get], handler.Methods);
         Assert.Equal(bytes, handler.UploadedBytes);
         Assert.Equal($"/{settings.BucketName}/{photo.ObjectKey}", handler.UploadPath);
-        Assert.Equal("*", handler.UploadHeaders["If-None-Match"]);
+        Assert.DoesNotContain("If-None-Match", handler.UploadHeaders.Keys, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("UNSIGNED-PAYLOAD", handler.UploadHeaders["x-amz-content-sha256"]);
-        Assert.Contains("/auto/s3/aws4_request", handler.UploadHeaders["Authorization"]);
+        Assert.Contains($"/{settings.Region}/s3/aws4_request", handler.UploadHeaders["Authorization"]);
         Assert.DoesNotContain(handler.UploadHeaders.Keys, name => name.StartsWith("x-amz-checksum-", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain("x-amz-sdk-checksum-algorithm", handler.UploadHeaders.Keys, StringComparer.OrdinalIgnoreCase);
         Assert.DoesNotContain("aws-chunked", handler.UploadHeaders.Values);
@@ -71,7 +61,27 @@ public sealed class S3PhotoStorageCompatibilityTests
     }
 
     [Fact]
-    public void CompositionAcceptsR2ConfigurationWithoutChangingApplicationServices()
+    public async Task RetryUploadsTheSameObjectAgainAndVerifiesItsReadBack()
+    {
+        byte[] bytes = "validated photo contents"u8.ToArray();
+        var photo = new EvidenceObject($"inspection/photos/{Guid.NewGuid():N}", "image/jpeg", bytes.Length,
+            Convert.ToHexStringLower(SHA256.HashData(bytes)));
+        var settings = Settings();
+        using var handler = new StorageHandler(bytes, corruptReadBack: false);
+        using var client = Client(settings, handler);
+        var storage = new S3PhotoStorage(client, settings);
+        using var input = new MemoryStream(bytes);
+
+        await storage.PutAsync(photo, input, CancellationToken.None);
+        input.Position = 0;
+        await storage.PutAsync(photo, input, CancellationToken.None);
+
+        Assert.Equal([HttpMethod.Put, HttpMethod.Get, HttpMethod.Put, HttpMethod.Get], handler.Methods);
+        Assert.Equal(bytes, handler.UploadedBytes);
+    }
+
+    [Fact]
+    public void CompositionAcceptsBackblazeConfigurationWithoutChangingApplicationServices()
     {
         var settings = Settings();
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
@@ -80,7 +90,7 @@ public sealed class S3PhotoStorageCompatibilityTests
             ["AWS:AccessKey"] = settings.AccessKey,
             ["AWS:SecretKey"] = settings.SecretKey,
             ["AWS:BucketName"] = settings.BucketName,
-            ["AWS:Region"] = "auto",
+            ["AWS:Region"] = settings.Region,
             ["AWS:ForcePathStyle"] = "true",
             ["IntakePhotos:UnsubmittedLifetimeHours"] = "24",
             ["IntakePhotos:CancelledRetentionDays"] = "30"
@@ -92,21 +102,36 @@ public sealed class S3PhotoStorageCompatibilityTests
         using var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredService<IAmazonS3>();
         Assert.Equal(settings.ServiceURL, client.Config.ServiceURL.TrimEnd('/'));
-        Assert.Equal("auto", client.Config.AuthenticationRegion);
+        Assert.Equal(settings.Region, client.Config.AuthenticationRegion);
         Assert.Equal(RequestChecksumCalculation.WHEN_REQUIRED, client.Config.RequestChecksumCalculation);
         Assert.Equal(ResponseChecksumValidation.WHEN_REQUIRED, client.Config.ResponseChecksumValidation);
         Assert.IsType<S3PhotoStorage>(provider.GetRequiredService<IPhotoStorage>());
+    }
+
+    private static AmazonS3Client Client(PhotoStorageSettings settings, HttpMessageHandler handler)
+    {
+        return new AmazonS3Client(new BasicAWSCredentials(settings.AccessKey, settings.SecretKey),
+            new AmazonS3Config
+            {
+                ServiceURL = settings.ServiceURL,
+                AuthenticationRegion = settings.Region,
+                ForcePathStyle = settings.ForcePathStyle,
+                RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
+                ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED,
+                MaxErrorRetry = 0,
+                HttpClientFactory = new TestClientFactory(() => new HttpClient(handler, disposeHandler: false))
+            });
     }
 
     private static PhotoStorageSettings Settings()
     {
         return new PhotoStorageSettings
         {
-            ServiceURL = "https://example-account.r2.cloudflarestorage.com",
+            ServiceURL = "https://s3.us-east-005.backblazeb2.com",
             AccessKey = "test-access",
             SecretKey = "test-secret",
             BucketName = "apexauto-photos",
-            Region = "auto",
+            Region = "us-east-005",
             ForcePathStyle = true
         };
     }

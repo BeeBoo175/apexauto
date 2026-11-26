@@ -1,4 +1,3 @@
-using System.Net;
 using System.Security.Cryptography;
 using Dealership.Application.Photos;
 using Dealership.Domain.Photos;
@@ -25,16 +24,12 @@ public sealed class S3PhotoStorage(IAmazonS3 client, PhotoStorageSettings settin
                 InputStream = content,
                 AutoCloseStream = false,
                 ContentType = photo.ContentType,
-                IfNoneMatch = "*",
                 UseChunkEncoding = false,
                 DisableDefaultChecksumValidation = true,
                 DisablePayloadSigning = new Uri(settings.ServiceURL).Scheme == Uri.UriSchemeHttps
             };
+            // Backblaze B2 rejects conditional PUT, so the photo transfer lock and receipt content match prevent overwrites.
             await client.PutObjectAsync(request, deadline.Token);
-        }
-        catch (AmazonS3Exception exception) when (exception.StatusCode is HttpStatusCode.PreconditionFailed or HttpStatusCode.Conflict)
-        {
-            // A lost acknowledgement may leave the exact immutable object already stored.
         }
         catch (Exception exception) when (IsProviderFailure(exception, cancellationToken))
         {
