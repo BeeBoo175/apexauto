@@ -1,6 +1,7 @@
 using Dealership.Domain.Photos;
 using System.Net;
 using System.Net.Http.Json;
+using Dealership.Api.Endpoints;
 using Dealership.Application.Accounts;
 using Dealership.Application.Intake;
 using Dealership.Infrastructure.Persistence;
@@ -115,7 +116,7 @@ public sealed class IntakePhotoTests(IntakePhotoFixture fixture) : IClassFixture
         Assert.Equal(HttpStatusCode.BadRequest,
             (await IntakePhotoFixture.UploadAsync(client, Guid.NewGuid(), bytes, "1")).StatusCode);
 
-        var maximum = new byte[PhotoContent.MaximumBytes];
+        var maximum = new byte[PhotoTemporaryFile.UploadMaximumBytes];
         bytes.CopyTo(maximum, 0);
         Assert.Equal(HttpStatusCode.OK,
             (await IntakePhotoFixture.UploadAsync(client, Guid.NewGuid(), maximum)).StatusCode);

@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Amazon.S3;
 using Amazon.S3.Model;
+using Dealership.Api.Endpoints;
 using Dealership.Application.Accounts;
 using Dealership.Application.Branches;
 using Dealership.Application.Inspections;
@@ -78,7 +79,7 @@ public sealed class InspectionPhotoTests(IntakePhotoFixture fixture) : IClassFix
         Assert.Equal(HttpStatusCode.BadRequest, (await UploadAsync(client, path, bytes, point: "EP-046")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await UploadAsync(client, path, "not an image"u8.ToArray())).StatusCode);
         Assert.Equal(HttpStatusCode.RequestEntityTooLarge,
-            (await UploadAsync(client, path, new byte[PhotoContent.MaximumBytes + 1])).StatusCode);
+            (await UploadAsync(client, path, new byte[PhotoTemporaryFile.UploadMaximumBytes + 1])).StatusCode);
         Assert.Equal(bytes, await client.GetByteArrayAsync(path));
 
         foreach (var reader in new[] { technicianId, managerId, groupId })
