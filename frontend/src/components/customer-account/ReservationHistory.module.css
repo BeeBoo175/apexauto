@@ -59,6 +59,35 @@
   grid-column: 3;
 }
 
+/* An issued document: the same surface as a history row, always open so its PDF link is in view. */
+.documentCard {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--color-line-soft);
+  border-radius: 8px;
+  background: var(--color-paper);
+}
+
+.documentCard h2 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.documentBody {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.documentBody p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
 .historyRow summary:hover {
   background: color-mix(in srgb, var(--color-canvas) 60%, var(--color-paper));
 }

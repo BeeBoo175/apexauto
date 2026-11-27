@@ -56,6 +56,19 @@
   line-height: 1.5;
 }
 
+.heroLink {
+  padding-block: 8px;
+  color: var(--color-paper);
+  font-size: 0.875rem;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.heroLink:focus-visible {
+  outline: 2px solid var(--color-paper);
+  outline-offset: 2px;
+}
+
 .tabsBand {
   position: sticky;
   top: var(--site-header-height);
