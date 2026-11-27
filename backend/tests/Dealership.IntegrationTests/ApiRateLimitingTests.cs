@@ -265,6 +265,9 @@ public sealed class ApiRateLimitingTests
     [InlineData("VerificationAttemptsPerWindow", 100001)]
     [InlineData("PhotoTransferConcurrency", 0)]
     [InlineData("PhotoTransferConcurrency", 1001)]
+    [InlineData("PhotoReadConcurrency", 0)]
+    [InlineData("PhotoReadQueueLimit", -1)]
+    [InlineData("PhotoReadQueueSeconds", 11)]
     [InlineData("PictureDownloadConcurrency", 0)]
     [InlineData("PictureDownloadConcurrency", 1001)]
     [InlineData("PictureDownloadQueueLimit", -1)]
@@ -287,7 +290,8 @@ public sealed class ApiRateLimitingTests
     public async Task PictureDownloadQueueAdmitsAFullPageBurstAndRejectsOnlyBeyondItsBound()
     {
         var settings = new RateLimitingSettings { PictureDownloadQueueSeconds = 10 };
-        using var limiter = new PictureDownloadRateLimiter(settings);
+        using var limiter = new QueuedDownloadRateLimiter(settings.PictureDownloadConcurrency,
+            settings.PictureDownloadQueueLimit, TimeSpan.FromSeconds(settings.PictureDownloadQueueSeconds));
         using var held = limiter.AttemptAcquire(settings.PictureDownloadConcurrency);
         Assert.True(held.IsAcquired);
         var queued = Enumerable.Range(0, settings.PictureDownloadQueueLimit)
@@ -311,12 +315,7 @@ public sealed class ApiRateLimitingTests
     [Fact]
     public async Task PictureDownloadCancellationAndQueueDeadlineReleaseTheirSlots()
     {
-        using var limiter = new PictureDownloadRateLimiter(new RateLimitingSettings
-        {
-            PictureDownloadConcurrency = 1,
-            PictureDownloadQueueLimit = 1,
-            PictureDownloadQueueSeconds = 1
-        });
+        using var limiter = new QueuedDownloadRateLimiter(1, 1, TimeSpan.FromSeconds(1));
         using var held = limiter.AttemptAcquire();
         using var caller = new CancellationTokenSource();
         var cancelled = limiter.AcquireAsync(cancellationToken: caller.Token).AsTask();
@@ -395,6 +394,25 @@ public sealed class ApiRateLimitingTests
             release.TrySetResult();
             using var completed = await held.WaitAsync(TimeSpan.FromSeconds(5));
         }
+    }
+
+    [Fact]
+    public void EveryPhotoViewQueuesWhileEveryPhotoUploadKeepsTheStrictTransferCap()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+        var photos = factory.Services.GetRequiredService<EndpointDataSource>().Endpoints.OfType<RouteEndpoint>()
+            .Where(endpoint => endpoint.RoutePattern.RawText!.Contains("photos", StringComparison.Ordinal) &&
+                endpoint.Metadata.GetMetadata<EnableRateLimitingAttribute>() is not null)
+            .Select(endpoint => (Read: endpoint.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods
+                    .Contains(HttpMethods.Get),
+                Policy: endpoint.Metadata.GetMetadata<EnableRateLimitingAttribute>()!.PolicyName))
+            .ToArray();
+
+        Assert.Contains(photos, item => item.Read);
+        Assert.Contains(photos, item => !item.Read);
+        Assert.All(photos, item => Assert.Equal(
+            item.Read ? ApiRateLimiting.PhotoReadPolicy : ApiRateLimiting.PhotoTransferPolicy, item.Policy));
     }
 
     // A one hour window refills too slowly to add a token while a test drains its burst.

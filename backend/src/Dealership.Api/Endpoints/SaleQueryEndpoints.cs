@@ -45,7 +45,7 @@ public static class SaleQueryEndpoints
             SaleVehiclePhotoService photos, CancellationToken token) =>
                 ListingPhotoEndpoints.DownloadAsync(context, (file, deadline) =>
                     photos.DownloadAsync(ActorId(context), saleId, id, file, deadline), token))
-            .RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
+            .RequireRateLimiting(ApiRateLimiting.PhotoReadPolicy);
         routes.MapGet("/{id:guid}", (Guid id, HttpContext context, ISaleReadStore sales, CancellationToken token) =>
             ReadAsync(deadline => sales.GetAsync(ActorId(context), id, deadline), token));
         routes.MapGet("/{id:guid}/options", (Guid id, HttpContext context, ISaleReadStore sales,

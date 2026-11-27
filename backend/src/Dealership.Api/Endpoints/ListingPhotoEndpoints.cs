@@ -24,17 +24,17 @@ public static class ListingPhotoEndpoints
             ListingPhotoService photos, CancellationToken token) =>
                 DownloadAsync(context, (file, deadline) =>
                     photos.DownloadAsync(ActorId(context), vehicleId, id, file, deadline), token))
-            .RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
+            .RequireRateLimiting(ApiRateLimiting.PhotoReadPolicy);
         app.MapGet("/api/vehicles/{vehicleId:guid}/photos/{id:guid}", (Guid vehicleId, Guid id, HttpContext context,
             ListingPhotoService photos, CancellationToken token) =>
                 DownloadAsync(context, (file, deadline) =>
                     photos.DownloadAsync(null, vehicleId, id, file, deadline), token))
-            .RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
+            .RequireRateLimiting(ApiRateLimiting.PhotoReadPolicy);
         app.MapGet("/api/account/reservations/{reservationId:guid}/photos/{id:guid}",
             (Guid reservationId, Guid id, HttpContext context, ListingPhotoService photos, CancellationToken token) =>
                 DownloadAsync(context, (file, deadline) =>
                     photos.DownloadReservationAsync(ActorId(context), reservationId, id, file, deadline), token))
-            .RequireAuthorization().RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
+            .RequireAuthorization().RequireRateLimiting(ApiRateLimiting.PhotoReadPolicy);
     }
 
     private static async Task<IResult> UploadAsync(Guid vehicleId, Guid id, HttpContext context, ListingPhotoService photos, CancellationToken cancellationToken)

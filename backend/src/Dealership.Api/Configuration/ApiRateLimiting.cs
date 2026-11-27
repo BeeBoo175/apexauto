@@ -13,6 +13,7 @@ public static class ApiRateLimiting
     public const int LoginAttemptsPerMinute = 5;
     public const string LoginPolicy = "login";
     public const string PhotoTransferPolicy = "photo-transfers";
+    public const string PhotoReadPolicy = "photo-reads";
     public const string PictureDownloadPolicy = "picture-downloads";
     public const string VerificationPolicy = "email-verification";
 
@@ -37,6 +38,10 @@ public static class ApiRateLimiting
                 settings.PictureDownloadQueueLimit is >= 0 and <= 1000 &&
                 settings.PictureDownloadQueueSeconds is >= 1 and <= 10,
                 "Picture download concurrency must be between 1 and 1000, queue size between 0 and 1000, and queue wait between 1 and 10 seconds.")
+            .Validate(settings => settings.PhotoReadConcurrency is > 0 and <= 1000 &&
+                settings.PhotoReadQueueLimit is >= 0 and <= 1000 &&
+                settings.PhotoReadQueueSeconds is >= 1 and <= 10,
+                "Photo read concurrency must be between 1 and 1000, queue size between 0 and 1000, and queue wait between 1 and 10 seconds.")
             .Validate(settings => settings.WindowSeconds is >= 1 and <= 3600,
                 "Rate limiting window must be between 1 and 3600 seconds.")
             .ValidateOnStart();
@@ -50,7 +55,13 @@ public static class ApiRateLimiting
             var settings = configured.Value;
             var window = TimeSpan.FromSeconds(settings.WindowSeconds);
             options.AddPolicy(PictureDownloadPolicy, _ =>
-                RateLimitPartition.Get(PictureDownloadPolicy, _ => new PictureDownloadRateLimiter(settings)));
+                RateLimitPartition.Get(PictureDownloadPolicy, _ => new QueuedDownloadRateLimiter(
+                    settings.PictureDownloadConcurrency, settings.PictureDownloadQueueLimit,
+                    TimeSpan.FromSeconds(settings.PictureDownloadQueueSeconds))));
+            options.AddPolicy(PhotoReadPolicy, _ =>
+                RateLimitPartition.Get(PhotoReadPolicy, _ => new QueuedDownloadRateLimiter(
+                    settings.PhotoReadConcurrency, settings.PhotoReadQueueLimit,
+                    TimeSpan.FromSeconds(settings.PhotoReadQueueSeconds))));
             options.AddConcurrencyLimiter(PhotoTransferPolicy, limiter =>
             {
                 limiter.PermitLimit = settings.PhotoTransferConcurrency;

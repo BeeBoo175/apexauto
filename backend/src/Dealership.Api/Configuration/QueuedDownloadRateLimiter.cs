@@ -2,12 +2,13 @@ using System.Threading.RateLimiting;
 
 namespace Dealership.Api.Configuration;
 
-public sealed class PictureDownloadRateLimiter(RateLimitingSettings settings) : RateLimiter
+// Image reads wait briefly for a slot, because one page asks for many at once; a plain concurrency cap rejects them.
+public sealed class QueuedDownloadRateLimiter(int concurrency, int queueLimit, TimeSpan queueWait) : RateLimiter
 {
     private readonly ConcurrencyLimiter _limiter = new(new ConcurrencyLimiterOptions
     {
-        PermitLimit = settings.PictureDownloadConcurrency,
-        QueueLimit = settings.PictureDownloadQueueLimit,
+        PermitLimit = concurrency,
+        QueueLimit = queueLimit,
         QueueProcessingOrder = QueueProcessingOrder.OldestFirst
     });
 
@@ -20,7 +21,7 @@ public sealed class PictureDownloadRateLimiter(RateLimitingSettings settings) : 
     protected override async ValueTask<RateLimitLease> AcquireAsyncCore(int permitCount, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(settings.PictureDownloadQueueSeconds));
+        deadline.CancelAfter(queueWait);
 
         try
         {

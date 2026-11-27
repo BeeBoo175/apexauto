@@ -22,7 +22,7 @@ public static class IntakePhotoEndpoints
         });
         routes.MapPut("/{id:guid}", UploadAsync).RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
         routes.MapGet("/{id:guid}/receipt", GetReceiptAsync);
-        routes.MapGet("/{id:guid}", DownloadAsync).RequireRateLimiting(ApiRateLimiting.PhotoTransferPolicy);
+        routes.MapGet("/{id:guid}", DownloadAsync).RequireRateLimiting(ApiRateLimiting.PhotoReadPolicy);
     }
 
     private static async Task<IResult> UploadAsync(Guid id, string? angle, HttpContext context,

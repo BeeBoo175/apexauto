@@ -19,7 +19,10 @@ public sealed class IntakePhotoTests(IntakePhotoFixture fixture) : IClassFixture
     {
         var probe = new PhotoDownloadProbe();
         using var factory = fixture.CreateFactory(clock: probe.Clock, observeDownload: probe.Files.Enqueue)
-            .WithWebHostBuilder(builder => builder.ConfigureServices(services => services.AddSingleton<IStartupFilter>(probe)));
+            // No queue, so the read beyond the held slots is rejected at once instead of waiting for one.
+            .WithWebHostBuilder(builder => builder.UseSetting("RateLimiting:PhotoReadConcurrency", "4")
+                .UseSetting("RateLimiting:PhotoReadQueueLimit", "0")
+                .ConfigureServices(services => services.AddSingleton<IStartupFilter>(probe)));
         using var client = factory.CreateClient();
         client.Timeout = TimeSpan.FromSeconds(10);
         using var requests = new CancellationTokenSource(TimeSpan.FromSeconds(15));
@@ -71,6 +74,30 @@ public sealed class IntakePhotoTests(IntakePhotoFixture fixture) : IClassFixture
                 {
                 }
             }));
+        }
+    }
+
+    [Fact]
+    public async Task APageOfPhotoReadsAtOnceAllSucceedUnderTheUploadCap()
+    {
+        using var factory = fixture.CreateFactory()
+            .WithWebHostBuilder(builder => builder.UseSetting("RateLimiting:PhotoTransferConcurrency", "4"));
+        using var client = factory.CreateClient();
+        var registration = await IntakePhotoFixture.RegisterAsync(client);
+        await IntakePhotoFixture.VerifyAsync(factory, client, registration);
+        var id = Guid.NewGuid();
+        var bytes = IntakePhotoFixture.Image();
+        Assert.Equal(HttpStatusCode.OK, (await IntakePhotoFixture.UploadAsync(client, id, bytes)).StatusCode);
+
+        var responses = await Task.WhenAll(Enumerable.Range(0, 24).Select(_ => client.GetAsync($"/api/intake/photos/{id}")));
+
+        foreach (var response in responses)
+        {
+            using (response)
+            {
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                Assert.Equal(bytes, await response.Content.ReadAsByteArrayAsync());
+            }
         }
     }
 
