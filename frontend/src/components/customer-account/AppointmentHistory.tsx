@@ -85,7 +85,7 @@ export function AppointmentHistory({
               {filtered && (
                 <Button
                   variant="ghost"
-                  size="compact"
+                  size="sm"
                   disabled={disabled}
                   onClick={() => {
                     const cleared = { from: "", to: "" };

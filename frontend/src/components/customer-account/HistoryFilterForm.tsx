@@ -70,7 +70,7 @@ export function HistoryFilterForm<T extends Draft>({
         disabled={disabled}
         onChange={(event) => onDraft({ ...draft, to: event.target.value })}
       />
-      <Button variant="secondary" size="sm" type="submit" disabled={disabled}>
+      <Button variant="secondary" size="md" type="submit" disabled={disabled}>
         {draft.search === undefined ? "Apply dates" : "Apply filters"}
       </Button>
     </form>

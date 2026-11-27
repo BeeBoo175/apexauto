@@ -224,6 +224,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+@media (min-width: 821px) {
+  .pagerControls button {
+    width: 36px;
+    height: 36px;
+  }
+}
+
 .noMatches {
   display: flex;
   align-items: center;

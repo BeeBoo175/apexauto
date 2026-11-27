@@ -13,6 +13,19 @@
   min-width: 0;
 }
 
+/* The dates and the apply button stand as tall as the large search field beside them. Below this width every
+   control already takes the shared 44px touch height. */
+@media (min-width: 821px) {
+  .form input[type="date"],
+  .form button[type="submit"] {
+    height: 48px;
+  }
+
+  .form input[type="date"] {
+    font-size: 1rem;
+  }
+}
+
 @media (max-width: 900px) {
   .form,
   .datesOnly {

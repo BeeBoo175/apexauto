@@ -78,7 +78,7 @@ export function AccountPanel({ profile }: { profile: AccountProfile }) {
             />
             <Button
               variant="secondary"
-              size="sm"
+              size="md"
               disabled={picture.busy}
               onClick={() => fileInput.current?.click()}
             >
@@ -87,7 +87,7 @@ export function AccountPanel({ profile }: { profile: AccountProfile }) {
             {picture.pictureId && (
               <Button
                 variant="ghost"
-                size="sm"
+                size="md"
                 disabled={picture.busy}
                 onClick={() => void picture.remove()}
               >

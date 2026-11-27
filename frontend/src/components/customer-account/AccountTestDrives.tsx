@@ -90,7 +90,7 @@ export function AccountTestDrives({
           {snapshot.items.length === 0 && filtered && (
             <Button
               variant="ghost"
-              size="compact"
+              size="sm"
               disabled={disabled}
               onClick={() => {
                 const next = { from: "", to: "", search: "" };
