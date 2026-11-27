@@ -3,9 +3,8 @@ import { Icon } from "./Icon";
 import type { IconName } from "@/lib/icons";
 import styles from "./StatusPage.module.css";
 
-// The one component for every dead end and failed read: no access, not found, a service that did not answer. It has
-// one layout everywhere and fills whatever space it is given, the whole screen at the top of the app, the content
-// area under a page title, a drawer body or a dialog. It states what happened in a line or two and never the rule
+// The one layout for a whole page that cannot be shown: no access, not found, a service that did not answer. It
+// fills the screen, or the content area under a page title; a failed section inside a page uses ReloadNotice. It states what happened in a line or two and never the rule
 // behind it, so a denied page does not reveal who may open it.
 export function StatusPage({
   code,
@@ -14,7 +13,6 @@ export function StatusPage({
   children,
   actions,
   tone = "info",
-  compact = false,
 }: {
   code: string;
   icon: IconName;
@@ -22,16 +20,10 @@ export function StatusPage({
   children?: ReactNode;
   actions?: ReactNode;
   tone?: "info" | "alert";
-  // A smaller panel for a failed read inside a page section rather than a whole screen.
-  compact?: boolean;
 }) {
   const headingId = useId();
   return (
-    <section
-      className={styles.page}
-      data-compact={compact || undefined}
-      aria-labelledby={headingId}
-    >
+    <section className={styles.page} aria-labelledby={headingId}>
       <div className={styles.panel} data-tone={tone}>
         <p className={styles.code} aria-hidden="true">
           {code}

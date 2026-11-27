@@ -145,11 +145,7 @@ export function SaleAssignDialog({
       {agents?.length === 0 && (
         <p role="alert">This branch has no active sales agents to assign.</p>
       )}
-      {failed && (
-        <p role="alert">
-          The agents could not be loaded. <ReloadNotice subject="Agents" />
-        </p>
-      )}
+      {failed && <ReloadNotice subject="Agents" compact />}
     </ConfirmationDialog>
   );
 }

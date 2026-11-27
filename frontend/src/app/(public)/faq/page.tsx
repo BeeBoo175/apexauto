@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { HelpCenter } from "@/components/guide/HelpCenter";
+import { buttonClassName } from "@/components/ui/Button";
 import { StatusPage } from "@/components/ui/StatusPage";
 import { formatCurrency } from "@/lib/currency-format";
 import { faqEntries } from "@/lib/guide/faq-items";
@@ -18,7 +20,19 @@ export default async function HelpPage() {
   const guides = await readGuides();
   if (!guides.data) {
     return (
-      <StatusPage code={String(guides.status)} icon="alert-triangle" title="Help unavailable" />
+      <StatusPage
+        code={String(guides.status)}
+        icon="alert-triangle"
+        tone="alert"
+        title="Help unavailable"
+        actions={
+          <Link href="/" className={buttonClassName("secondary")}>
+            Back to home
+          </Link>
+        }
+      >
+        Reload the page to try again.
+      </StatusPage>
     );
   }
 

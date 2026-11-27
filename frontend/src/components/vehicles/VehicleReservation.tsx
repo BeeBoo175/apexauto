@@ -112,7 +112,7 @@ export function VehicleReservation({
   if (!access.account || !access.actor || access.status !== 200) {
     return (
       <div className={styles.actions}>
-        <ReloadNotice subject="Account check" />
+        <ReloadNotice subject="Account check" compact />
         {testDrive}
         {financing}
       </div>

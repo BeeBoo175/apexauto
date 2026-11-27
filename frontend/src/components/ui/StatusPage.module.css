@@ -15,24 +15,6 @@
     var(--color-canvas);
 }
 
-.page[data-compact] {
-  min-height: 0;
-  padding: 24px 16px;
-  border-radius: var(--radius-sm);
-}
-
-.page[data-compact] .code {
-  font-size: clamp(56px, 8vw, 88px);
-}
-
-.page[data-compact] .title {
-  font-size: 22px;
-}
-
-.page[data-compact] .actions {
-  margin-top: 8px;
-}
-
 .panel {
   display: grid;
   justify-items: center;

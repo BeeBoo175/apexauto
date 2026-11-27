@@ -30,7 +30,7 @@ export function SaleDocumentLinks({
   const version = useSaleDocumentVersion(saleId, initial);
   const { document } = version;
   if (!document) {
-    return <ReloadNotice subject="Document" />;
+    return <ReloadNotice subject="Document" compact />;
   }
   const removed = buyerDetailsRemoved(document.contents.review);
   const details = (

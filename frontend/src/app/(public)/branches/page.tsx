@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ShowroomsWorkspace } from "@/components/guide/ShowroomsWorkspace";
+import { buttonClassName } from "@/components/ui/Button";
 import { StatusPage } from "@/components/ui/StatusPage";
 import { readShowrooms } from "@/lib/guide/guide-reads";
 import { SHOWROOM_CLOSES_AT, SHOWROOM_OPENS_AT } from "@/lib/guide/visit-terms";
@@ -20,8 +22,16 @@ export default async function BranchesPage() {
       <StatusPage
         code={String(result.status)}
         icon="alert-triangle"
+        tone="alert"
         title="Showrooms unavailable"
-      />
+        actions={
+          <Link href="/" className={buttonClassName("secondary")}>
+            Back to home
+          </Link>
+        }
+      >
+        Reload the page to try again.
+      </StatusPage>
     );
   }
 

@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { ListingPhoto } from "./ListingGallery";
 import styles from "./VehicleDetailGallery.module.css";
 
@@ -79,16 +80,22 @@ export function VehicleDetailGallery({
                 retryThumbnail(photo.id);
               }}
             >
-              <Image
-                key={`${photo.id}:${thumbnailAttempts[photo.id] ?? 0}`}
-                src={photo.url}
-                alt=""
-                width={120}
-                height={80}
-                unoptimized
-                loading="lazy"
-                onError={() => setFailedThumbnails((current) => new Set(current).add(photo.id))}
-              />
+              {failedThumbnails.has(photo.id) ? (
+                <span className={styles.thumbnailUnavailable}>
+                  <Icon name="car" />
+                </span>
+              ) : (
+                <Image
+                  key={`${photo.id}:${thumbnailAttempts[photo.id] ?? 0}`}
+                  src={photo.url}
+                  alt=""
+                  width={120}
+                  height={80}
+                  unoptimized
+                  loading="lazy"
+                  onError={() => setFailedThumbnails((current) => new Set(current).add(photo.id))}
+                />
+              )}
             </Button>
           ))}
         </div>

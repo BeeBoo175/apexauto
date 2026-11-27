@@ -157,11 +157,18 @@
   object-fit: contain;
 }
 
-.recovery {
-  display: grid;
-  justify-items: center;
-  gap: 12px;
-  padding: 12px;
+/* Covers the frame, including any placeholder artwork a caller puts behind the photograph. */
+.unavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  background: var(--color-line-soft);
+  color: var(--color-muted);
+  font-size: 0.875rem;
   text-align: center;
 }
 

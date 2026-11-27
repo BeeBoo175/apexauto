@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ApexShieldGuide } from "@/components/guide/ApexShieldGuide";
+import { buttonClassName } from "@/components/ui/Button";
 import { StatusPage } from "@/components/ui/StatusPage";
 import { faqEntries } from "@/lib/guide/faq-items";
 import { readGuides } from "@/lib/guide/guide-reads";
@@ -17,7 +19,19 @@ export default async function WarrantyPage() {
   const guides = await readGuides();
   if (!guides.data) {
     return (
-      <StatusPage code={String(guides.status)} icon="alert-triangle" title="Warranty unavailable" />
+      <StatusPage
+        code={String(guides.status)}
+        icon="alert-triangle"
+        tone="alert"
+        title="Warranty unavailable"
+        actions={
+          <Link href="/" className={buttonClassName("secondary")}>
+            Back to home
+          </Link>
+        }
+      >
+        Reload the page to try again.
+      </StatusPage>
     );
   }
 

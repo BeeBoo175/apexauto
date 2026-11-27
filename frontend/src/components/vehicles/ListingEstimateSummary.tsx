@@ -50,7 +50,7 @@ export function ListingEstimateSummary({
         breakdown={breakdown}
         notice={notice}
       />
-      {failed && <ReloadNotice subject="Estimate" />}
+      {failed && <ReloadNotice subject="Estimate" compact />}
     </div>
   );
 }

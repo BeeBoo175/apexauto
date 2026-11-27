@@ -116,7 +116,7 @@ export function ListingPhotoPicker({
               Loading photos…
             </p>
           )}
-          {failed && <ReloadNotice subject="Photos" />}
+          {failed && <ReloadNotice subject="Photos" compact />}
           {snapshot?.total === 0 && <p className={styles.help}>No uploaded photos.</p>}
           {snapshot && snapshot.total > 0 && available.length === 0 && (
             <p className={styles.help}>No more photos on this page.</p>

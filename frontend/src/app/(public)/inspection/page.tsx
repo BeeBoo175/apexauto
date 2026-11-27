@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { InspectionStandards } from "@/components/guide/InspectionStandards";
+import { buttonClassName } from "@/components/ui/Button";
 import { StatusPage } from "@/components/ui/StatusPage";
 import { faqEntries } from "@/lib/guide/faq-items";
 import { readGuides } from "@/lib/guide/guide-reads";
@@ -21,8 +23,16 @@ export default async function InspectionStandardsPage() {
       <StatusPage
         code={String(guides.status)}
         icon="alert-triangle"
+        tone="alert"
         title="Inspection guide unavailable"
-      />
+        actions={
+          <Link href="/" className={buttonClassName("secondary")}>
+            Back to home
+          </Link>
+        }
+      >
+        Reload the page to try again.
+      </StatusPage>
     );
   }
 

@@ -28,7 +28,7 @@ export function StaffQueueFooter({
           onPage={onPage}
         />
       )}
-      {failed && <ReloadNotice subject="Queue" />}
+      {failed && <ReloadNotice subject="Queue" compact />}
     </footer>
   );
 }

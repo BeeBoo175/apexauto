@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { ReloadNotice } from "@/components/ui/ReloadNotice";
+import { Icon } from "@/components/ui/Icon";
 import Image from "next/image";
 import styles from "./ListingGallery.module.css";
 
@@ -71,8 +71,9 @@ export function ListingPhoto({
     <figure className={`${styles.photo} ${className}`.trim()}>
       <div className={`${styles.image} ${frameClassName}`.trim()}>
         {failed ? (
-          <div className={styles.recovery}>
-            <ReloadNotice subject={label} />
+          <div className={styles.unavailable} role="img" aria-label={`${label} unavailable`}>
+            <Icon name="car" />
+            <span>Photo unavailable</span>
           </div>
         ) : (
           <Image
