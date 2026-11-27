@@ -106,7 +106,7 @@ export function SaleCompletionEvidence({ sale }: { sale: SaleSnapshot }) {
               <dd>{handover.odometerKilometres.toLocaleString("en-MY")} km</dd>
             </div>
             <div>
-              <dt>Keys delivered</dt>
+              <dt>Number of keys handed over</dt>
               <dd>{handover.keysDelivered}</dd>
             </div>
             <div>

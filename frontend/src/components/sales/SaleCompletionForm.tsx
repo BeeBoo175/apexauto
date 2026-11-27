@@ -216,7 +216,7 @@ export function SaleCompletionForm({
           onChange={(event) => workflow.changeHandover({ odometer: event.target.value })}
         />
         <Input
-          label="Keys delivered"
+          label="Number of keys handed over"
           density="compact"
           inputMode="numeric"
           required

@@ -167,7 +167,7 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
     await selected
       .getByLabel("Final odometer (km)", { exact: true })
       .fill(String(settled.context.mileageKilometres + 1));
-    await selected.getByLabel("Keys delivered", { exact: true }).fill("2");
+    await selected.getByLabel("Number of keys handed over", { exact: true }).fill("2");
     await selected.getByLabel("Customer acknowledges receipt of the vehicle").check();
     await selected.getByLabel("Ownership transfer is complete").check();
     await selected.getByLabel("Insurance is confirmed").check();
