@@ -68,7 +68,7 @@ public sealed class SaleDocumentCorrectionTests(IntakePhotoFixture fixture) : IC
         var replacement = await database.SaleDocuments.SingleAsync(item => item.Id == receipt.ReplacementDocumentId);
         Assert.Equal(original.IssuingOperationId, replacement.IssuingOperationId);
         Assert.Equal(original.Contents() with { Review = request.Correction.Apply(original.Contents().Review) }, replacement.Contents());
-        Assert.Equal(1, await database.SaleDeliveryMailOutbox.CountAsync(item => item.SalesOrderId == saleId));
+        Assert.Equal(2, await database.SaleDeliveryMailOutbox.CountAsync(item => item.SalesOrderId == saleId));
         using var restarted = fixture.CreateFactory();
         using var scope = restarted.Services.CreateScope();
         var replay = scope.ServiceProvider.GetRequiredService<SaleDocumentCorrectionService>();

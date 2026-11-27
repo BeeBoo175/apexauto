@@ -1,4 +1,5 @@
 using Dealership.Application.Sales;
+using Dealership.Domain.Sales;
 using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -28,9 +29,14 @@ public sealed class SaleDeliveryMailSource(DealershipDbContext database, TimePro
 
     private async Task<OutboundMail> ComposeAsync(SaleDeliveryMail message, CancellationToken cancellationToken)
     {
+        var cause = await database.SalesOrderEvents.AsNoTracking()
+            .Where(item => item.Id == message.DeliveryOperationId).Select(item => item.Kind)
+            .SingleAsync(cancellationToken);
+        var settled = cause == SalesOrderEventKind.Settled;
+        var kind = settled ? SaleDocumentKind.PaymentReceipt : SaleDocumentKind.HandoverNote;
         var document = await database.SaleDocuments.AsNoTracking().SingleAsync(item =>
-            item.SalesOrderId == message.SalesOrderId && item.Kind == SaleDocumentKind.HandoverNote &&
+            item.SalesOrderId == message.SalesOrderId && item.Kind == kind &&
             item.CorrectionOperationId == null, cancellationToken);
-        return composer.Confirmation(message, document);
+        return settled ? composer.PaymentConfirmed(message, document) : composer.Confirmation(message, document);
     }
 }

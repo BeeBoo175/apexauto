@@ -16,9 +16,10 @@ public sealed class SaleDeliveryMailConfiguration : IEntityTypeConfiguration<Sal
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Id).ValueGeneratedNever();
         builder.Property(item => item.RecipientEmail).HasMaxLength(256);
-        builder.HasIndex(item => item.SalesOrderId).IsUnique();
+        // One mail per causing history entry: a sale has one for settlement and one for handover.
+        builder.HasIndex(item => new { item.DeliveryOperationId, item.SalesOrderId }).IsUnique();
         builder.HasIndex(item => new { item.NextDeliveryAt, item.Id });
-        builder.HasOne<SalesOrder>().WithOne().HasForeignKey<SaleDeliveryMail>(item => item.SalesOrderId)
+        builder.HasOne<SalesOrder>().WithMany().HasForeignKey(item => item.SalesOrderId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<SalesOrderEvent>().WithMany()
             .HasForeignKey(item => new { item.DeliveryOperationId, item.SalesOrderId })

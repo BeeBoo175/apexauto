@@ -3254,10 +3254,10 @@ namespace Dealership.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SalesOrderId")
-                        .IsUnique();
+                    b.HasIndex("SalesOrderId");
 
-                    b.HasIndex("DeliveryOperationId", "SalesOrderId");
+                    b.HasIndex("DeliveryOperationId", "SalesOrderId")
+                        .IsUnique();
 
                     b.HasIndex("NextDeliveryAt", "Id");
 
@@ -4607,8 +4607,8 @@ namespace Dealership.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Dealership.Infrastructure.Sales.SaleDeliveryMail", b =>
                 {
                     b.HasOne("Dealership.Domain.Sales.SalesOrder", null)
-                        .WithOne()
-                        .HasForeignKey("Dealership.Infrastructure.Sales.SaleDeliveryMail", "SalesOrderId")
+                        .WithMany()
+                        .HasForeignKey("SalesOrderId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

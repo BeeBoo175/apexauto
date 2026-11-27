@@ -165,7 +165,8 @@ public sealed class SaleHandoverTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.Single(outcomes, item => item.Status == SaleResultStatus.Succeeded);
         Assert.Single(outcomes, item => item.Status == SaleResultStatus.Conflict);
         await using var database = NewContext();
-        Assert.Equal(1, await database.SaleDeliveryMailOutbox.CountAsync(item => item.SalesOrderId == held.Id));
+        // Settlement queued one mail and the single committed handover queued the other.
+        Assert.Equal(2, await database.SaleDeliveryMailOutbox.CountAsync(item => item.SalesOrderId == held.Id));
         Assert.Equal(1, await database.SaleDocuments.CountAsync(item => item.SalesOrderId == held.Id && item.Kind == SaleDocumentKind.HandoverNote));
         var (competing, competingRequest) = await SettledAsync(world);
         var race = await Task.WhenAll(
@@ -175,8 +176,8 @@ public sealed class SaleHandoverTests(IntakePhotoFixture fixture) : IClassFixtur
                 new(Guid.NewGuid(), competingRequest.ExpectedVersion, world.Colleague), default));
         Assert.Single(race, item => item.Status == SaleResultStatus.Succeeded);
         var racedSale = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == competing.Id);
-        Assert.Equal(racedSale.Status == SalesOrderStatus.Delivered,
-            await database.SaleDeliveryMailOutbox.AnyAsync(item => item.SalesOrderId == competing.Id));
+        Assert.Equal(racedSale.Status == SalesOrderStatus.Delivered ? 2 : 1,
+            await database.SaleDeliveryMailOutbox.CountAsync(item => item.SalesOrderId == competing.Id));
         var (rollback, rollbackRequest) = await SettledAsync(world);
         foreach (var includeNote in new[] { false, true })
         {
@@ -201,7 +202,7 @@ public sealed class SaleHandoverTests(IntakePhotoFixture fixture) : IClassFixtur
 
         Assert.Equal(SalesOrderStatus.Settled, (await database.SalesOrders.SingleAsync(item => item.Id == rollback.Id)).Status);
         Assert.Equal(VehicleStatus.Sold, (await database.Vehicles.SingleAsync(item => item.Id == rollback.VehicleId)).Status);
-        Assert.False(await database.SaleDeliveryMailOutbox.AnyAsync(item => item.SalesOrderId == rollback.Id));
+        Assert.Equal(1, await database.SaleDeliveryMailOutbox.CountAsync(item => item.SalesOrderId == rollback.Id));
         await RejectSqlAsync("""
             WITH moment AS (SELECT clock_timestamp() AS now)
             UPDATE "SalesOrders" SET "Status" = 'Delivered', "Version" = "Version" + 1,
@@ -219,13 +220,15 @@ public sealed class SaleHandoverTests(IntakePhotoFixture fixture) : IClassFixtur
         var (held, request) = await SettledAsync(world);
         Assert.Equal(SaleResultStatus.Succeeded, (await world.Services.GetRequiredService<SaleHandoverService>()
             .DeliverAsync(world.Agent, held.Id, request, default)).Status);
+        await QuietOtherMailAsync(request.OperationId);
         using var factory = fixture.CreateFactory();
         var transport = new RecordingMailTransport(fail: true);
         using var worker = new MailDeliveryWorker(factory.Services.GetRequiredService<IServiceScopeFactory>(), transport,
             new MailDeliverySignal(), NullLogger<MailDeliveryWorker>.Instance);
         await worker.DeliverBatchAsync(default);
         await using var database = NewContext();
-        var intent = await database.SaleDeliveryMailOutbox.AsNoTracking().SingleAsync(item => item.SalesOrderId == held.Id);
+        var intent = await database.SaleDeliveryMailOutbox.AsNoTracking()
+            .SingleAsync(item => item.DeliveryOperationId == request.OperationId);
         Assert.Null(intent.DeliveredAt);
         Assert.Equal(1, intent.DeliveryAttempts);
         Assert.Equal(SalesOrderStatus.Delivered, (await database.SalesOrders.SingleAsync(item => item.Id == held.Id)).Status);
@@ -245,6 +248,50 @@ public sealed class SaleHandoverTests(IntakePhotoFixture fixture) : IClassFixtur
         await source.MarkDeliveredAsync(claim.Id, claim.ClaimId, default);
         Assert.NotNull(await database.SaleDeliveryMailOutbox.Where(item => item.Id == intent.Id).Select(item => item.DeliveredAt).SingleAsync());
         Assert.Null(await source.ClaimNextAsync(default));
+    }
+
+    [Fact]
+    public async Task SettlementQueuesOnePaymentMail()
+    {
+        var world = await SaleWorld.SharedAsync(fixture);
+        var (held, _) = await SettledAsync(world);
+        await using var database = NewContext();
+        var settled = await database.SalesOrderEvents.AsNoTracking().SingleAsync(item =>
+            item.SalesOrderId == held.Id && item.Kind == SalesOrderEventKind.Settled);
+        var intent = await database.SaleDeliveryMailOutbox.AsNoTracking()
+            .SingleAsync(item => item.SalesOrderId == held.Id);
+        Assert.Equal(settled.Id, intent.DeliveryOperationId);
+        await QuietOtherMailAsync(settled.Id);
+        var source = new SaleDeliveryMailSource(database, new DeliveryClock(intent.NextDeliveryAt.AddSeconds(1)),
+            world.Services.GetRequiredService<SaleDeliveryMailComposer>());
+        var claim = Assert.IsType<ClaimedMail>(await source.ClaimNextAsync(default));
+        var receipt = await database.SaleDocuments.AsNoTracking().SingleAsync(item =>
+            item.SalesOrderId == held.Id && item.Kind == SaleDocumentKind.PaymentReceipt);
+        Assert.Equal(held.Buyer.Email, claim.Message.Recipient);
+        Assert.Equal("ApexAuto payment confirmed", claim.Message.Subject);
+        Assert.Contains(receipt.Number, claim.Message.Body);
+        Assert.Contains("Bring your original MyKad.", claim.Message.Body);
+        Assert.Contains($"/account/sales/{held.Id}/documents", claim.Message.Body);
+        Assert.DoesNotContain(held.Buyer.Nric!, claim.Message.Body);
+
+        // Only settlement and handover history entries may queue sale mail.
+        await RejectSqlAsync("""
+            INSERT INTO "SaleDeliveryMailOutbox" ("Id", "SalesOrderId", "DeliveryOperationId", "RecipientEmail",
+                "DeliveryAttempts", "NextDeliveryAt")
+            SELECT gen_random_uuid(), e."SalesOrderId", e."Id", r."BuyerEmail", 0, e."RecordedAt"
+            FROM "SalesOrderEvents" e JOIN "Reservations" r ON r."Id" = e."SalesOrderId"
+            WHERE e."SalesOrderId" = @id AND e."Kind" = 'Submitted'
+            """, held.Id, "CK_SaleDeliveryMailOutbox_Delivery");
+    }
+
+    // Sale mail left pending by other cases in the shared database would be claimed ahead of the one under test.
+    private async Task QuietOtherMailAsync(Guid keptOperationId)
+    {
+        await using var database = NewContext();
+        var now = DateTimeOffset.UtcNow;
+        await database.SaleDeliveryMailOutbox
+            .Where(item => item.DeliveryOperationId != keptOperationId && item.DeliveredAt == null)
+            .ExecuteUpdateAsync(update => update.SetProperty(item => item.DeliveredAt, now));
     }
 
     private async Task<(Reservation Hold, SaleHandoverRequest Request)> SettledAsync(SaleWorld world)

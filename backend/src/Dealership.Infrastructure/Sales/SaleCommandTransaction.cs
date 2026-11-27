@@ -163,7 +163,7 @@ internal sealed class SaleCommandTransaction(DealershipDbContext database, IDbCo
 
             await database.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            if (entry.Kind == SalesOrderEventKind.Delivered)
+            if (entry.Kind is SalesOrderEventKind.Settled or SalesOrderEventKind.Delivered)
             {
                 mail.Request();
             }

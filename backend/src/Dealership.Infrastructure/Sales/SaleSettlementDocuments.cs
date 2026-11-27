@@ -38,5 +38,6 @@ internal static class SaleSettlementDocuments
         database.SaleDocuments.AddRange(
             new SaleDocument(sale.Id, entry.Id, SaleDocumentKind.PurchaseOrder, sale.OrderNumber!, entry.RecordedAt, contents),
             new SaleDocument(sale.Id, entry.Id, SaleDocumentKind.PaymentReceipt, receiptNumber, entry.RecordedAt, contents));
+        await SaleMailIntents.AddAsync(database, sale, entry, cancellationToken);
     }
 }

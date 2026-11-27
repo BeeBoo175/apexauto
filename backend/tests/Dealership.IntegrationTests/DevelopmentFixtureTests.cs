@@ -154,7 +154,9 @@ public sealed class DevelopmentFixtureTests(IntakePhotoFixture fixture) : IClass
         Assert.Equal(optedInReservationId, optedIn.ReservationId);
         Assert.False(await database.ReservationMailOutbox.AnyAsync(item => item.DeliveryAttempts != 0));
         var deliveries = await database.SaleDeliveryMailOutbox.AsNoTracking().ToArrayAsync();
-        Assert.Equal(DevelopmentSaleHistory.All.Count(item => item.Target == SalesOrderStatus.Delivered), deliveries.Length);
+        // A settled sale queued its payment mail; a delivered one queued that and its handover mail.
+        Assert.Equal(DevelopmentSaleHistory.All.Count(item => item.Target == SalesOrderStatus.Settled) +
+            2 * DevelopmentSaleHistory.All.Count(item => item.Target == SalesOrderStatus.Delivered), deliveries.Length);
         Assert.All(deliveries, delivery =>
         {
             Assert.NotNull(delivery.DeliveredAt);

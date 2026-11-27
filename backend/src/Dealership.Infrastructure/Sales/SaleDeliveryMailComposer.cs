@@ -18,6 +18,29 @@ public sealed class SaleDeliveryMailComposer
         _baseUrl = configuration["APP_BASE_URL"]!.TrimEnd('/');
     }
 
+    public OutboundMail PaymentConfirmed(SaleDeliveryMail message, SaleDocument receipt)
+    {
+        var contents = receipt.Contents();
+        var link = $"{_baseUrl}/account/sales/{message.SalesOrderId}/documents";
+        var layout = new MailLayout(
+            "Your payment is confirmed",
+            ["We have confirmed your full payment. Your payment receipt is ready in your ApexAuto account."],
+            [
+                new MailDetail("Purchase order", contents.Sale.OrderNumber ?? string.Empty),
+                new MailDetail("Payment receipt", receipt.Number),
+                new MailDetail("Collection showroom", contents.BranchName),
+                new MailDetail("Showroom address", contents.BranchAddress)
+            ],
+            [
+                $"Collect your car at {contents.BranchName}. Contact the showroom to arrange a time before you visit.",
+                "Bring your original MyKad."
+            ],
+            "View your documents",
+            link);
+        return new OutboundMail(MailRecipient.Require(message.RecipientEmail), "ApexAuto payment confirmed",
+            MailTemplate.RenderText(layout), MailTemplate.Render(layout));
+    }
+
     public OutboundMail Confirmation(SaleDeliveryMail message, SaleDocument document)
     {
         var sale = document.Contents().Sale;
