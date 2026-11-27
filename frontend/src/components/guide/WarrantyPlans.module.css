@@ -180,6 +180,8 @@
 }
 
 .tableWrap {
+  /* Keeps the cells' screen-reader text inside the scroller, so it cannot widen the page on phones. */
+  position: relative;
   overflow-x: auto;
   border: 1px solid var(--color-line);
   border-radius: 12px;
