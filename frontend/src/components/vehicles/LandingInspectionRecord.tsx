@@ -83,7 +83,9 @@ export function LandingInspectionRecord({
             src="/images/inspect-engine.jpg"
             alt="An open engine bay during inspection"
             fill
-            sizes="(max-width: 920px) 100vw, 620px"
+            quality={85}
+            // A wide photo cropped into a tall frame is drawn far wider than the frame: 720px tall needs 1080px.
+            sizes="(max-width: 920px) 100vw, 1080px"
           />
         </div>
         <div className={styles.copy}>

@@ -81,7 +81,9 @@ export function BuyingSteps({ steps }: { steps: readonly BuyingStepPanel[] }) {
                 alt={step.photo.alt}
                 fill
                 quality={85}
-                sizes="(max-width: 900px) 100vw, 560px"
+                // The wide photos are cropped to a near square frame, so they are drawn wider than it. On phones the
+                // 16:9 ones are drawn slightly wider than the screen.
+                sizes="(max-width: 900px) 112vw, 1030px"
                 style={{ objectPosition: step.photo.position }}
                 className={styles.image}
               />
