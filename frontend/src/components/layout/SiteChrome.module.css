@@ -44,6 +44,11 @@
   font-weight: 600;
 }
 
+.navigation > .accountPlaceholder,
+.mobileMenu .accountPlaceholder {
+  visibility: hidden;
+}
+
 .navItem {
   position: relative;
 }

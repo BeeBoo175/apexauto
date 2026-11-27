@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ApexShieldGuide } from "@/components/guide/ApexShieldGuide";
-import { buttonClassName } from "@/components/ui/Button";
-import { StatusPage } from "@/components/ui/StatusPage";
 import { faqEntries } from "@/lib/guide/faq-items";
-import { readGuides } from "@/lib/guide/guide-reads";
+import { requireGuides } from "@/lib/guide/guide-reads";
 
-// Guide content is cached for an hour (PUBLIC_CONTENT_REVALIDATE_SECONDS).
-export const revalidate = 3600;
+// Guide content is cached for a day (PUBLIC_CONTENT_REVALIDATE_SECONDS).
+export const revalidate = 86400;
 
 export const metadata: Metadata = {
   title: "ApexShield Warranty | ApexAuto Malaysia",
@@ -16,26 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function WarrantyPage() {
-  const guides = await readGuides();
-  if (!guides.data) {
-    return (
-      <StatusPage
-        code={String(guides.status)}
-        icon="alert-triangle"
-        tone="alert"
-        title="Warranty unavailable"
-        actions={
-          <Link href="/" className={buttonClassName("secondary")}>
-            Back to home
-          </Link>
-        }
-      >
-        Reload the page to try again.
-      </StatusPage>
-    );
-  }
-
-  const { purchase, inspection } = guides.data;
+  const { purchase, inspection } = await requireGuides();
   const faq = faqEntries(purchase, inspection.grading).filter((entry) => entry.onWarrantyPage);
 
   return <ApexShieldGuide warranties={purchase.warranties} faq={faq} />;

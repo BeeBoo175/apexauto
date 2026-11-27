@@ -15,6 +15,8 @@ import {
 import styles from "./SiteChrome.module.css";
 
 interface SiteNavigationProps {
+  // True while a static page is still asking for the account links.
+  accountPending?: boolean;
   showAccount: boolean;
   staffPortalHref: string | null;
 }
@@ -27,7 +29,11 @@ function groupIsActive(pathname: string, group: SiteNavigationGroup) {
   return group.links.some((link) => matchesSitePath(pathname, pathOf(link.href)));
 }
 
-export function SiteNavigation({ showAccount, staffPortalHref }: SiteNavigationProps) {
+export function SiteNavigation({
+  accountPending = false,
+  showAccount,
+  staffPortalHref,
+}: SiteNavigationProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
@@ -150,6 +156,12 @@ export function SiteNavigation({ showAccount, staffPortalHref }: SiteNavigationP
   function renderAccountLinks() {
     return (
       <>
+        {accountPending && (
+          // Holds the Account link’s room so the navigation does not move when the answer arrives.
+          <a className={styles.accountPlaceholder} aria-hidden="true">
+            Account
+          </a>
+        )}
         {showAccount && (
           <a
             href={accountHref}

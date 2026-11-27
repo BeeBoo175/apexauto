@@ -3,9 +3,9 @@ import { LegalDocument } from "@/components/guide/LegalDocument";
 import { readReservationHoldHours } from "@/lib/guide/guide-reads";
 import { TERMS_INTRO, termsSections } from "@/lib/legal/terms-of-use";
 
-// The hold length comes from the cached purchase guide, so the page is refreshed hourly
+// The hold length comes from the cached purchase guide, so the page is refreshed daily
 // (PUBLIC_CONTENT_REVALIDATE_SECONDS).
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 export const metadata: Metadata = {
   title: "Terms of use — ApexAuto",

@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { LandingStorefront } from "@/components/vehicles/LandingStorefront";
 import { readReservationHoldHours } from "@/lib/guide/guide-reads";
 
-// The hold length comes from the cached purchase guide, so the page is refreshed hourly
+// The hold length comes from the cached purchase guide, so the page is refreshed daily
 // (PUBLIC_CONTENT_REVALIDATE_SECONDS).
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 export async function generateMetadata(): Promise<Metadata> {
   const holdHours = await readReservationHoldHours();

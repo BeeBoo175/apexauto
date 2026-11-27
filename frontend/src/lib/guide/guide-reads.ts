@@ -8,9 +8,9 @@ import { parsePurchaseGuide, type PurchaseGuide } from "@/lib/guide/purchase-gui
 import { requestApiJson } from "@/lib/server/http/api";
 import { RESERVATION_HOLD_HOURS } from "@/lib/vehicles/deposit-terms";
 
-// Owner's public content cache choice (audit PD-12): guide and showroom reads are reused for one hour.
+// Owner's public content cache choice (audit PD-12): guide and showroom reads are reused for one day.
 // Pages that only read these export `revalidate` with the same literal, which Next requires.
-export const PUBLIC_CONTENT_REVALIDATE_SECONDS = 3600;
+export const PUBLIC_CONTENT_REVALIDATE_SECONDS = 86400;
 
 const cached = { revalidateSeconds: PUBLIC_CONTENT_REVALIDATE_SECONDS };
 
@@ -33,6 +33,17 @@ export async function readGuides(): Promise<{ data: Guides | null; status: numbe
   return { data: { purchase: purchase.data, inspection: inspection.data }, status: 200 };
 }
 
+// Static pages must never save a failed read: throwing keeps the last good copy, and stops a first build.
+export async function requireGuides(): Promise<Guides> {
+  const { data, status } = await readGuides();
+
+  if (!data) {
+    throw new Error(`The public guides could not be read (status ${status}).`);
+  }
+
+  return data;
+}
+
 // The hold length customers are told about, falling back silently to the default when the guide cannot be read.
 export async function readReservationHoldHours(): Promise<number> {
   const guides = await readGuides();
@@ -48,4 +59,14 @@ export async function readShowrooms() {
   );
 
   return { ...result, showrooms: resolveShowrooms(result.data?.items ?? []) };
+}
+
+export async function requireShowrooms() {
+  const { data, status, showrooms } = await readShowrooms();
+
+  if (!data) {
+    throw new Error(`The showrooms could not be read (status ${status}).`);
+  }
+
+  return showrooms;
 }

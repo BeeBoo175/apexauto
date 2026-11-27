@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ShowroomsWorkspace } from "@/components/guide/ShowroomsWorkspace";
-import { buttonClassName } from "@/components/ui/Button";
-import { StatusPage } from "@/components/ui/StatusPage";
-import { readShowrooms } from "@/lib/guide/guide-reads";
+import { requireShowrooms } from "@/lib/guide/guide-reads";
 import { SHOWROOM_CLOSES_AT, SHOWROOM_OPENS_AT } from "@/lib/guide/visit-terms";
 
 // The showrooms and their opening hours change only with a release, so the page is generated ahead of time and
-// refreshed hourly (PUBLIC_CONTENT_REVALIDATE_SECONDS). Each showroom's stock and cars are read in the browser.
-export const revalidate = 3600;
+// refreshed daily (PUBLIC_CONTENT_REVALIDATE_SECONDS). Each showroom's stock and cars are read in the browser.
+export const revalidate = 86400;
 
 export const metadata: Metadata = {
   title: "Our Showrooms — ApexAuto",
@@ -16,24 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function BranchesPage() {
-  const result = await readShowrooms();
-  if (!result.data) {
-    return (
-      <StatusPage
-        code={String(result.status)}
-        icon="alert-triangle"
-        tone="alert"
-        title="Showrooms unavailable"
-        actions={
-          <Link href="/" className={buttonClassName("secondary")}>
-            Back to home
-          </Link>
-        }
-      >
-        Reload the page to try again.
-      </StatusPage>
-    );
-  }
+  const showrooms = await requireShowrooms();
 
-  return <ShowroomsWorkspace showroomBranches={result.showrooms} />;
+  return <ShowroomsWorkspace showroomBranches={showrooms} />;
 }

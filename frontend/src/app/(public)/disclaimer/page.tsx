@@ -5,9 +5,9 @@ import { HelpNotices } from "@/components/guide/HelpNotices";
 import layout from "@/components/vehicles/VehicleLayout.module.css";
 import { readReservationHoldHours } from "@/lib/guide/guide-reads";
 
-// The hold length comes from the cached purchase guide, so the page is refreshed hourly
+// The hold length comes from the cached purchase guide, so the page is refreshed daily
 // (PUBLIC_CONTENT_REVALIDATE_SECONDS).
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 export const metadata: Metadata = {
   title: "Disclaimers and notices — ApexAuto",
