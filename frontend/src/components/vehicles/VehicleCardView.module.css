@@ -31,18 +31,23 @@
 }
 
 .photo img {
-  position: relative;
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
   opacity: 0;
+  transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.photo img[data-first] {
   transition:
     opacity 300ms ease,
     transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.photo img[data-loaded] {
+.photo img[data-shown] {
   opacity: 1;
 }
 
@@ -222,6 +227,7 @@
 @media (prefers-reduced-motion: reduce) {
   .vehicle,
   .photo img,
+  .photo img[data-first],
   .title {
     /* The photo still swaps in, without the fade or zoom. */
     transition: none;

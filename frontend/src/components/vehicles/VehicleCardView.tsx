@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import { Icon } from "@/components/ui/Icon";
+import { useKeptPhotos } from "@/hooks/use-kept-photos";
 import { fuelLabel, type PublicVehicle } from "@/lib/vehicles/contracts";
 import styles from "./VehicleCardView.module.css";
 
@@ -37,11 +37,10 @@ export function VehicleCardView({
   // A loading silhouette: the real card laid out with stand-in text, so it has its final height.
   shell?: boolean;
 }) {
-  const [failedAt, setFailedAt] = useState<number | null>(null);
-  const [loadedKey, setLoadedKey] = useState<string | null>(null);
-  // Healthy photos keep their lifetime across confirmed reads.
-  const photoKey = failedAt !== null && photoVersion > failedAt ? photoVersion : 0;
-  const imageKey = `${photoUrl}:${photoKey}`;
+  const { photos, shownUrl, failedAt, markLoaded, markFailed } = useKeptPhotos(
+    photoUrl,
+    photoPending,
+  );
 
   return (
     <article
@@ -52,26 +51,32 @@ export function VehicleCardView({
       <div className={styles.photo}>
         {/* The blurred placeholder stays visible while the photo loads and when it cannot load. */}
         <span className={styles.photoPlaceholder} aria-hidden="true" />
-        {photoUrl && (
-          <Image
-            key={imageKey}
-            ref={(element) => {
-              // A photo that finished loading before hydration never fires onLoad.
-              if (element?.complete && element.naturalWidth > 0) {
-                setLoadedKey(imageKey);
-              }
-            }}
-            src={photoUrl}
-            alt={`${vehicle.make} ${vehicle.model} ${vehicle.trim}`}
-            width={960}
-            height={640}
-            unoptimized
-            loading={first ? "eager" : "lazy"}
-            data-loaded={loadedKey === imageKey || undefined}
-            onLoad={() => setLoadedKey(imageKey)}
-            onError={() => setFailedAt((current) => current ?? photoVersion)}
-          />
-        )}
+        {photos.map((url) => {
+          // Healthy photos keep their lifetime across confirmed reads; a failed one is retried after the next.
+          const retry = url in failedAt && photoVersion > failedAt[url] ? photoVersion : 0;
+          return (
+            <Image
+              key={`${url}:${retry}`}
+              ref={(element) => {
+                // A photo that finished loading before hydration never fires onLoad.
+                if (element?.complete && element.naturalWidth > 0) {
+                  markLoaded(url);
+                }
+              }}
+              src={url}
+              alt={url === shownUrl ? `${vehicle.make} ${vehicle.model} ${vehicle.trim}` : ""}
+              width={960}
+              height={640}
+              unoptimized
+              loading={first ? "eager" : "lazy"}
+              data-shown={url === shownUrl || undefined}
+              // The card's opening photo fades in over the placeholder; once browsing starts, photos swap at once.
+              data-first={photos.length === 1 || undefined}
+              onLoad={() => markLoaded(url)}
+              onError={() => markFailed(url, photoVersion)}
+            />
+          );
+        })}
         {!photoUrl && !photoPending && <p className="sr-only">Photography unavailable</p>}
       </div>
       <div className={styles.vehicleBody}>
