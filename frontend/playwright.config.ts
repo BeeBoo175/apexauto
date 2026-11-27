@@ -5,6 +5,8 @@ const browserJourneys = Boolean(process.env.BROWSER_EVIDENCE_DIR);
 const appBaseUrl = process.env.APP_BASE_URL;
 const nextOrigin = process.env.BROWSER_NEXT_ORIGIN;
 const intakeUi = Boolean(process.env.BROWSER_INTAKE);
+// The screenshot gallery runs against the servers already running.
+const statesBaseUrl = appBaseUrl ?? "http://localhost:3000";
 // Only the golden purchase journey and the phone-width retention settings check run on the mobile device.
 const goldenMobileTests = [
   "e2e/vehicles-ui-sales-completion.spec.ts",
@@ -12,8 +14,8 @@ const goldenMobileTests = [
 ];
 
 // Journeys act as returning visitors so the first-visit disclosure never covers the page under test.
-function acknowledgedDisclosure() {
-  const origins = [appBaseUrl, nextOrigin]
+function acknowledgedDisclosure(...urls: (string | undefined)[]) {
+  const origins = urls
     .filter((value): value is string => Boolean(value))
     .map((value) => ({
       origin: new URL(value).origin,
@@ -50,7 +52,8 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1440, height: 1024 },
-        baseURL: process.env.APP_BASE_URL ?? "http://localhost:3000",
+        baseURL: statesBaseUrl,
+        storageState: acknowledgedDisclosure(statesBaseUrl),
       },
     },
     {
@@ -116,7 +119,7 @@ export default defineConfig({
               ...devices["Desktop Chrome"],
               viewport: { width: 1440, height: 1024 },
               baseURL: appBaseUrl,
-              storageState: acknowledgedDisclosure(),
+              storageState: acknowledgedDisclosure(appBaseUrl, nextOrigin),
             },
           },
           {
@@ -125,7 +128,7 @@ export default defineConfig({
             use: {
               ...devices["Pixel 7"],
               baseURL: appBaseUrl,
-              storageState: acknowledgedDisclosure(),
+              storageState: acknowledgedDisclosure(appBaseUrl, nextOrigin),
             },
           },
         ]
