@@ -8,6 +8,7 @@ import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Input, Select } from "@/components/ui/Input";
 import type { useSaleCompletion } from "@/hooks/use-sale-completion";
 import type { PaymentMethod } from "@/lib/sales/completion-evidence";
+import { settlementSummary } from "@/lib/sales/settlement-summary";
 import { formatCurrency } from "@/lib/currency-format";
 import forms from "@/components/staff/StaffForms.module.css";
 import workbench from "@/components/staff/StaffWorkspace.module.css";
@@ -303,6 +304,11 @@ export function SaleCompletionForm({
         open={confirming}
         title={`${action}?`}
         confirmLabel={action}
+        facts={
+          settlement && review
+            ? settlementSummary(review.buyerName, review.vehicle, balance, payment)
+            : undefined
+        }
         onClose={() => setConfirming(false)}
         onConfirm={async () => {
           setConfirming(false);
@@ -311,7 +317,7 @@ export function SaleCompletionForm({
       >
         <p>
           {settlement
-            ? "This freezes the approved terms, records the payment evidence and issues the purchase order and receipt. The sale can no longer be cancelled."
+            ? "Check these against the payment or loan approval. This freezes the approved terms, records the payment evidence and issues the purchase order and receipt. It cannot be undone, the sale can no longer be cancelled, and the customer is emailed that payment is confirmed and to arrange collection."
             : "This records delivery and issues the handover note. A confirmation email is queued for the customer."}
         </p>
       </ConfirmationDialog>
