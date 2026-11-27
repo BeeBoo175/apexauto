@@ -61,10 +61,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddSingleton(AppointmentScheduleConfiguration.Read(builder.Configuration));
 builder.Services.AddS3Storage(builder.Configuration);
 builder.Services.AddPhotos(builder.Configuration);
-builder.Services.AddOptions<EmailDeliverySettings>()
-    .Bind(builder.Configuration.GetSection(EmailDeliverySettings.SectionName))
-    .ValidateOnStart();
-builder.Services.AddSingleton<IMailTransport, SmtpMailTransport>();
+builder.Services.AddMailTransport(builder.Configuration);
 builder.Services.AddSingleton<AuthMailLinks>();
 builder.Services.AddSingleton<VerificationMailComposer>();
 builder.Services.AddSingleton<PasswordResetMailComposer>();

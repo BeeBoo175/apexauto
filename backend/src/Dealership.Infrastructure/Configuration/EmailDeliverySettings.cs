@@ -19,4 +19,8 @@ public sealed class EmailDeliverySettings
     public string? AppPassword { get; set; }
 
     public bool EnableSsl { get; set; }
+
+    public string? ScriptUrl { get; set; }
+
+    public string? ScriptSecret { get; set; }
 }
