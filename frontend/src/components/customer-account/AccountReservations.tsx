@@ -7,11 +7,8 @@ import { usePaymentMode } from "@/hooks/use-payment-mode";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { useAccountReservations } from "@/hooks/use-account-reservations";
-import {
-  type ReservationFilters,
-  type AccountReservation,
-} from "@/lib/vehicles/account-reservations";
+import type { useAccountReservations } from "@/hooks/use-account-reservations";
+import type { AccountReservation } from "@/lib/vehicles/account-reservations";
 import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { HistoryFilterForm } from "./HistoryFilterForm";
 import { ReservedCar } from "./ReservedCar";
@@ -25,22 +22,20 @@ import styles from "./Reservations.module.css";
 import historyStyles from "./ReservationHistory.module.css";
 
 export function AccountReservations({
-  page,
-  filters,
+  history,
   actorId,
   ready,
 }: {
-  page: number;
-  filters: ReservationFilters;
+  history: ReturnType<typeof useAccountReservations>;
   actorId: string;
   ready: boolean;
 }) {
   const live = usePaymentMode();
-  const history = useAccountReservations(page, filters, actorId);
   const [cancelling, setCancelling] = useState<AccountReservation | null>(null);
   const { snapshot } = history;
   const featured = snapshot?.active;
   const disabled = !ready || history.busy || Boolean(cancelling);
+  const waiting = snapshot?.awaitingCollection.length ?? 0;
   const filtered = Boolean(
     history.filters.from || history.filters.to || history.filters.search.trim(),
   );
@@ -80,7 +75,20 @@ export function AccountReservations({
             />
           </div>
         )}
-        {snapshot && !featured && (
+        {snapshot && !featured && waiting > 0 && (
+          <EmptyNotice
+            icon="car"
+            title="No active reservation"
+            action={{
+              label: "View cars awaiting collection",
+              href: "/account/awaiting-collection",
+              prefetch: false,
+            }}
+          >
+            {`${waiting} paid ${waiting === 1 ? "car is" : "cars are"} awaiting collection.`}
+          </EmptyNotice>
+        )}
+        {snapshot && !featured && waiting === 0 && (
           <EmptyNotice
             icon="car"
             title="No active reservation"

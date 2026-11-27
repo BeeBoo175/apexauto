@@ -352,7 +352,7 @@ test("sales settlement, handover, corrections and own customer PDFs retain exact
         timeout: 30_000,
       },
     );
-    const purchased = customerPage.locator("details").filter({ hasText: "Sale confirmed" }).first();
+    const purchased = customerPage.locator("details").filter({ hasText: "Collected" }).first();
     await expect(purchased).toBeVisible();
     await purchased.locator("summary").click({ timeout: 15_000 });
     await expect(

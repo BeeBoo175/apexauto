@@ -38,12 +38,18 @@ internal static class ReservationReadRows
     public static IOrderedQueryable<Row> Order(IQueryable<Row> rows) =>
         rows.OrderByDescending(row => row.Reservation.CreatedAt).ThenByDescending(row => row.Reservation.Id);
 
+    // Latest handover first, for the collection history.
+    public static IOrderedQueryable<Row> OrderByCollection(IQueryable<Row> rows) =>
+        rows.OrderByDescending(row => row.Sale.DeliveredAt).ThenByDescending(row => row.Reservation.Id);
+
     public static ReservationHistoryItem ToItem(Row row) => new(ReservationReceipt.From(row.Reservation), row.BranchName,
         row.Make, row.Model, row.Trim, row.ManufactureYear, row.Reservation.IsActive,
         row.Release is null ? null : ReservationRefundReceipt.From(row.Release), row.CoverPhotoId)
     {
         IsHandled = row.Reservation.IsActive && row.Sale.IsHandled,
-        DueAt = row.Reservation.IsActive ? row.Sale.DueAt : null
+        DueAt = row.Reservation.IsActive ? row.Sale.DueAt : null,
+        SettledAt = row.Sale.SettledAt,
+        DeliveredAt = row.Sale.DeliveredAt
     };
 
     public sealed class Row

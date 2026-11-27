@@ -19,7 +19,7 @@ export function useAccountReservations(
     parse: parseAccountReservations,
     confirms: (confirmed) => confirmed.actor.userId === actorId,
     loadingLabel: "Loading reservations",
-    subject: "Your reservations",
+    subject: "Your reservations and cars",
   });
 
   function cancelled(item: AccountReservation, receipt: CustomerReservationCancellation) {

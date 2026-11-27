@@ -1,5 +1,6 @@
 export const accountSections = [
   { id: "reservations", label: "Reservations" },
+  { id: "awaiting-collection", label: "Awaiting collection" },
   { id: "appointments", label: "Selling appointments" },
   { id: "test-drives", label: "Test drives" },
   { id: "details", label: "Account details" },

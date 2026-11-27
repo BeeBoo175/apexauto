@@ -88,6 +88,19 @@
   line-height: 1.5;
 }
 
+/* A photo row whose tab already names the state. */
+.historyRow summary.statelessSummary {
+  grid-template-columns: 72px minmax(0, 1fr) 16px;
+}
+
+.statelessSummary .chevron {
+  grid-column: 3;
+}
+
+.documents {
+  justify-self: start;
+}
+
 .historyRow summary:hover {
   background: color-mix(in srgb, var(--color-canvas) 60%, var(--color-paper));
 }
@@ -203,6 +216,10 @@
 
   .textSummary .chevron {
     grid-column: 2;
+  }
+
+  .historyRow summary.statelessSummary {
+    grid-template-columns: 64px minmax(0, 1fr) 16px;
   }
 
   .textSummary .rowState {

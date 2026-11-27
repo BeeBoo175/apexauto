@@ -1,6 +1,7 @@
 using Dealership.Application.Accounts;
 using Dealership.Application.Common;
 using Dealership.Application.Vehicles;
+using Dealership.Domain.Sales;
 using Dealership.Domain.Vehicles;
 using Dealership.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ namespace Dealership.Infrastructure.Vehicles;
 public sealed class ReservationReadStore(DealershipDbContext database, TimeProvider clock) : IReservationReadStore
 {
     public async Task<ReservationHistoryResult> AccountAsync(Guid customerId, int page, CancellationToken cancellationToken,
-        ListDateRange? dates = null, string? search = null)
+        ListDateRange? dates = null, string? search = null, bool collectedOnly = false)
     {
         if (!Pagination.IsValidAccount(page, ReservationHistory.PageSize))
         {
@@ -18,12 +19,12 @@ public sealed class ReservationReadStore(DealershipDbContext database, TimeProvi
         }
 
         return await ReservationReadSnapshot.ReadAsync(database,
-            () => ReadSnapshotAsync(customerId, page, dates, search, cancellationToken),
+            () => ReadSnapshotAsync(customerId, page, dates, search, collectedOnly, cancellationToken),
             new ReservationHistoryResult(ReservationStatus.Unavailable), cancellationToken);
     }
 
     private async Task<ReservationHistoryResult> ReadSnapshotAsync(Guid customerId, int page, ListDateRange? dates,
-        string? search, CancellationToken cancellationToken)
+        string? search, bool collectedOnly, CancellationToken cancellationToken)
     {
         var actor = await database.Users.AsNoTracking()
             .Where(user => user.Id == customerId && user.IsActive && user.Role == AccountRoles.Customer)
@@ -43,9 +44,15 @@ public sealed class ReservationReadStore(DealershipDbContext database, TimeProvi
         }
 
         var allRows = ReservationReadRows.CreateRows(database, reservations);
-        var rows = dates is { From: { } from, Until: { } until }
-            ? allRows.Where(row => row.Reservation.CreatedAt >= from && row.Reservation.CreatedAt < until)
-            : allRows;
+        var collected = allRows.Where(row => row.Sale.Status == SalesOrderStatus.Delivered);
+        var rows = collectedOnly ? collected : allRows;
+        if (dates is { From: { } from, Until: { } until })
+        {
+            rows = collectedOnly
+                ? rows.Where(row => row.Sale.DeliveredAt >= from && row.Sale.DeliveredAt < until)
+                : rows.Where(row => row.Reservation.CreatedAt >= from && row.Reservation.CreatedAt < until);
+        }
+
         if (!string.IsNullOrWhiteSpace(search))
         {
             var pattern = LiteralSearch.Pattern(search.Trim());
@@ -54,15 +61,26 @@ public sealed class ReservationReadStore(DealershipDbContext database, TimeProvi
                 EF.Functions.ILike(row.ManufactureYear + " " + row.Make + " " + row.Model + " " + row.Trim, pattern, "!"));
         }
         var total = await rows.CountAsync(cancellationToken);
-        var pageIds = await ReservationReadRows.Order(rows).Select(row => row.Reservation.Id)
+        Func<IQueryable<ReservationReadRows.Row>, IOrderedQueryable<ReservationReadRows.Row>> order =
+            collectedOnly ? ReservationReadRows.OrderByCollection : ReservationReadRows.Order;
+        var pageIds = await order(rows).Select(row => row.Reservation.Id)
             .ReadPageAsync(page, ReservationHistory.PageSize, total, cancellationToken);
-        var items = (await ReservationReadRows.Order(rows.Where(row => pageIds.Contains(row.Reservation.Id)))
+        var items = (await order(rows.Where(row => pageIds.Contains(row.Reservation.Id)))
             .ToArrayAsync(cancellationToken)).Select(ReservationReadRows.ToItem).ToArray();
+        var collectedTotal = await collected.CountAsync(cancellationToken);
         var activeRow = await allRows.Where(row => row.Reservation.IsActive).SingleOrDefaultAsync(cancellationToken);
         var active = activeRow is null ? null : ReservationReadRows.ToItem(activeRow);
         var pending = await PendingPaymentAsync(customerId, cancellationToken);
+        var awaiting = (await allRows.Where(row => row.Sale.Status == SalesOrderStatus.Settled)
+                .OrderBy(row => row.Sale.SettledAt).ThenBy(row => row.Reservation.Id)
+                .ToArrayAsync(cancellationToken))
+            .Select(ReservationReadRows.ToItem).ToArray();
         return new(ReservationStatus.Succeeded,
-            new(actor, Array.AsReadOnly(items), total, page, ReservationHistory.PageSize, active, pending));
+            new(actor, Array.AsReadOnly(items), total, page, ReservationHistory.PageSize, active, pending)
+            {
+                AwaitingCollection = Array.AsReadOnly(awaiting),
+                CollectedTotal = collectedTotal
+            });
     }
 
     // Includes a request staff made: it holds the car just as a self-service one does and blocks any other reservation.

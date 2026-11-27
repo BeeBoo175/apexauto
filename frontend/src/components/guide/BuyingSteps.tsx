@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { useRovingTabs } from "@/hooks/use-roving-tabs";
 import type { IconName } from "@/lib/icons";
@@ -17,10 +17,23 @@ export interface BuyingStepPanel {
   content: ReactNode;
 }
 
+function subscribeToHash(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
+
 // One step is shown at a time. The numbered tabs switch between them and the arrow beside the photograph
 // moves on to the next step, so the reader is never faced with all four at once.
 export function BuyingSteps({ steps }: { steps: readonly BuyingStepPanel[] }) {
-  const [active, setActive] = useState(0);
+  // A link can open one step by its id; choosing a tab then takes over.
+  const hash = useSyncExternalStore(
+    subscribeToHash,
+    () => window.location.hash,
+    () => "",
+  );
+  const [chosen, setActive] = useState<number | null>(null);
+  const linked = steps.findIndex((step) => hash === `#${step.id}`);
+  const active = chosen ?? Math.max(linked, 0);
   const baseId = useId();
   const last = steps.length - 1;
 
@@ -70,6 +83,7 @@ export function BuyingSteps({ steps }: { steps: readonly BuyingStepPanel[] }) {
             data-active={index === active || undefined}
             className={styles.panel}
           >
+            <span id={step.id} className={styles.anchor} />
             <div className={styles.copy}>
               <span className={styles.badge}>Step {index + 1}</span>
               <h2 className={`${layout.sectionHeading} ${styles.title}`}>{step.label}</h2>

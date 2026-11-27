@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Dealership.Application.Accounts;
+using Dealership.Application.Common;
 using Dealership.Application.Sales;
 using Dealership.Domain.Sales;
 using Dealership.Domain.Vehicles;
@@ -9,6 +10,7 @@ using Dealership.Infrastructure.Mail;
 using Dealership.Infrastructure.Persistence;
 using Dealership.Infrastructure.Sales;
 using Microsoft.EntityFrameworkCore;
+using Dealership.Application.Vehicles;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
@@ -251,7 +253,7 @@ public sealed class SaleHandoverTests(IntakePhotoFixture fixture) : IClassFixtur
     }
 
     [Fact]
-    public async Task SettlementQueuesOnePaymentMail()
+    public async Task SettlementQueuesOnePaymentMailAndListsTheCarAsAwaitingCollection()
     {
         var world = await SaleWorld.SharedAsync(fixture);
         var (held, _) = await SettledAsync(world);
@@ -274,6 +276,14 @@ public sealed class SaleHandoverTests(IntakePhotoFixture fixture) : IClassFixtur
         Assert.Contains($"/account/sales/{held.Id}/documents", claim.Message.Body);
         Assert.DoesNotContain(held.Buyer.Nric!, claim.Message.Body);
 
+        // A later history page and a filter matching nothing still show the paid car.
+        var reads = world.Services.GetRequiredService<IReservationReadStore>();
+        var history = (await reads.AccountAsync(held.CustomerId, 1, default, search: "no such car")).History!;
+        Assert.Empty(history.Items);
+        var waiting = Assert.Single(history.AwaitingCollection, item => item.Receipt.Id == held.Id);
+        Assert.NotNull(waiting.SettledAt);
+        Assert.Null(waiting.DeliveredAt);
+
         // Only settlement and handover history entries may queue sale mail.
         await RejectSqlAsync("""
             INSERT INTO "SaleDeliveryMailOutbox" ("Id", "SalesOrderId", "DeliveryOperationId", "RecipientEmail",
@@ -282,6 +292,38 @@ public sealed class SaleHandoverTests(IntakePhotoFixture fixture) : IClassFixtur
             FROM "SalesOrderEvents" e JOIN "Reservations" r ON r."Id" = e."SalesOrderId"
             WHERE e."SalesOrderId" = @id AND e."Kind" = 'Submitted'
             """, held.Id, "CK_SaleDeliveryMailOutbox_Delivery");
+    }
+
+    [Fact]
+    public async Task CollectionHistoryListsOnlyHandedOverCarsAndFiltersByHandoverDate()
+    {
+        var world = await SaleWorld.SharedAsync(fixture);
+        var (held, request) = await SettledAsync(world);
+        var reads = world.Services.GetRequiredService<IReservationReadStore>();
+        var waiting = (await reads.AccountAsync(held.CustomerId, 1, default, collectedOnly: true)).History!;
+        Assert.DoesNotContain(waiting.Items, item => item.Receipt.Id == held.Id);
+        Assert.Equal(waiting.Total, waiting.CollectedTotal);
+        Assert.Equal(SaleResultStatus.Succeeded, (await world.Services.GetRequiredService<SaleHandoverService>()
+            .DeliverAsync(world.Agent, held.Id, request, default)).Status);
+        await using var database = NewContext();
+        var sale = await database.SalesOrders.AsNoTracking().SingleAsync(item => item.Id == held.Id);
+        var delivered = sale.DeliveredAt!.Value;
+
+        var history = (await reads.AccountAsync(held.CustomerId, 1, default, collectedOnly: true)).History!;
+        Assert.Equal(waiting.Total + 1, history.Total);
+        Assert.Equal(history.Total, history.CollectedTotal);
+        Assert.Equal(held.Id, history.Items[0].Receipt.Id);
+        Assert.All(history.Items, item => Assert.NotNull(item.DeliveredAt));
+        Assert.DoesNotContain(history.AwaitingCollection, item => item.Receipt.Id == held.Id);
+
+        // The range is judged on the handover, and a filtered page keeps the unfiltered total.
+        var after = (await reads.AccountAsync(held.CustomerId, 1, default,
+            new ListDateRange(delivered.AddSeconds(1), delivered.AddDays(1)), collectedOnly: true)).History!;
+        Assert.DoesNotContain(after.Items, item => item.Receipt.Id == held.Id);
+        Assert.Equal(history.CollectedTotal, after.CollectedTotal);
+        var around = (await reads.AccountAsync(held.CustomerId, 1, default,
+            new ListDateRange(delivered, delivered.AddSeconds(1)), collectedOnly: true)).History!;
+        Assert.Equal(held.Id, Assert.Single(around.Items).Receipt.Id);
     }
 
     // Sale mail left pending by other cases in the shared database would be claimed ahead of the one under test.

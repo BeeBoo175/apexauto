@@ -8,6 +8,7 @@ import {
 test("account sections are kebab-case paths and the first section is the workspace root", () => {
   expect(accountSectionPath("reservations")).toBe("/account");
   expect(accountSectionPath("appointments")).toBe("/account/appointments");
+  expect(accountSectionPath("awaiting-collection")).toBe("/account/awaiting-collection");
   expect(accountSectionPath("test-drives")).toBe("/account/test-drives");
   expect(accountSectionPath("details")).toBe("/account/details");
 });

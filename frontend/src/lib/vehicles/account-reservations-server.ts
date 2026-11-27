@@ -28,9 +28,10 @@ export async function readAccountReservations(
   page: number,
   filters: ReservationFilters,
   signal?: AbortSignal,
+  view?: "collected",
 ) {
   return privateApiRead(
-    `/api/account/reservations?${accountReservationQuery(page, filters)}`,
+    `/api/account/reservations?${accountReservationQuery(page, filters, view)}`,
     (value) => {
       const snapshot = parseAccountReservations(value);
       return snapshot?.page === page ? snapshot : null;
@@ -51,6 +52,10 @@ export async function relayAccountReservations(request: Request) {
       to: query.get("to") ?? "",
       search: query.get("search") ?? "",
     };
+    const view = query.get("view");
+    if (view !== null && view !== "collected") {
+      throw new HttpError(400, "Choose a supported reservation view.");
+    }
     if (filters.search.length > 160) {
       throw new HttpError(400, "Search with at most 160 characters.");
     }
@@ -65,7 +70,7 @@ export async function relayAccountReservations(request: Request) {
         "Your session could not be confirmed.",
       );
     }
-    const result = await readAccountReservations(page, filters, signal);
+    const result = await readAccountReservations(page, filters, signal, view ?? undefined);
     if (result.data && result.data.actor.userId !== current.actor.userId) {
       throw new HttpError(502, "Your account response could not be confirmed.");
     }

@@ -18,9 +18,14 @@ public static class ReservationQueryEndpoints
         routes.MapGet("/account/reservations", AccountAsync);
     }
 
-    private static async Task<IResult> AccountAsync(int? page, string? from, string? to, string? search, HttpContext context, IReservationReadStore store,
-        CancellationToken cancellationToken)
+    private static async Task<IResult> AccountAsync(int? page, string? from, string? to, string? search, string? view,
+        HttpContext context, IReservationReadStore store, CancellationToken cancellationToken)
     {
+        if (view is not null && view != "collected")
+        {
+            return Results.Problem(statusCode: 400, title: "Provide a supported reservation view.");
+        }
+
         var dates = ListDateRange.Parse(from, to);
         if (dates is null || !ListSearch.IsValid(search ?? ""))
         {
@@ -29,7 +34,8 @@ public static class ReservationQueryEndpoints
 
         return await BoundedCommand.RunAsync(async deadline =>
         {
-            var result = await store.AccountAsync(ActorId(context), page ?? 1, deadline, dates, search);
+            var result = await store.AccountAsync(ActorId(context), page ?? 1, deadline, dates, search,
+                view == "collected");
             return Map(result);
         }, Unavailable, cancellationToken);
     }

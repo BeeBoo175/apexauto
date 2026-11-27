@@ -53,6 +53,7 @@ export default async function AccountPage({
       appointments={entry.appointments}
       reservations={entry.reservations}
       testDrives={entry.testDrives}
+      collection={entry.collection}
     />
   );
 }
@@ -69,5 +70,9 @@ function entryParameters(
         ? { page: accountReservationPage(query), filters: accountReservationFilters(query) }
         : null,
     testDrives: section === "test-drives" ? accountTestDriveParams(query) : null,
+    collection:
+      section === "awaiting-collection"
+        ? { page: accountReservationPage(query), filters: accountReservationFilters(query) }
+        : null,
   };
 }

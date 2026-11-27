@@ -134,7 +134,7 @@ internal static class CustomerClosureBlockers
         switch (row.Status)
         {
             case nameof(SalesOrderStatus.Settled):
-                return "Awaiting delivery";
+                return "Awaiting collection";
             case nameof(SalesOrderStatus.PendingApproval):
                 return "Pending approval";
             default:

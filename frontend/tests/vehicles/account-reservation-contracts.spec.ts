@@ -5,6 +5,7 @@ import {
   accountReservationQuery,
   parseAccountReservation,
   parseAccountReservations,
+  purchaseStateLabel,
 } from "@/lib/vehicles/account-reservations";
 import {
   matchesCustomerCancellation,
@@ -53,11 +54,15 @@ const item = {
   isHandled: false,
   dueAt: null,
   release: null,
+  settledAt: null,
+  deliveredAt: null,
 };
 const snapshot = {
   actor: { userId: owner, role: "Customer", branchId: null },
   items: [item],
   active: item,
+  awaitingCollection: [],
+  collectedTotal: 0,
   page: 1,
   pageSize: 5,
   total: 1,
@@ -81,7 +86,12 @@ test("customer history accepts no registration and keeps an independent active h
     id,
   );
   const released = { ...item, isActive: false, release: cancellation };
-  const purchased = { ...item, isActive: false, release: null };
+  const purchased = {
+    ...item,
+    isActive: false,
+    release: null,
+    settledAt: "2026-10-30T02:00:00Z",
+  };
   expect(parseAccountReservation(purchased)?.release).toBeNull();
   expect(
     parseAccountReservations({ ...snapshot, items: [purchased], active: null })?.items[0].receipt
@@ -116,6 +126,33 @@ test("customer history accepts no registration and keeps an independent active h
   }
   expect(accountReservationPage({ page: "3" })).toBe(3);
   expect(accountReservationPage({ page: "2147483648" })).toBe(1);
+});
+
+test("only paid, uncollected cars are listed as awaiting collection and labelled apart from collected ones", () => {
+  const waiting = { ...item, isActive: false, settledAt: "2026-10-30T02:00:00Z" };
+  const collected = { ...waiting, deliveredAt: "2026-10-31T02:00:00Z" };
+  const parse = (awaitingCollection: unknown) =>
+    parseAccountReservations({ ...snapshot, awaitingCollection });
+
+  // The list is independent of the history page, which here holds only the active hold.
+  expect(parse([waiting])?.awaitingCollection).toHaveLength(1);
+  expect(
+    Object.fromEntries(
+      new URLSearchParams(
+        accountReservationQuery(1, { from: "", to: "", search: "" }, "collected"),
+      ),
+    ),
+  ).toEqual({ page: "1", view: "collected" });
+  for (const collectedTotal of [undefined, -1, 1.5]) {
+    expect(parseAccountReservations({ ...snapshot, collectedTotal })).toBeNull();
+  }
+  for (const invalid of [undefined, [item], [collected], [{ ...waiting, settledAt: null }]]) {
+    expect(parse(invalid)).toBeNull();
+  }
+  expect(purchaseStateLabel(parseAccountReservation(waiting)!)).toBe("Awaiting collection");
+  expect(purchaseStateLabel(parseAccountReservation(collected)!)).toBe("Collected");
+  expect(parseAccountReservation({ ...waiting, settledAt: null })).toBeNull();
+  expect(parseAccountReservation({ ...collected, settledAt: null })).toBeNull();
 });
 
 test("a pending payment carries only the provider payment address", () => {

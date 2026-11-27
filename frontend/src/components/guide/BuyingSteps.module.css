@@ -251,3 +251,9 @@
     transform: none;
   }
 }
+
+/* The scroll target of a step link, clear of the sticky header and the tabs above the panel. */
+.anchor {
+  position: absolute;
+  scroll-margin-top: calc(var(--site-header-height) + 100px);
+}

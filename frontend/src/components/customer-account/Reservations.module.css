@@ -117,6 +117,31 @@
   font-weight: 600;
 }
 
+.collectionLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+
+.collectionLinks a {
+  padding-block: 8px;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.collectionLinks a:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+.stepDate {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 400;
+}
+
 .help,
 .reference {
   color: var(--color-muted);

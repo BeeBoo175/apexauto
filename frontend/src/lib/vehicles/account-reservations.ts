@@ -40,6 +40,9 @@ export interface AccountReservation {
   isHandled: boolean;
   // The running deadline, which a released claim resumes; empty while the sale is handled.
   dueAt: string | null;
+  // Full payment is confirmed; the car waits at its showroom until the handover is recorded.
+  settledAt: string | null;
+  deliveredAt: string | null;
 }
 
 // A deposit the customer started paying for: the car is held for them, but nothing is reserved until it is paid.
@@ -60,6 +63,21 @@ export interface AccountReservations extends Page<AccountReservation> {
   actor: CurrentActor;
   active: AccountReservation | null;
   pendingPayment: PendingPayment | null;
+  // Every paid car not yet collected, whatever history page or filter is open.
+  awaitingCollection: AccountReservation[];
+  // Cars already handed over, before any filter.
+  collectedTotal: number;
+}
+
+export function purchaseStateLabel(item: AccountReservation) {
+  if (item.release) {
+    return customerReservationStates[item.release.kind];
+  }
+  return item.deliveredAt ? "Collected" : "Awaiting collection";
+}
+
+function isAwaitingCollection(item: AccountReservation | null): item is AccountReservation {
+  return Boolean(item && !item.isActive && !item.release && item.settledAt && !item.deliveredAt);
 }
 
 function parsePendingPayment(value: unknown): PendingPayment | null {
@@ -135,6 +153,10 @@ export function parseAccountReservation(value: unknown): AccountReservation | nu
     typeof value.isHandled !== "boolean" ||
     (value.isHandled && !value.isActive) ||
     (value.dueAt !== null && !isUtcInstant(value.dueAt)) ||
+    (value.settledAt !== null && !isUtcInstant(value.settledAt)) ||
+    (value.deliveredAt !== null && (!isUtcInstant(value.deliveredAt) || !value.settledAt)) ||
+    // A reservation ends either by release or by the payment that completes the purchase.
+    (!value.isActive && value.release === null && !value.settledAt) ||
     (value.isActive && value.release !== null) ||
     (!value.isActive &&
       value.release !== null &&
@@ -155,6 +177,8 @@ export function parseAccountReservation(value: unknown): AccountReservation | nu
     release,
     isHandled: value.isHandled,
     dueAt: value.dueAt,
+    settledAt: value.settledAt,
+    deliveredAt: value.deliveredAt,
   };
 }
 
@@ -167,7 +191,15 @@ export function parseAccountReservations(value: unknown): AccountReservations | 
   const active = value.active === null ? null : parseAccountReservation(value.active);
   const pendingPayment =
     value.pendingPayment == null ? null : parsePendingPayment(value.pendingPayment);
+  const awaitingCollection = Array.isArray(value.awaitingCollection)
+    ? value.awaitingCollection.map(parseAccountReservation)
+    : null;
+  const { collectedTotal } = value;
   if (
+    typeof collectedTotal !== "number" ||
+    !Number.isSafeInteger(collectedTotal) ||
+    collectedTotal < 0 ||
+    !awaitingCollection?.every(isAwaitingCollection) ||
     (value.pendingPayment != null && !pendingPayment) ||
     !page ||
     page.pageSize !== ACCOUNT_PAGE_SIZE ||
@@ -186,7 +218,7 @@ export function parseAccountReservations(value: unknown): AccountReservations | 
   if (page.items.length !== expectedCount) {
     return null;
   }
-  return { ...page, actor, active, pendingPayment };
+  return { ...page, actor, active, pendingPayment, awaitingCollection, collectedTotal };
 }
 
 export interface ReservationFilters extends HistoryFilters {
@@ -202,8 +234,15 @@ export function accountReservationFilters(params: SearchParams): ReservationFilt
   };
 }
 
-export function accountReservationQuery(page: number, filters: ReservationFilters) {
+export function accountReservationQuery(
+  page: number,
+  filters: ReservationFilters,
+  view?: "collected",
+) {
   const query = new URLSearchParams({ page: String(page) });
+  if (view) {
+    query.set("view", view);
+  }
   if (filters.from) {
     query.set("from", filters.from);
   }

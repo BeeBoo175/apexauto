@@ -16,6 +16,8 @@ import type { HistoryFilters } from "@/lib/intake/list-query";
 import { AppointmentHistory } from "./AppointmentHistory";
 import { AccountReservations } from "./AccountReservations";
 import { AccountTestDrives } from "./AccountTestDrives";
+import { AccountAwaitingCollection } from "./AccountAwaitingCollection";
+import { useAccountReservations } from "@/hooks/use-account-reservations";
 import type { TestDriveHistoryFilters } from "@/lib/test-drives/account";
 import type { ReservationFilters } from "@/lib/vehicles/account-reservations";
 import styles from "./Account.module.css";
@@ -34,15 +36,23 @@ export function AccountWorkspace({
   appointments,
   reservations,
   testDrives,
+  collection,
 }: {
   profile: AccountProfile;
   section: AccountSection;
   appointments: SectionEntry<HistoryFilters> | null;
   reservations: SectionEntry<ReservationFilters> | null;
   testDrives: SectionEntry<TestDriveHistoryFilters> | null;
+  collection: SectionEntry<ReservationFilters> | null;
 }) {
   const actor = useIntakeActor({ userId: profile.userId, role: "Customer", branchId: null });
   const section = sectionFromPathname(usePathname());
+  // Read on every entry: whether the collection tab shows depends on it, whichever tab opens first.
+  const reservationHistory = useAccountReservations(
+    reservations?.page ?? 1,
+    reservations?.filters ?? emptySearch,
+    profile.userId,
+  );
   // A section mounts the first time it is opened and then stays mounted, keeping its drafts.
   const [opened, setOpened] = useState<AccountSection[]>([entrySection]);
   if (!opened.includes(section)) {
@@ -52,6 +62,12 @@ export function AccountWorkspace({
     return null;
   }
   const mounted = (id: AccountSection) => opened.includes(id) || section === id;
+  const waiting = reservationHistory.snapshot?.awaitingCollection.length ?? 0;
+  // The collection tab shows once a car waits or has been collected, or when its own address is open.
+  const bought = waiting > 0 || (reservationHistory.snapshot?.collectedTotal ?? 0) > 0;
+  const tabs = sections.filter(
+    ({ id }) => id !== "awaiting-collection" || bought || section === id,
+  );
   return (
     <section className={styles.page}>
       <header className={styles.heroBand}>
@@ -64,7 +80,7 @@ export function AccountWorkspace({
       </header>
       <div className={styles.tabsBand}>
         <nav className={styles.tabs} aria-label="Account sections">
-          {sections.map(({ id, label }) => (
+          {tabs.map(({ id, label }) => (
             <a
               key={id}
               href={accountSectionPath(id)}
@@ -85,8 +101,18 @@ export function AccountWorkspace({
         <div hidden={section !== "reservations"}>
           {mounted("reservations") && (
             <AccountReservations
-              page={reservations?.page ?? 1}
-              filters={reservations?.filters ?? emptySearch}
+              history={reservationHistory}
+              actorId={profile.userId}
+              ready={actor.ready}
+            />
+          )}
+        </div>
+        <div className={styles.panel} hidden={section !== "awaiting-collection"}>
+          {mounted("awaiting-collection") && (
+            <AccountAwaitingCollection
+              history={reservationHistory}
+              page={collection?.page ?? 1}
+              filters={collection?.filters ?? emptySearch}
               actorId={profile.userId}
               ready={actor.ready}
             />
