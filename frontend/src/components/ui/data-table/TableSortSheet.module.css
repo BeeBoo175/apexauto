@@ -85,3 +85,9 @@
   flex: 1 1 auto;
   min-width: 0;
 }
+
+/* Pressed states. */
+.defaultOption:active:not(:disabled),
+.direction:active:not(:disabled) {
+  background: var(--color-selected-surface, var(--color-line-soft));
+}

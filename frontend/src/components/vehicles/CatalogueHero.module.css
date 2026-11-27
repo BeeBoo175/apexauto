@@ -94,3 +94,8 @@
     margin-top: 16px;
   }
 }
+
+/* Pressed states. */
+.tabs .tab:active:not(:disabled) {
+  background: color-mix(in srgb, var(--color-canvas) 30%, transparent);
+}

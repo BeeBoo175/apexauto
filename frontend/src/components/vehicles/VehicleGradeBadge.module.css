@@ -28,3 +28,8 @@
     transition: none;
   }
 }
+
+/* Pressed states. */
+.badge:active {
+  filter: brightness(0.9);
+}

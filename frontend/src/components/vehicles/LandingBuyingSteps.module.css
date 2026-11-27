@@ -37,15 +37,6 @@
   box-shadow: var(--shadow-surface-dark);
 }
 
-.media img {
-  transform: scale(1.04);
-  transition: transform 900ms cubic-bezier(0.22, 0.8, 0.24, 1);
-}
-
-.step:hover .media img {
-  transform: scale(1);
-}
-
 /* The numeral sits low on the photograph, where none of the three has a face. */
 .media::after {
   position: absolute;
@@ -102,11 +93,5 @@
 
   .media {
     aspect-ratio: 4 / 3;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .media img {
-    transition: none;
   }
 }

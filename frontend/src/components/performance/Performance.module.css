@@ -221,7 +221,6 @@ a.rowValue {
   border-radius: 2px;
 }
 
-.point:hover,
 .flowAside {
   display: flex;
   flex-wrap: wrap;
@@ -481,10 +480,6 @@ a.rowValue {
 }
 
 /* Team charts reuse the chart frame; only the scatter's gridlines, dots and the axis row are their own. */
-.scatterDot:hover,
-/* Column charts: one full-height hit area per column, so hovering anywhere in a column reads it. */
-.columnHit:hover,
-
 /* Charts draw in when they appear: lines trace, columns and bars grow, dots settle. Reduced motion skips it. */
 
 /* Chart marks that open a page or drawer: hover and press feedback for pointer users. */
@@ -560,4 +555,9 @@ a.rowValue {
 /* Loading placeholders reuse this layout as a still shape, so it does not scroll there. */
 :global([data-placeholder]) .view {
   overflow: clip;
+}
+
+/* Pressed states. */
+.personRow:active {
+  background: var(--color-selected-surface, var(--color-line-soft));
 }

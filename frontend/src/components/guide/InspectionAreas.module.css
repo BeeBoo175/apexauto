@@ -400,3 +400,12 @@
     animation: none;
   }
 }
+
+/* Pressed states. */
+.pin:active {
+  transform: translate(-50%, -50%) scale(0.96);
+}
+
+.tab:active {
+  background: var(--color-line-soft);
+}

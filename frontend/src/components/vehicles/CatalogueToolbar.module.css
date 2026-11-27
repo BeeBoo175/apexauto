@@ -84,3 +84,12 @@
 .clearAllButton {
   color: var(--color-signal-dark);
 }
+
+/* Pressed states. */
+.appliedPill:active:not(:disabled) {
+  background: var(--color-line-soft);
+}
+
+.clearAllButton:active:not(:disabled) {
+  background: color-mix(in srgb, var(--color-signal) 16%, var(--color-paper));
+}

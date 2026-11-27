@@ -182,3 +182,8 @@
     transition: none;
   }
 }
+
+/* Pressed states. */
+.resetButton:active:not(:disabled) {
+  background: color-mix(in srgb, var(--color-signal) 16%, var(--color-paper));
+}

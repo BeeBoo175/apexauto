@@ -326,3 +326,8 @@
 :global([data-placeholder]) .pane {
   overflow: clip;
 }
+
+/* Pressed states. */
+.booking:active {
+  filter: brightness(0.9);
+}

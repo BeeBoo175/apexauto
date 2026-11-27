@@ -121,3 +121,8 @@
     padding-inline: 16px;
   }
 }
+
+/* Pressed states. */
+.sections .sectionButton:active:not(:disabled) {
+  background: var(--color-selected-surface, var(--color-line-soft));
+}

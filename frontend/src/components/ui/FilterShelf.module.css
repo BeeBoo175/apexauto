@@ -102,3 +102,8 @@
     animation: none;
   }
 }
+
+/* Pressed states. */
+.shelf [role="radiogroup"] > label:active:not(:has(input:disabled)) {
+  background: var(--color-selected-surface, var(--color-line-soft));
+}

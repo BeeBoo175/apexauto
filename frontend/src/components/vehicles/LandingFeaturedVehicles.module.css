@@ -311,3 +311,9 @@
 .railCar[data-shell] svg {
   opacity: 0.25;
 }
+
+/* Pressed states. */
+.leadCar:active,
+.railCar:active {
+  filter: brightness(0.94);
+}

@@ -331,3 +331,9 @@
     transition: none;
   }
 }
+
+/* Pressed states. */
+.footnoteLink:active {
+  color: var(--color-line);
+  text-decoration-thickness: 2px;
+}

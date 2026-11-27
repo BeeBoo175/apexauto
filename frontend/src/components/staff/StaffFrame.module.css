@@ -812,3 +812,9 @@
     display: none;
   }
 }
+
+/* Pressed states. */
+.monogram:active,
+.profile:active {
+  background: rgb(255 255 255 / 20%);
+}

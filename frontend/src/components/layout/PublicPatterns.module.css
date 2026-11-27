@@ -380,3 +380,8 @@
 .bandDark .sectionSub {
   color: var(--color-line);
 }
+
+/* Pressed states. */
+.seeAll:active {
+  color: var(--color-signal-dark);
+}

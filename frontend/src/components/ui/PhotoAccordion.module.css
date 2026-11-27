@@ -163,8 +163,9 @@
   transform: translateX(6px);
 }
 
-.accordion[data-direction="column"] .panel:not([data-active="true"]):active .collapsedName {
-  transform: translateX(2px) scale(0.98);
+/* The button is a clear layer over the photograph, so a press has to show on the whole panel. */
+.panel:not([data-active="true"]):has(.trigger:active) {
+  filter: brightness(0.78);
 }
 
 .panel[data-active="true"] .collapsedName {

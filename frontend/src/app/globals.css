@@ -1,6 +1,22 @@
 @layer base, components;
 @import "./base.css";
 
+/* Everything clickable answers a press, with or without a hover style, so no component has to opt in. It sits in the
+   base layer with a minimal selector: a component's own styles always win where they set the same property. Disabled
+   controls and links without an address stay still. */
+@layer base {
+  :where(
+      a[href],
+      button:not(:disabled),
+      summary,
+      [role="button"],
+      [role="tab"],
+      label:has(input:is([type="checkbox"], [type="radio"]):not(:disabled))
+    ):where(:not([aria-disabled="true"])):active {
+    opacity: 0.65;
+  }
+}
+
 :root {
   --radius-sm: 4px;
   --radius-surface: 12px;

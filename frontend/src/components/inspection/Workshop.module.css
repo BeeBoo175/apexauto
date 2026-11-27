@@ -335,3 +335,8 @@
     padding-left: 0;
   }
 }
+
+/* Pressed states. */
+.mobileCheckpointHeader:active {
+  background: var(--color-selected-surface, var(--color-line-soft));
+}

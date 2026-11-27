@@ -366,3 +366,8 @@
 .vehicle[data-shell] .branchLine svg {
   opacity: 0.25;
 }
+
+/* Pressed states. The hover rule above keeps full opacity, so the press is restated after it. */
+.photoControl button:active:not(:disabled) {
+  opacity: 0.65;
+}

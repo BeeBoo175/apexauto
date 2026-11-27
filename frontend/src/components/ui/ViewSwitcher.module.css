@@ -168,3 +168,8 @@
 .surface.labelled .label {
   display: inline;
 }
+
+/* Pressed states. */
+.surface .option:active:not([aria-pressed="true"]) {
+  background: var(--color-selected-surface, var(--color-line-soft));
+}
