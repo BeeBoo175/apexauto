@@ -9,6 +9,7 @@ import { type TestDriveHistoryItem, type TestDriveHistoryFilters } from "@/lib/t
 import { CancelTestDrive } from "./CancelTestDrive";
 import { HistoryFilterForm } from "./HistoryFilterForm";
 import { EmptyNotice } from "@/components/ui/EmptyNotice";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { AccountLoadingShell } from "./AccountLoadingShell";
 import styles from "./Account.module.css";
 import historyStyles from "./ReservationHistory.module.css";
@@ -46,12 +47,8 @@ export function AccountTestDrives({
         </div>
       </div>
       {!snapshot && history.busy && <AccountLoadingShell label="Loading test drives" />}
-      {!snapshot && !history.busy && (
-        <Button variant="secondary" disabled={disabled} onClick={() => void history.load()}>
-          Try loading test drives again
-        </Button>
-      )}
-      {!empty && (
+      {!snapshot && !history.busy && <ReloadNotice subject="Your test drives" />}
+      {(snapshot || history.busy) && !empty && (
         <HistoryFilterForm
           draft={history.draft}
           disabled={disabled}

@@ -19,6 +19,7 @@ import { ReservationHistoryRow } from "./ReservationHistoryRow";
 import { CancelReservation } from "./CancelReservation";
 import { DepositRefunds } from "./DepositRefunds";
 import { PendingPayment } from "./PendingPayment";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { AccountLoadingShell } from "./AccountLoadingShell";
 import styles from "./Reservations.module.css";
 import historyStyles from "./ReservationHistory.module.css";
@@ -60,11 +61,7 @@ export function AccountReservations({
       <div className={styles.body}>
         <DepositRefunds actorId={actorId} />
         {!snapshot && history.busy && <AccountLoadingShell label="Loading reservations" />}
-        {!snapshot && !history.busy && (
-          <Button variant="secondary" disabled={disabled} onClick={() => void history.load()}>
-            Try loading reservations again
-          </Button>
-        )}
+        {!snapshot && !history.busy && <ReloadNotice subject="Your reservations" />}
         {snapshot?.pendingPayment && (
           <PendingPayment
             key={snapshot.pendingPayment.requestId}

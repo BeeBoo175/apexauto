@@ -12,8 +12,7 @@ export function useAccountAppointments(initialPage: number, initialFilters: Hist
       `/api/intake/appointments?${historyQuery(filters, page, ACCOUNT_PAGE_SIZE)}`,
     parse: (value) => parsePage(value, parseAppointment, ACCOUNT_PAGE_SIZE),
     loadingLabel: "Loading appointments",
-    failureMessage:
-      "Appointment history could not be refreshed. The last confirmed records and filters remain shown.",
+    subject: "Your appointments",
   });
 
   function cancelled(id: string, cancelledAt: string) {

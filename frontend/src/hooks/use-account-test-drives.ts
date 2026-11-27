@@ -14,7 +14,7 @@ export function useAccountTestDrives(
     parse: parseTestDriveHistory,
     loadingLabel: "Loading test drives",
     confirms: (confirmed) => confirmed.actor.userId === actorId,
-    failureMessage: "Test drives could not be refreshed. Your last confirmed records remain shown.",
+    subject: "Your test drives",
   });
 
   function cancelled(receipt: NonNullable<ReturnType<typeof parseTestDriveCancellation>>) {

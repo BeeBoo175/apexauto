@@ -11,6 +11,7 @@ import { formatMalaysianDateTime } from "@/lib/date-format";
 import { CancelAppointment } from "./CancelAppointment";
 import { EmptyNotice } from "@/components/ui/EmptyNotice";
 import { HistoryFilterForm } from "./HistoryFilterForm";
+import { ReloadNotice } from "@/components/ui/ReloadNotice";
 import { AccountLoadingShell } from "./AccountLoadingShell";
 import styles from "./Account.module.css";
 import historyStyles from "./ReservationHistory.module.css";
@@ -45,12 +46,8 @@ export function AppointmentHistory({
         </div>
       </div>
       {!snapshot && history.busy && <AccountLoadingShell label="Loading appointments" />}
-      {!snapshot && !history.busy && (
-        <Button variant="secondary" disabled={disabled} onClick={() => void history.load()}>
-          Try loading appointments again
-        </Button>
-      )}
-      {!empty && (
+      {!snapshot && !history.busy && <ReloadNotice subject="Your appointments" />}
+      {(snapshot || history.busy) && !empty && (
         <div className={styles.filterGroup}>
           <HistoryFilterForm
             draft={draft}

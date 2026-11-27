@@ -21,7 +21,8 @@ interface AccountHistoryResource<T extends HistoryPage, F extends SearchableHist
   parse: (value: unknown) => T | null;
   // Extra checks beyond the confirmed page number, such as actor identity.
   confirms?: (history: T) => boolean;
-  failureMessage: string;
+  // Names the list in a failed read's message.
+  subject: string;
   loadingLabel: string;
 }
 
@@ -82,7 +83,12 @@ export function useAccountHistory<T extends HistoryPage, F extends SearchableHis
       entryRead.current = false;
     } catch {
       if (!attempt.signal.aborted) {
-        toast.error(resource.failureMessage);
+        // Only a list that was already shown can promise its records are still there.
+        toast.error(
+          snapshot
+            ? `${resource.subject} could not be refreshed. Your last confirmed records remain shown. Reload the page to try again.`
+            : `${resource.subject} could not be loaded. Reload the page to try again.`,
+        );
       }
     } finally {
       if (controller.current === attempt) {

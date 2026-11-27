@@ -19,8 +19,7 @@ export function useAccountReservations(
     parse: parseAccountReservations,
     confirms: (confirmed) => confirmed.actor.userId === actorId,
     loadingLabel: "Loading reservations",
-    failureMessage:
-      "Reservations could not be refreshed. Your last confirmed records remain shown.",
+    subject: "Your reservations",
   });
 
   function cancelled(item: AccountReservation, receipt: CustomerReservationCancellation) {
