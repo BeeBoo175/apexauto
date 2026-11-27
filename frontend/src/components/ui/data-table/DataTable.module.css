@@ -433,3 +433,8 @@
     touch-action: pan-x pan-y;
   }
 }
+
+/* Loading placeholders reuse this layout as a still shape, so it does not scroll there. */
+:global([data-placeholder]) .scroll {
+  overflow: clip;
+}

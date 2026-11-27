@@ -253,3 +253,9 @@
   border-radius: 50%;
   background: var(--color-interaction-border);
 }
+
+/* Loading placeholders reuse this layout as a still shape, so it does not scroll there. */
+:global([data-placeholder]) .workspace,
+:global([data-placeholder]) .scheduled {
+  overflow: clip;
+}

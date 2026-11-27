@@ -1,3 +1,10 @@
+/* Public pages scroll the document, so they reserve the scrollbar track: content, the sticky header and anything fixed
+   keep one width whether or not the page is tall enough to scroll, and while a dialog locks scrolling. The rule is
+   opted into here, not opted out of by the dashboard, so the dashboard never shows the track while it is loading. */
+:global(html):has(.site) {
+  scrollbar-gutter: stable;
+}
+
 /* The customer site's own surface tokens. The staff dashboard never sits inside this wrapper, so changing the
    storefront palette here cannot alter the dashboard; shared primitives read these through var(). */
 .site {

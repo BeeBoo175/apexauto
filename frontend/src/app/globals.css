@@ -34,12 +34,6 @@
   color-scheme: light;
 }
 
-/* Reserve the scrollbar track on every page, so content, the sticky header and anything fixed keep one width
-   whether or not the page is tall enough to scroll, and while a dialog locks scrolling. */
-html {
-  scrollbar-gutter: stable;
-}
-
 @media (max-width: 920px) {
   :root {
     --site-header-height: 52px;

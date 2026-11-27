@@ -320,3 +320,9 @@
     padding: 8px 12px;
   }
 }
+
+/* Loading placeholders reuse this layout as a still shape, so it does not scroll there. */
+:global([data-placeholder]) .view,
+:global([data-placeholder]) .pane {
+  overflow: clip;
+}

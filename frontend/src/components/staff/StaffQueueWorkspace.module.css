@@ -398,3 +398,8 @@
     overflow: visible;
   }
 }
+
+/* Loading placeholders reuse this layout as a still shape, so it does not scroll there. */
+:global([data-placeholder]) .list {
+  overflow: clip;
+}

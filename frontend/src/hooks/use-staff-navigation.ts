@@ -17,7 +17,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { createInteractionGuard, type InteractionBlock } from "@/lib/interaction-guard";
 import { writeAddress } from "@/lib/browser-url";
 import { staffRecordLocation } from "@/lib/staff/record-location";
-import { staffWorkspacePath } from "@/lib/staff/navigation";
 import {
   StaffEntryRequestsContext,
   StaffHistoryContext,
@@ -168,6 +167,5 @@ export function useStaffNavigation() {
     captureHistory,
     recordNavigation,
     entryPath,
-    localPath: localHistory?.pathname ?? staffWorkspacePath(pathname),
   };
 }

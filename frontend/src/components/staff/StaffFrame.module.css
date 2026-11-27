@@ -15,11 +15,17 @@
   --staff-shell-text: #b4c2d1;
   --radius-sm: 4px;
   --radius-xs: 4px;
+  /* The frame always fills the window and never scrolls the document; each page scrolls inside the content area.
+     Visually hidden labels are absolutely positioned, so without a positioned ancestor they would escape the
+     clipped queue lists and stretch the document. */
+  position: relative;
   display: flex;
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  min-height: 100svh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
   background: var(--color-canvas);
   color: var(--color-graphite);
   font-size: 13px;
@@ -444,29 +450,16 @@
   }
 }
 
+/* This area never scrolls: every page scrolls in its own panes. It clips, so passing overflow such as a page's
+   entrance offset cannot raise a scrollbar beside the page. */
 .content {
-  flex: 1;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.viewport {
-  /* Visually hidden labels are absolutely positioned; without a positioned ancestor they escape the clipped
-     queue lists and stretch the document, so the whole dashboard scrolls. */
-  position: relative;
-  height: 100dvh;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.viewport .content {
   display: flex;
+  flex: 1;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
-}
-
-.viewport .mobileBar {
-  flex-shrink: 0;
+  max-width: 100%;
+  overflow: clip;
 }
 
 .mobileBar {
@@ -517,18 +510,13 @@
     --staff-mobile-bar-height: 52px;
     --staff-command-height: 52px;
     --staff-sticky-offset: 104px;
-  }
-
-  .page,
-  .page.viewport {
     flex-direction: column;
     height: auto;
     min-height: 100svh;
     overflow: visible;
   }
 
-  .content,
-  .viewport .content {
+  .content {
     overflow: visible;
     flex: none;
     min-height: calc(100svh - var(--staff-mobile-bar-height));
@@ -538,6 +526,7 @@
   /* Sticky, like the command bar and filters beneath it, so the whole stack scrolls and sticks on one compositor
      path; a fixed bar beside sticky ones drifts apart by a frame while scrolling. */
   .mobileBar {
+    flex-shrink: 0;
     position: sticky;
     top: 0;
     z-index: 50;
@@ -821,13 +810,5 @@
 
   .sidebarCollapsed [data-tooltip]::before {
     display: none;
-  }
-}
-
-@media (max-width: 820px) and (max-height: 480px) {
-  .viewport {
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
   }
 }

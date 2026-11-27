@@ -20,7 +20,12 @@ type LoadingShellProps = {
 
 export function StaffLoadingShell({ view, selected, wide, report }: LoadingShellProps) {
   return (
-    <div className={styles.shell} role="status" aria-label="Loading workspace content">
+    <div
+      className={styles.shell}
+      role="status"
+      aria-label="Loading workspace content"
+      data-placeholder
+    >
       <span className="sr-only">Loading workspace content…</span>
       <LoadingContent view={view} selected={selected} wide={wide} report={report} />
     </div>

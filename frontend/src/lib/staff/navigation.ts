@@ -98,9 +98,6 @@ export const staffPageTitles: Record<string, string> = {
   ...Object.fromEntries(staffWorkspaceLinks.map((link) => [link.href, link.label])),
 };
 
-// Workspaces that fill the viewport and scroll inside their own panes.
-export const fitViewportPaths = staffWorkspaceLinks.map((link) => link.href);
-
 export function staffWorkspacePath(pathname: string) {
   if (Object.hasOwn(staffPageTitles, pathname)) {
     return pathname;

@@ -19,7 +19,7 @@ import { hasIntakeAccess, roleNames, type CurrentActor } from "@/lib/auth/actor"
 import { hasInspectionAccess } from "@/lib/inspection/contracts";
 import { hasListingAccess } from "@/lib/vehicles/listings";
 import { hasSettingsAccess } from "@/lib/settings/settings";
-import { fitViewportPaths, staffLinkActive, staffWorkspaceLinks } from "@/lib/staff/navigation";
+import { staffLinkActive, staffWorkspaceLinks } from "@/lib/staff/navigation";
 import styles from "./StaffFrame.module.css";
 import { StaffActorContext, StaffNavigationContext } from "./StaffActorBoundary";
 import { StaffNavigationLockContext } from "./StaffNavigationLockContext";
@@ -72,9 +72,6 @@ function StaffFrameContent({
   ready: boolean;
 }) {
   const navigation = useStaffNavigation();
-  const currentPath = navigation.localPath ?? navigation.pathname;
-  const fitViewport =
-    fitViewportPaths.includes(currentPath) || currentPath.startsWith("/dashboard/intake/");
   const logout = useAuthMutation("logout", "/login");
   // The signed-in person's name and picture come from the shared person read, once per session.
   const { person } = usePersonPreview(actor?.userId ?? "", Boolean(actor));
@@ -124,10 +121,7 @@ function StaffFrameContent({
       <StaffActorContext.Provider value={actor ?? null}>
         <StaffNavigationLockContext.Provider value={navigation.operationLock}>
           <EditGuardFeedback guard={navigation.operationLock.guard} surface={Dialog} />
-          <section
-            className={`${styles.page} ${fitViewport ? styles.viewport : ""}`}
-            inert={Boolean(actor) && !ready}
-          >
+          <section className={styles.page} inert={Boolean(actor) && !ready}>
             <Suspense fallback={null}>
               <NavigationHistory capture={navigation.captureHistory} />
             </Suspense>

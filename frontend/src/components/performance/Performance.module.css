@@ -556,3 +556,8 @@ a.rowValue {
   line-height: 16px;
   white-space: nowrap;
 }
+
+/* Loading placeholders reuse this layout as a still shape, so it does not scroll there. */
+:global([data-placeholder]) .view {
+  overflow: clip;
+}
