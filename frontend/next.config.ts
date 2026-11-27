@@ -56,6 +56,16 @@ if (
 
 const imageProtocol = parsedApiUrl.protocol === "https:" ? "https" : "http";
 
+// The API paths that stream a stored photograph. Their routes own the cache header.
+const photoDownloads = [
+  "vehicles/[^/]+/photos/[^/]+",
+  "account/reservations/[^/]+/photos/[^/]+",
+  "accounts/[^/]+/picture",
+  "staff/listings/[^/]+/photos/[^/]+",
+  "staff/sales/[^/]+/vehicle/photos/[^/]+",
+  "staff/inspection/drafts/[^/]+/photos/[^/]+",
+].join("|");
+
 const nextConfig: NextConfig = {
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   // Remove X-Powered-By header to avoid fingerprinting the server stack.
@@ -127,8 +137,14 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/api/:path*",
+        // Photo and picture downloads set their own header: a day in the browser, no-store on failure.
+        source: `/api/:path((?!(?:${photoDownloads})$).*)`,
         headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        // Site artwork. Without this the browser asks the server again for every picture it already holds.
+        source: "/images/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400" }],
       },
       {
         source: "/auth/:path*",

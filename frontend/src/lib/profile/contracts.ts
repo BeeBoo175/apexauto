@@ -117,9 +117,6 @@ export function parsePerson(value: unknown): Person | null {
   };
 }
 
-// A picture is fetched on every view, so no browser or shared cache may keep one after it is removed.
-export const PICTURE_CACHE_CONTROL = "private, no-store";
-
 const PICTURE_STATES = ["Available", "Pending", "DeletionPending", "Deleted"];
 
 export function parsePictureReceipt(value: unknown): { pictureId: string; status: string } | null {

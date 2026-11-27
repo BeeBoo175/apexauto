@@ -3,6 +3,7 @@ import { isUuid } from "@/lib/auth/contracts";
 import { requestApi } from "@/lib/server/http/upstream";
 import { HttpError, readBoundedBytes } from "@/lib/http";
 import { requireSameOrigin } from "@/lib/server/http/request";
+import { PHOTO_CACHE_CONTROL } from "@/lib/photo-cache";
 import { confirmedActor } from "@/lib/server/http/staff-relay";
 import { requestApiJson, sessionToken } from "@/lib/server/http/api";
 import { apiError, apiJson } from "@/lib/server/http/api";
@@ -65,7 +66,7 @@ export async function inspectionPhoto(request: Request, inspectionId: string, id
       headers: {
         "Content-Type": contentType,
         "Content-Length": String(bytes.byteLength),
-        "Cache-Control": "private, no-store",
+        "Cache-Control": PHOTO_CACHE_CONTROL,
         "X-Content-Type-Options": "nosniff",
         "X-Robots-Tag": "noindex, nofollow",
       },

@@ -1,17 +1,13 @@
 import "server-only";
 import { isUuid } from "@/lib/auth/contracts";
 import { HttpError, parseRetryAfterSeconds, readBoundedBytes } from "@/lib/http";
+import { PHOTO_CACHE_CONTROL } from "@/lib/photo-cache";
 import { PHOTO_DEADLINE_MS, PHOTO_MAX_BYTES, PHOTO_UPLOAD_MAX_BYTES } from "@/lib/intake/contracts";
 import { apiError, apiJson, requestApiJson, sessionToken } from "@/lib/server/http/api";
 import { requireSameOrigin } from "@/lib/server/http/request";
 import { confirmedActor } from "@/lib/server/http/staff-relay";
 import { requestApi } from "@/lib/server/http/upstream";
-import {
-  PICTURE_CACHE_CONTROL,
-  PICTURE_CONTENT_TYPES,
-  parsePictureReceipt,
-  parseRemovedPicture,
-} from "./contracts";
+import { PICTURE_CONTENT_TYPES, parsePictureReceipt, parseRemovedPicture } from "./contracts";
 
 const PICTURE_READ_DEADLINE_MS = 40_000;
 const PICTURE_RECEIPT_DEADLINE_MS = 20_000;
@@ -128,8 +124,11 @@ export async function downloadPicture(request: Request, accountId: string) {
       headers: {
         "Content-Type": contentType,
         "Content-Length": String(bytes.byteLength),
-        // A removed or erased picture must not outlive its removal in any browser or shared cache.
-        "Cache-Control": PICTURE_CACHE_CONTROL,
+        // Only an address that names the picture version may be kept: without it, a replaced picture would
+        // keep showing under the same address.
+        "Cache-Control": isUuid(new URL(request.url).searchParams.get("v") ?? "")
+          ? PHOTO_CACHE_CONTROL
+          : "no-store",
         "X-Content-Type-Options": "nosniff",
         "X-Robots-Tag": "noindex, nofollow",
       },

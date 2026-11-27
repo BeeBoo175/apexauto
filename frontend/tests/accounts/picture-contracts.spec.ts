@@ -1,15 +1,11 @@
 import { expect, test } from "@playwright/test";
-import {
-  PICTURE_CACHE_CONTROL,
-  parsePictureReceipt,
-  parseRemovedPicture,
-} from "@/lib/profile/contracts";
+import { PHOTO_CACHE_CONTROL } from "@/lib/photo-cache";
+import { parsePictureReceipt, parseRemovedPicture } from "@/lib/profile/contracts";
 
 const id = "6b0f5f0e-6a6c-4c7e-9b53-1f6f2f1f4e11";
 
-test("a protected picture is never cached by the browser or a shared cache", () => {
-  expect(PICTURE_CACHE_CONTROL).toBe("private, no-store");
-  expect(PICTURE_CACHE_CONTROL).not.toContain("max-age");
+test("a stored photograph is kept only by the viewer's own browser, for at most a day", () => {
+  expect(PHOTO_CACHE_CONTROL).toBe("private, max-age=86400");
 });
 
 test("an upload receipt names the picture and its state", () => {
