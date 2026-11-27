@@ -82,9 +82,7 @@ export function useVehicleTestDrive(
       );
     } catch {
       if (!attempt.signal.aborted) {
-        toast.error(
-          "Test-drive times could not be refreshed. Retry or reload the vehicle page if availability changed.",
-        );
+        toast.error("Test-drive times could not be refreshed. Reload the page to try again.");
       }
     } finally {
       if (controller.current === attempt) {

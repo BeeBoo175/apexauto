@@ -109,7 +109,7 @@ export function useSaleCompletion(editor: ReturnType<typeof useSaleEditor>) {
       setStage("settlement");
     } catch {
       if (!cancellation.signal.aborted) {
-        toast.error("Buyer details could not be loaded. Retry settlement review.");
+        toast.error("Buyer details could not be loaded. Reload the page to try again.");
       }
     } finally {
       controller.current = null;

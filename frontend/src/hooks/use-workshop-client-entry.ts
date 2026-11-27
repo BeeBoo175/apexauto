@@ -49,7 +49,7 @@ async function readSelection(parameters: SearchParams, signal: AbortSignal) {
           { signal },
         ).catch(() =>
           unavailableResult<EditorSnapshot>(
-            "The inspection could not be loaded. Use refresh to retry.",
+            "The inspection could not be loaded. Reload the page to try again.",
           ),
         )
       : null,
@@ -58,7 +58,7 @@ async function readSelection(parameters: SearchParams, signal: AbortSignal) {
           .then((data) => ({ status: 200, data, message: "", uncertain: false }))
           .catch(() =>
             unavailableResult<RepairReview>(
-              "The selected repair request could not be loaded. Use refresh to retry.",
+              "The selected repair request could not be loaded. Reload the page to try again.",
             ),
           )
       : null,

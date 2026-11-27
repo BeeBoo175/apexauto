@@ -109,12 +109,12 @@ async function readPreview(token: string, signal: AbortSignal): Promise<Preview>
     const message =
       isRecord(body) && typeof body.message === "string"
         ? body.message
-        : "This invitation could not be opened. Reload the page to retry.";
+        : "This invitation could not be opened. Reload the page to try again.";
     return { state: "unavailable", message };
   } catch {
     return {
       state: "unavailable",
-      message: "This invitation could not be opened. Reload the page to retry.",
+      message: "This invitation could not be opened. Reload the page to try again.",
     };
   }
 }

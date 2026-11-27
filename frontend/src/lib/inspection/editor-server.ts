@@ -22,7 +22,7 @@ export async function readSelectedRepair(
     return {
       status: 502,
       data: null,
-      message: "The selected repair request could not be loaded. Use refresh to retry.",
+      message: "The selected repair request could not be loaded. Reload the page to try again.",
       uncertain: false,
     };
   }
@@ -67,6 +67,8 @@ export async function readEditor(
     status: data ? 200 : 502,
     data,
     uncertain: !data,
-    message: data ? "" : "The inspection snapshot could not be confirmed. Retry the read.",
+    message: data
+      ? ""
+      : "The inspection snapshot could not be confirmed. Reload the page to try again.",
   };
 }

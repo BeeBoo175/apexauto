@@ -75,7 +75,9 @@ export function useVehicleCardPhotos(vehicle: PublicVehicle, photoVersion: numbe
     } catch {
       if (!attempt.signal.aborted && controller.current === attempt) {
         setPosition(0);
-        error("More photos could not be loaded. Your cover photo remains available. Try again.");
+        error(
+          "More photos could not be loaded. Your cover photo remains available. Reload the page to try again.",
+        );
       }
     } finally {
       if (controller.current === attempt) {

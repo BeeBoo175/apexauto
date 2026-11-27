@@ -29,7 +29,7 @@ export async function GET(
       await response.body?.cancel();
       throw new HttpError(
         response.status,
-        "This vehicle photo is unavailable. Refresh the catalogue.",
+        "This vehicle photo is unavailable. Reload the page to try again.",
       );
     }
     const contentType = response.headers.get("content-type") ?? "";

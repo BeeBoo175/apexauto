@@ -52,7 +52,7 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
   );
   useInitialToast(
     initial.unscheduled && !initial.unscheduled.data
-      ? "Ongoing work could not be loaded. Use Retry ongoing work."
+      ? "Ongoing work could not be loaded. Reload the page to try again."
       : null,
   );
   useEffect(
@@ -155,7 +155,7 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
         }
         toast.error(
           appointments.data
-            ? "Ongoing work could not be loaded. Confirmed content and filters remain shown; retry or change the shared filters."
+            ? "Ongoing work could not be loaded. Confirmed content and filters remain shown. Reload the page to try again."
             : calendarFailure(appointments.status),
         );
         return false;
@@ -174,7 +174,7 @@ export function useWorkCalendar(actor: CurrentActor, initial: WorkCalendarEntry)
           setUnscheduled({ data: null, filters: confirmed });
         }
         toast.error(
-          "The shared filters could not be applied. Confirmed content remains shown; retry or change the filters.",
+          "The shared filters could not be applied. Confirmed content remains shown. Reload the page to try again.",
         );
         attempt.abort();
       }
@@ -238,5 +238,5 @@ function calendarFailure(status: number) {
   if (status === 422) {
     return "More than 1,000 appointments and test drives match. Refine the shared search, assignment or month. Confirmed content and filters remain shown.";
   }
-  return "Appointments could not be refreshed. Confirmed content and filters remain shown; retry or change the filters.";
+  return "Appointments could not be refreshed. Confirmed content and filters remain shown. Reload the page to try again.";
 }

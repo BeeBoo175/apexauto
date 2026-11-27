@@ -43,7 +43,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       return apiJson({
         status: 403,
         data: null,
-        message: "Listing access changed. Reopen the workspace.",
+        message: "Listing access changed. Reload the page to try again.",
         uncertain: false,
         actor: current.actor,
       });

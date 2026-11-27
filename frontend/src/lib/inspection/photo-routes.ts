@@ -52,7 +52,7 @@ export async function inspectionPhoto(request: Request, inspectionId: string, id
       await response.body?.cancel();
       throw new HttpError(
         response.status,
-        "This private photo is unavailable. Refresh the inspection to check access.",
+        "This private photo is unavailable. Reload the page to try again.",
       );
     }
     const contentType = response.headers.get("content-type") ?? "";

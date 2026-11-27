@@ -36,7 +36,7 @@ export function useTodaySchedule(
   return useSectionRead({
     key: `${actorIdentity(actor)}#${branchId}`,
     refreshes,
-    failure: "Today's schedule could not be loaded. Retry that section.",
+    failure: "Today's schedule could not be loaded. Reload the page to try again.",
     initial,
     read: (signal) => readTodaySchedule(actor, branchId, signal),
   });

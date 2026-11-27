@@ -24,7 +24,7 @@ function unconfirmed<T>(): ApiResult<T> {
   return {
     status: 503,
     data: null,
-    message: "The page could not load everything. Reload to try again.",
+    message: "The page could not load everything. Reload the page to try again.",
     uncertain: true,
   };
 }

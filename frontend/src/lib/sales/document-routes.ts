@@ -51,7 +51,7 @@ export async function relaySaleDocumentPdf(request: Request, saleId: string, doc
       await response.body?.cancel();
       throw new HttpError(
         response.status,
-        "This document is unavailable. Refresh the sale to check access.",
+        "This document is unavailable. Reload the page to try again.",
       );
     }
     if (response.headers.get("content-type") !== "application/pdf") {

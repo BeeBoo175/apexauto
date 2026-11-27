@@ -42,7 +42,7 @@ export async function inspectionReportDocument(
       await response.body?.cancel();
       throw new HttpError(
         response.status,
-        "This signed report is unavailable. Refresh the inspection to check access.",
+        "This signed report is unavailable. Reload the page to try again.",
       );
     }
     if (response.headers.get("content-type") !== "application/pdf") {

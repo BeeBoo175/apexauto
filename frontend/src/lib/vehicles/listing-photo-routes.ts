@@ -67,7 +67,10 @@ export async function downloadListingPhoto(path: string, token: string, signal: 
   const { response, signal: bodySignal } = await requestApi(path, 40_000, { token, signal });
   if (!response.ok) {
     await response.body?.cancel();
-    throw new HttpError(response.status, "This listing photo is unavailable. Retry the photo.");
+    throw new HttpError(
+      response.status,
+      "This listing photo is unavailable. Reload the page to try again.",
+    );
   }
   const contentType = response.headers.get("content-type") ?? "";
   if (!["image/jpeg", "image/png", "image/webp"].includes(contentType)) {

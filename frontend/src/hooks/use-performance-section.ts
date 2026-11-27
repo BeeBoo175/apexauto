@@ -36,7 +36,7 @@ export function usePerformanceSection<T extends { actor: CurrentActor }>({
   return useSectionRead({
     key: `${section}?${query}#${actorIdentity(actor)}`,
     refreshes,
-    failure: `${label} could not be loaded. Retry that section.`,
+    failure: `${label} could not be loaded. Reload the page to try again.`,
     initial,
     enabled,
     read: async (signal) => {

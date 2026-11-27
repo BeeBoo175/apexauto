@@ -34,7 +34,7 @@ export function useAgentHome(
   const { data, busy, failed, retry } = useSectionRead({
     key: actorIdentity(actor),
     refreshes,
-    failure: "Your work could not be loaded. Refresh to try again.",
+    failure: "Your work could not be loaded. Reload the page to try again.",
     initial: { queue: initialQueue, work: initialWork },
     read: (signal) => readAgentWork(actor, signal),
   });
