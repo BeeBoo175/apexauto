@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+// The root 404, 403 and error pages share this style. Loading it with the layout stops Next preloading it as a
+// separate stylesheet that most visits never use.
+import "@/components/ui/StatusPage.module.css";
 import styles from "./Shell.module.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import { IconSprite } from "@/components/ui/IconSprite";
