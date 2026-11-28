@@ -37,6 +37,7 @@ export function SellingSteps({ steps }: { steps: readonly SellingStep[] }) {
                 alt={open ? step.photo.alt : ""}
                 fill
                 quality={85}
+                loading={index === 0 ? "eager" : "lazy"}
                 sizes="(max-width: 900px) 100vw, 900px"
                 style={{ objectPosition: step.photo.position }}
               />

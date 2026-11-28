@@ -138,6 +138,7 @@ export function ShowroomsWorkspace({
                         alt={active ? photo.alt : ""}
                         fill
                         unoptimized
+                        loading={active ? "eager" : "lazy"}
                         sizes="(max-width: 960px) 100vw, 640px"
                       />
                     }

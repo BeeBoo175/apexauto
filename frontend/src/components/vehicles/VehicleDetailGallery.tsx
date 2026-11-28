@@ -92,7 +92,7 @@ export function VehicleDetailGallery({
                   width={120}
                   height={80}
                   unoptimized
-                  loading="lazy"
+                  loading={index === 0 ? "eager" : "lazy"}
                   onError={() => setFailedThumbnails((current) => new Set(current).add(photo.id))}
                 />
               )}

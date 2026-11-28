@@ -34,7 +34,7 @@ export function AuthPage({ title, introduction, children, links }: AuthPageProps
             alt=""
             fill
             sizes="(max-width: 820px) 100vw, 50vw"
-            loading="lazy"
+            loading="eager"
             fetchPriority="low"
             className={styles.image}
           />
