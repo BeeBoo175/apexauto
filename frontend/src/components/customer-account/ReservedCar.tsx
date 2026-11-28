@@ -5,6 +5,8 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { buttonClassName } from "@/components/ui/Button";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
+import { usePhotoLoading } from "@/hooks/use-photo-loading";
 import { formatCurrency } from "@/lib/currency-format";
 import { formatMalaysianDateTime } from "@/lib/date-format";
 import {
@@ -37,19 +39,25 @@ export function ReservedCar({
   const live = usePaymentMode();
   const [failedPhoto, setFailedPhoto] = useState(false);
   const name = reservationVehicleName(item);
+  const photoUrl =
+    item.coverPhotoId && !failedPhoto
+      ? `/api/account/reservations/${item.receipt.id}/photos/${item.coverPhotoId}`
+      : null;
+  const photo = usePhotoLoading(photoUrl, () => setFailedPhoto(true));
   return (
     <article aria-label="Your reserved car" className={styles.reservedCar}>
       <div className={styles.hero}>
         <div className={styles.photo}>
-          {item.coverPhotoId && !failedPhoto ? (
+          <PhotoPlaceholder loading={photo.loading} />
+          {photoUrl ? (
             <Image
-              src={`/api/account/reservations/${item.receipt.id}/photos/${item.coverPhotoId}`}
+              src={photoUrl}
               alt={name}
               width={960}
               height={640}
               unoptimized
               loading="eager"
-              onError={() => setFailedPhoto(true)}
+              {...photo.imageProps}
             />
           ) : (
             <p>Vehicle photography unavailable</p>

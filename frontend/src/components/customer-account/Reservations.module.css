@@ -40,12 +40,11 @@
 }
 
 .photo {
+  composes: frame from "../ui/PhotoPlaceholder.module.css";
   display: grid;
   place-items: center;
   aspect-ratio: 3 / 2;
-  overflow: hidden;
   border-radius: 8px;
-  background: var(--vehicle-photo-placeholder);
   color: var(--color-muted);
   font-size: 14px;
 }

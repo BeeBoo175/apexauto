@@ -37,7 +37,7 @@
   overflow: hidden;
   border-radius: var(--radius-surface);
   box-shadow: var(--shadow-surface);
-  background: var(--vehicle-photo-placeholder), var(--color-graphite);
+  background: var(--color-graphite);
   color: var(--color-paper);
   text-decoration: none;
   isolation: isolate;
@@ -151,10 +151,8 @@
 }
 
 .railPhoto {
-  composes: shell from "../layout/PublicPatterns.module.css";
-  position: relative;
+  composes: frame from "../ui/PhotoPlaceholder.module.css";
   display: block;
-  background: var(--vehicle-photo-placeholder);
 }
 
 .railImage {

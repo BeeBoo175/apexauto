@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { ReloadNotice } from "@/components/ui/ReloadNotice";
+import { usePhotoLoading } from "@/hooks/use-photo-loading";
 import patterns from "@/components/layout/PublicPatterns.module.css";
 import type { ApiResult } from "@/lib/api";
 import { formatCurrency } from "@/lib/currency-format";
@@ -39,6 +41,7 @@ function coverUrl(vehicle: PublicVehicle) {
 
 function RailCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: boolean }) {
   const photoUrl = coverUrl(vehicle);
+  const photo = usePhotoLoading(photoUrl);
 
   return (
     <Link
@@ -51,6 +54,7 @@ function RailCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: b
       aria-label={shell ? undefined : `View details for ${vehicleTitle(vehicle)}`}
     >
       <span className={styles.railPhoto}>
+        <PhotoPlaceholder loading={photo.loading || shell} />
         {photoUrl && (
           <Image
             src={photoUrl}
@@ -59,6 +63,7 @@ function RailCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: b
             unoptimized
             sizes="160px"
             className={styles.railImage}
+            {...photo.imageProps}
           />
         )}
       </span>
@@ -78,6 +83,7 @@ function RailCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: b
 
 function LeadCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: boolean }) {
   const photoUrl = coverUrl(vehicle);
+  const photo = usePhotoLoading(photoUrl);
   const fuel = fuelLabel(vehicle.fuel);
 
   return (
@@ -90,6 +96,7 @@ function LeadCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: b
       aria-hidden={shell || undefined}
       aria-label={shell ? undefined : `View details for ${vehicleTitle(vehicle)}`}
     >
+      <PhotoPlaceholder loading={photo.loading} />
       {photoUrl && (
         <Image
           src={photoUrl}
@@ -99,6 +106,7 @@ function LeadCar({ vehicle, shell = false }: { vehicle: PublicVehicle; shell?: b
           priority
           sizes="(max-width: 920px) 100vw, 700px"
           className={styles.leadPhoto}
+          {...photo.imageProps}
         />
       )}
       <span className={styles.banner}> Newest listing</span>

@@ -13,21 +13,12 @@
 }
 
 .photo {
-  composes: shell from "../layout/PublicPatterns.module.css";
-  position: relative;
+  composes: frame from "../ui/PhotoPlaceholder.module.css";
   display: grid;
   flex-shrink: 0;
   place-items: center;
   aspect-ratio: 16 / 10;
-  overflow: hidden;
   background: var(--color-canvas);
-}
-
-/* The shared placeholder token: a small, sharp photograph of a car under a light wash (see public/images/README.md). */
-.photoPlaceholder {
-  position: absolute;
-  inset: 0;
-  background: var(--vehicle-photo-placeholder);
 }
 
 .photo img {

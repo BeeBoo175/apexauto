@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { Icon } from "@/components/ui/Icon";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { useKeptPhotos } from "@/hooks/use-kept-photos";
 import { fuelLabel, type PublicVehicle } from "@/lib/vehicles/contracts";
 import styles from "./VehicleCardView.module.css";
@@ -37,7 +38,7 @@ export function VehicleCardView({
   // A loading silhouette: the real card laid out with stand-in text, so it has its final height.
   shell?: boolean;
 }) {
-  const { photos, shownUrl, failedAt, markLoaded, markFailed } = useKeptPhotos(
+  const { photos, shownUrl, loading, failedAt, markLoaded, markFailed } = useKeptPhotos(
     photoUrl,
     photoPending,
   );
@@ -49,8 +50,8 @@ export function VehicleCardView({
       aria-hidden={shell || undefined}
     >
       <div className={styles.photo}>
-        {/* The blurred placeholder stays visible while the photo loads and when it cannot load. */}
-        <span className={styles.photoPlaceholder} aria-hidden="true" />
+        {/* The placeholder shows whenever the chosen photo is not on screen, shimmering while it loads. */}
+        <PhotoPlaceholder loading={loading} />
         {photos.map((url) => {
           // Healthy photos keep their lifetime across confirmed reads; a failed one is retried after the next.
           const retry = url in failedAt && photoVersion > failedAt[url] ? photoVersion : 0;

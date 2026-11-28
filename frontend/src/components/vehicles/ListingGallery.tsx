@@ -2,6 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
+import { usePhotoLoading } from "@/hooks/use-photo-loading";
 import Image from "next/image";
 import styles from "./ListingGallery.module.css";
 
@@ -66,10 +68,13 @@ export function ListingPhoto({
   children?: ReactNode;
 }) {
   const [failed, setFailed] = useState(false);
+  const url = photoUrl ?? `/api/staff/listings/${vehicleId}/photos/${id}`;
+  const photo = usePhotoLoading(failed ? null : url, () => setFailed(true));
 
   return (
     <figure className={`${styles.photo} ${className}`.trim()}>
       <div className={`${styles.image} ${frameClassName}`.trim()}>
+        <PhotoPlaceholder loading={photo.loading} />
         {failed ? (
           <div className={styles.unavailable} role="img" aria-label={`${label} unavailable`}>
             <Icon name="car" />
@@ -78,13 +83,13 @@ export function ListingPhoto({
         ) : (
           <Image
             className={imageClassName}
-            src={photoUrl ?? `/api/staff/listings/${vehicleId}/photos/${id}`}
+            src={url}
             alt={`${vehicleName} · listing ${label.toLowerCase()}`}
             width={960}
             height={640}
             unoptimized
             loading={position === 1 ? "eager" : "lazy"}
-            onError={() => setFailed(true)}
+            {...photo.imageProps}
           />
         )}
       </div>

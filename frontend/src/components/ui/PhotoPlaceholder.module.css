@@ -1,0 +1,16 @@
+/* The frame a photograph sits in: positioned, clipped and its own stacking context, so the placeholder stays behind. */
+.frame {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* The stand-in behind a photograph. It takes the shared loading shimmer while the photograph loads. */
+.placeholder {
+  composes: shellBackdrop from "../layout/PublicPatterns.module.css";
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  overflow: hidden;
+  background: var(--vehicle-photo-placeholder);
+}

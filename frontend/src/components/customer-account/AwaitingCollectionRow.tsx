@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { buttonClassName } from "@/components/ui/Button";
 import { formatMalaysianDate } from "@/lib/date-format";
@@ -6,6 +5,7 @@ import {
   reservationVehicleName,
   type AccountReservation,
 } from "@/lib/vehicles/account-reservations";
+import { ReservationThumbnail } from "./ReservationThumbnail";
 import styles from "./ReservationHistory.module.css";
 import reservations from "./Reservations.module.css";
 
@@ -15,20 +15,7 @@ export function AwaitingCollectionRow({ item }: { item: AccountReservation }) {
     <li>
       <details className={styles.historyRow}>
         <summary className={styles.statelessSummary}>
-          <span className={styles.thumb}>
-            {item.coverPhotoId && (
-              <Image
-                src={`/api/account/reservations/${item.receipt.id}/photos/${item.coverPhotoId}`}
-                alt=""
-                width={96}
-                height={64}
-                unoptimized
-                onError={(event) => {
-                  event.currentTarget.hidden = true;
-                }}
-              />
-            )}
-          </span>
+          <ReservationThumbnail reservationId={item.receipt.id} photoId={item.coverPhotoId} />
           <span className={styles.rowMain}>
             <strong>{reservationVehicleName(item)}</strong>
             <span className={styles.help}>

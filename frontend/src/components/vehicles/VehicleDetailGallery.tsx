@@ -4,12 +4,42 @@ import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
+import { usePhotoLoading } from "@/hooks/use-photo-loading";
 import { ListingPhoto } from "./ListingGallery";
 import styles from "./VehicleDetailGallery.module.css";
 
 export interface VehicleDetailPhoto {
   id: string;
   url: string;
+}
+
+// One thumbnail: the shared placeholder shimmers behind it until the photograph loads.
+function GalleryThumbnail({
+  url,
+  eager,
+  onFailure,
+}: {
+  url: string;
+  eager: boolean;
+  onFailure: () => void;
+}) {
+  const photo = usePhotoLoading(url, onFailure);
+
+  return (
+    <>
+      <PhotoPlaceholder loading={photo.loading} />
+      <Image
+        src={url}
+        alt=""
+        width={120}
+        height={80}
+        unoptimized
+        loading={eager ? "eager" : "lazy"}
+        {...photo.imageProps}
+      />
+    </>
+  );
 }
 
 export function VehicleDetailGallery({
@@ -85,15 +115,11 @@ export function VehicleDetailGallery({
                   <Icon name="car" />
                 </span>
               ) : (
-                <Image
+                <GalleryThumbnail
                   key={`${photo.id}:${thumbnailAttempts[photo.id] ?? 0}`}
-                  src={photo.url}
-                  alt=""
-                  width={120}
-                  height={80}
-                  unoptimized
-                  loading={index === 0 ? "eager" : "lazy"}
-                  onError={() => setFailedThumbnails((current) => new Set(current).add(photo.id))}
+                  url={photo.url}
+                  eager={index === 0}
+                  onFailure={() => setFailedThumbnails((current) => new Set(current).add(photo.id))}
                 />
               )}
             </Button>

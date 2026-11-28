@@ -142,10 +142,10 @@
 }
 
 .image {
+  composes: frame from "../ui/PhotoPlaceholder.module.css";
   display: grid;
   place-items: center;
   aspect-ratio: 3 / 2;
-  overflow: hidden;
   border: 1px solid var(--color-line);
   background: var(--color-canvas);
 }

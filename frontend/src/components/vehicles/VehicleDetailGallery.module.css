@@ -23,7 +23,6 @@
   aspect-ratio: 16 / 9;
   border: 0;
   border-radius: 8px;
-  background: var(--vehicle-photo-placeholder);
 }
 
 .selected .selectedImage {
@@ -47,17 +46,15 @@
 }
 
 .thumbnail {
-  position: relative;
+  composes: frame from "../ui/PhotoPlaceholder.module.css";
   width: 100%;
   min-width: 0;
   height: auto;
   min-height: 0;
   aspect-ratio: 3 / 2;
   padding: 0;
-  overflow: hidden;
   border: 0;
   border-radius: 8px;
-  background: var(--vehicle-photo-placeholder);
   cursor: pointer;
   opacity: 0.65;
   transition: var(--vehicle-photo-transition, opacity 180ms ease, transform 180ms ease);

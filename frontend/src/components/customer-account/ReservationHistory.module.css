@@ -146,11 +146,10 @@
 }
 
 .thumb {
+  composes: frame from "../ui/PhotoPlaceholder.module.css";
   display: block;
   aspect-ratio: 3 / 2;
-  overflow: hidden;
   border-radius: 6px;
-  background: var(--vehicle-photo-placeholder);
 }
 
 .thumb img {
