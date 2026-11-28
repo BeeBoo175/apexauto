@@ -86,6 +86,7 @@ export default defineConfig({
         "intake/assisted-conflict-contracts.spec.ts",
         "performance/performance-contracts.spec.ts",
         "performance/performance-location-contracts.spec.ts",
+        "readiness/readiness-contracts.spec.ts",
         "inspection/contracts.spec.ts",
         "vehicles/contracts.spec.ts",
         "vehicles/photo-contracts.spec.ts",
