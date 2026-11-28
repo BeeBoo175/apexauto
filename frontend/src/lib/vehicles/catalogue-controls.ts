@@ -1,6 +1,6 @@
 import { formatCurrency } from "@/lib/currency-format";
-import { showroomName, type Branch } from "@/lib/branches";
 import type { Page } from "@/lib/api";
+import type { Branch } from "@/lib/branches";
 import { fuelLabel, parseGradeList, type CatalogueFilters } from "./contracts";
 
 export interface CatalogueSortOption {
@@ -58,10 +58,9 @@ export function countActiveCatalogueFilters(filters: CatalogueFilters) {
   ].filter((value) => value.trim().length > 0).length;
 }
 
-export function buildAppliedCataloguePills(
-  filters: CatalogueFilters,
-  branches: Page<Branch> | null,
-): AppliedCataloguePill[] {
+// The showroom is not a pill: the selected showroom tab already shows it, and a pill appearing above the list
+// moved the cars down every time a showroom was chosen.
+export function buildAppliedCataloguePills(filters: CatalogueFilters): AppliedCataloguePill[] {
   const pills: AppliedCataloguePill[] = [];
   const make = filters.make.trim();
   const model = filters.model.trim();
@@ -144,15 +143,6 @@ export function buildAppliedCataloguePills(
       key: "grade",
       label: `Grade ${grades.join(", ")}`,
       without: { ...filters, grade: "" },
-    });
-  }
-
-  if (filters.branchId.trim()) {
-    const branch = branches?.items.find((item) => item.id === filters.branchId.trim());
-    pills.push({
-      key: "branch",
-      label: branch ? `Showroom: ${showroomName(branch.name)}` : "Selected showroom",
-      without: { ...filters, branchId: "" },
     });
   }
 

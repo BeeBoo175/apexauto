@@ -133,7 +133,6 @@ export function VehicleCatalogue({
             active={active.filters}
             page={active.page}
             snapshot={snapshot}
-            branches={catalogue.branches}
             busy={busy}
             onApply={(next) => void applyFilters(next, "all")}
           />

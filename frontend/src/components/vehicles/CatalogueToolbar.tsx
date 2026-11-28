@@ -1,8 +1,6 @@
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { ScrollStrip } from "@/components/ui/ScrollStrip";
-import type { Page } from "@/lib/api";
-import type { Branch } from "@/lib/branches";
 import { buildAppliedCataloguePills } from "@/lib/vehicles/catalogue-controls";
 import type { CatalogueFilters, CataloguePage } from "@/lib/vehicles/contracts";
 import { catalogueDefaults } from "@/lib/vehicles/query";
@@ -12,20 +10,12 @@ interface CatalogueToolbarProps {
   active: CatalogueFilters;
   page: number;
   snapshot: CataloguePage | null;
-  branches: Page<Branch> | null;
   busy: boolean;
   onApply: (filters: CatalogueFilters) => void;
 }
 
-export function CatalogueToolbar({
-  active,
-  page,
-  snapshot,
-  branches,
-  busy,
-  onApply,
-}: CatalogueToolbarProps) {
-  const appliedPills = buildAppliedCataloguePills(active, branches);
+export function CatalogueToolbar({ active, page, snapshot, busy, onApply }: CatalogueToolbarProps) {
+  const appliedPills = buildAppliedCataloguePills(active);
 
   const firstItem = snapshot && snapshot.items.length > 0 ? (page - 1) * snapshot.pageSize + 1 : 0;
   const lastItem =

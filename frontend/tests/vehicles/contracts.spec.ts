@@ -541,9 +541,7 @@ test("catalogue grade filter round-trips as a grade list, rejects unknown grades
   for (const invalid of ["D", "A,A", "AB", "A,,B"]) {
     expect(catalogueFilterError({ ...catalogueDefaults, grade: invalid })).not.toBeNull();
   }
-  expect(buildAppliedCataloguePills(filters, null).map((pill) => pill.label)).toEqual([
-    "Grade A, B",
-  ]);
+  expect(buildAppliedCataloguePills(filters).map((pill) => pill.label)).toEqual(["Grade A, B"]);
   expect(
     parseCatalogue({ items: [{ ...vehicle, grade: "B" }], total: 1, page: 1, pageSize: 12 })
       ?.items[0].grade,
@@ -555,38 +553,20 @@ test("catalogue grade filter round-trips as a grade list, rejects unknown grades
 });
 
 test("catalogue pills and pagination slots summarize active criteria and bounded pages", () => {
-  const pills = buildAppliedCataloguePills(
-    {
-      ...catalogueDefaults,
-      make: "Honda",
-      model: "City",
-      maximumPrice: "60000",
-      fuel: "PlugInHybrid",
-      branchId: ids[1],
-    },
-    {
-      items: [
-        {
-          id: ids[1],
-          name: "ApexAuto Glenmarie",
-          address: "12 Jalan U1/51A",
-          city: "Shah Alam",
-          state: "Selangor",
-          phone: "+60355551234",
-          shortCode: "GLN",
-        },
-      ],
-      total: 1,
-      page: 1,
-      pageSize: 25,
-    },
-  );
+  const pills = buildAppliedCataloguePills({
+    ...catalogueDefaults,
+    make: "Honda",
+    model: "City",
+    maximumPrice: "60000",
+    fuel: "PlugInHybrid",
+    branchId: ids[1],
+  });
+  // The chosen showroom shows on its tab, so it is not repeated as a pill.
   expect(pills.map((pill) => pill.label)).toEqual([
     "Make: Honda",
     "Model: City",
     "Under RM 60,000.00",
     "Plug-in hybrid",
-    "Showroom: Glenmarie",
   ]);
   expect(pills[0].without).toMatchObject({ make: "", model: "" });
   expect(catalogueHref(catalogueDefaults)).toBe("/vehicles");
