@@ -156,7 +156,8 @@ app.MapGet("/health", () => Results.Ok(new
 app.MapGet("/health/ready", async (DealershipDbContext db, CancellationToken cancellationToken) =>
     await db.Database.CanConnectAsync(cancellationToken)
         ? Results.Ok(new { status = "ready" })
-        : Results.StatusCode(StatusCodes.Status503ServiceUnavailable)).DisableRateLimiting();
+        : Results.Json(new { status = "unavailable" }, statusCode: StatusCodes.Status503ServiceUnavailable))
+    .DisableRateLimiting();
 
 app.MapTaxonomyValuationEndpoints();
 app.MapInspectionGuideEndpoints();
