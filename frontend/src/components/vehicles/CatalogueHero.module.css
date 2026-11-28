@@ -58,18 +58,31 @@
   text-transform: none;
 }
 
+/* A showroom change reads the list again; the tabs keep their look meanwhile, as the refresh buttons do. */
+.tabs .tab:disabled {
+  opacity: 1;
+  cursor: progress;
+}
+
 @media (hover: hover) {
-  .tabs .tab:hover:not(:disabled) {
+  .tabs .tab:hover:not(:disabled, [aria-pressed="true"]) {
     border-color: var(--color-canvas);
     background: color-mix(in srgb, var(--color-canvas) 18%, transparent);
   }
 }
 
+/* The same weight as the other tabs, so choosing one never changes its width or moves its neighbours. */
 .tabs .tab[aria-pressed="true"] {
   border-color: var(--color-canvas);
   background: var(--color-canvas);
   color: var(--color-graphite);
-  font-weight: 600;
+}
+
+/* The chosen tab answers hover too: a slightly dimmer white, still readable and clearly the chosen one. */
+@media (hover: hover) {
+  .tabs .tab[aria-pressed="true"]:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-canvas) 86%, var(--color-graphite));
+  }
 }
 
 @media (max-width: 960px) {
@@ -96,6 +109,6 @@
 }
 
 /* Pressed states. */
-.tabs .tab:active:not(:disabled) {
+.tabs .tab:active:not(:disabled, [aria-pressed="true"]) {
   background: color-mix(in srgb, var(--color-canvas) 30%, transparent);
 }
